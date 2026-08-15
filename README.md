@@ -6,7 +6,7 @@ baixados pelo site oficial. O jogo foi/está sendo escrito do zero numa platafor
 
 ## Situação atual
 
-**Muito cedo.** O projeto está na v0.1, que é a fase do motor: nenhuma interface gráfica ainda.
+O projeto está na v0.1, que é a fase do motor: nenhuma interface gráfica ainda.
 A prioridade é acertar a matemática da simulação e provar que ela bate com o comportamento
 observado do jogo original, antes de construir telas em cima.
 
@@ -82,7 +82,7 @@ Isso é trabalho de anos em ritmo de projeto voluntário. Prefira acompanhar por
 
 ## Contribuindo
 
-Leia [`CONTRIBUTING.md`](CONTRIBUTING.md) antes de abrir um PR. Existe uma regra clean-room que não
+Leia [`CONTRIBUTING.md`](CONTRIBUTING.md) antes de abrir um PR. Existe uma regra que não
 é negociável: quem descompilou o jogo original não escreve código aqui.
 
 ## Licença
