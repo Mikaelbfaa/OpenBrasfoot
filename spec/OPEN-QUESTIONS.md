@@ -33,7 +33,7 @@ que a suposição fique visível. Evidência a favor: sem o piso, uma defesa com
 
 ### 4. O `round` do anti-exploit em 3.6c
 
-A spec escreve `round(wDef × 0.2)` sem dizer a escala.
+A spec escreve `round(wDef x 0.2)` sem dizer a escala.
 
 **Resolução:** `bfRound` para inteiro, como todo `round` da spec. Para um peso de defesa perto de
 1.0 isso dá 0, que então bate no piso de 0.2.
@@ -48,7 +48,7 @@ meias o bônus não é aplicado.
 
 ### 6. Escala do arredondamento do goleiro fora de posição
 
-`round(GK × 0.2)` pode ser inteiro ou decimal.
+`round(GK x 0.2)` pode ser inteiro ou decimal.
 
 **Resolução:** inteiro, na escala 0 a 10. É a única leitura que reproduz o exemplo da seção 5.3: um
 jogador de linha com força 70 no gol rende 1.0 contra 7.0 de um goleiro de verdade. Consequência
@@ -76,7 +76,7 @@ A seção 3.16 afirma que 20 pontos de diferença de força no meio-campo levam 
 para "~69%" e o de chance de 50% para "~56%".
 
 O primeiro não reproduz: a fórmula de 3.6a dá **67,07%** com divisor 8 e 63,84% com divisor 11.
-O segundo não reproduz de jeito nenhum, porque **o duelo de chance não lê o meio-campo** — ele
+O segundo não reproduz de jeito nenhum, porque **o duelo de chance não lê o meio-campo** - ele
 compara ataque contra defesa.
 
 Todos os outros números de 3.16 reproduzem exatamente: 0.614, 0.565, 0.55, 0.50, ~16 chutes,
