@@ -15,8 +15,14 @@ Já funciona:
 - Gerador aleatório determinístico, com derivação de semente por posição no mundo
 - Grade de 25 slots, posições, características e tipos de competição
 - `effectiveStrength`, a função de força efetiva que é o átomo do motor de partida
+- Agregados de linha, com os divisores fixos do original e a ordem de lista que decide quem entra
+- Os três duelos: posse, criação de chance e resolução de chute, com o sorteio do finalizador
+- `RuleSet`, com os conjuntos `CLASSIC` e `MODERN`, onde os defeitos do original viram dado e não `if`
 - Testes de arquitetura que impedem I/O, relógio, aleatoriedade de plataforma e não determinismo
 - Verificador de estilo de comentário
+
+Ainda falta, para uma partida completa: o laço de tiques, tipos de gol, disciplina e lesões,
+energia, assistências e notas.
 
 ## Como compilar
 
