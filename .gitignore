@@ -1,0 +1,52 @@
+# Build output
+build/
+out/
+bin/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.kotlin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local runtime data
+*.log
+*.hprof
+local.properties
+
+# OpenBrasfoot artifacts produced by the CLI
+*.ofs
+*.ofs.bak*
+*.ofr
+report.md
+report.csv
+
+# ---------------------------------------------------------------------------
+# Copyrighted data denylist.
+#
+# This project ships no data, artwork or code from Brasfoot. The files below
+# belong to the original game and must never enter this repository. They are
+# read from the player's own installation at runtime and stay on their machine.
+#
+# A single accidental commit of these means rewriting published history, so
+# they are blocked here and in CI.
+# ---------------------------------------------------------------------------
+*.ban
+*.ces
+*.cfg
+*.bcf
+*.s22
+*.sbck
+teams/
+selecoes/
+trofeus/
+sons/
+datasets/*/art/
