@@ -54,7 +54,13 @@ value class Slot(val value: Int) {
 }
 
 /**
- * Which line aggregate a slot feeds. Slots zero and eighteen feed none.
+ * Which line a cell belongs to under the classic rules, where slots zero and
+ * eighteen belong to none.
+ *
+ * This is a convenience for display and for the importer. Engine formulas must
+ * never use it: they take their line ranges from the rule set, because slot
+ * eighteen belonging to no line is a defect of the original that the modern
+ * rules repair. Hard coding it here would make that repair impossible.
  */
 @SpecRef("3.4")
 enum class SlotGroup {
