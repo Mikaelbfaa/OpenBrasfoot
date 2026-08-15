@@ -1,0 +1,52 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check
+        run: ./gradlew check --stacktrace
+
+  no-original-content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject data files from the original game
+        run: |
+          matches=$(git ls-files | grep -Ei '\.(ban|ces|cfg|bcf|s22|sbck)$' || true)
+          if [ -n "$matches" ]; then
+            echo "These belong to the original game and must not be committed:"
+            echo "$matches"
+            exit 1
+          fi
+
+      - name: Reject decompiler artefacts outside the spec
+        run: |
+          matches=$(git grep -nE '\bbest\.[a-zA-Z]|\be\.t\b|\bfI\(\)|sL\[' \
+            -- ':!spec/**' ':!.github/**' ':!CONTRIBUTING.md' || true)
+          if [ -n "$matches" ]; then
+            echo "Looks like decompiler output. Code is written from spec/ only:"
+            echo "$matches"
+            exit 1
+          fi
