@@ -99,7 +99,9 @@ class ArchitectureTest {
                     .withIndex()
                     .filter { (_, line) ->
                         val stripped = line.substringBefore("//")
-                        stripped.contains("RuleSetId.") || stripped.contains("ruleSet.id ==")
+                        stripped.contains("RuleSetId.") ||
+                            stripped.contains("RuleSets.") ||
+                            stripped.contains("ruleSet.id ==")
                     }
                     .map { (index, _) -> "${file.name}:${index + 1}" }
                 if (hits.isEmpty()) null else hits
@@ -108,7 +110,8 @@ class ArchitectureTest {
 
         assertTrue(
             offenders.isEmpty(),
-            "A divergence between rulesets belongs in a RuleSet field, not in an if. Found: $offenders",
+            "A divergence between rulesets belongs in a RuleSet field, not in an if, and the engine " +
+                "must take its rules as a parameter rather than naming a preset. Found: $offenders",
         )
     }
 
