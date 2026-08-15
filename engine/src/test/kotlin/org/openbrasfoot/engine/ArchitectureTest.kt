@@ -20,6 +20,15 @@ class ArchitectureTest {
         .toList()
 
     @Test
+    fun `the scan actually finds engine sources`() {
+        assertTrue(
+            sources.isNotEmpty(),
+            "no engine sources were scanned, so every other guard in this class would pass for the " +
+                "wrong reason. Check the working directory of the test task.",
+        )
+    }
+
+    @Test
     fun `engine performs no input or output and does not read the clock`() {
         val banned = listOf(
             "java.io",
