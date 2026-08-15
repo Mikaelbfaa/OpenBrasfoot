@@ -1,0 +1,42 @@
+name: Lacuna na spec
+description: O comportamento necessário não está descrito em spec/
+labels: ["spec-gap"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O motor nunca adivinha em silêncio. Quando a spec não determina um comportamento,
+        a decisão é registrada em spec/OPEN-QUESTIONS.md antes de virar código.
+
+        Importante: o caminho correto é comportamento **observado** jogando o jogo original.
+        Relatos do tipo "descompilei e o código real faz X" não são aceitos.
+
+  - type: input
+    id: section
+    attributes:
+      label: Seção da spec mais próxima
+      placeholder: "3.6c"
+    validations:
+      required: true
+
+  - type: textarea
+    id: gap
+    attributes:
+      label: O que está ambíguo ou faltando
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidência observada
+      description: >
+        O que você viu jogando, e como reproduzir. Números medidos ajudam mais que impressões.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Resolução proposta
+      description: Se você tem uma leitura preferida, diga qual e por quê.

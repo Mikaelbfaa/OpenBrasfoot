@@ -1,0 +1,89 @@
+# Defeitos conhecidos do original
+
+O conjunto de regras `CLASSIC` reproduz o Brasfoot 22-23 **defeito por defeito**, de propósito.
+Isso não é descuido: é a única forma de comparar a saída estatística deste motor com a do jogo
+original e provar que ele está certo.
+
+O conjunto `MODERN` corrige o que estava claramente quebrado.
+
+**Se você encontrou um destes jogando, não é bug deste projeto.** Troque o conjunto de regras ou
+comente na issue correspondente.
+
+## Já implementados
+
+### Slot 18 não conta para nada
+
+O agregado de ataque lê os slots 19 a 25, mas as pontas ficam nos slots 18 e 25. Quem joga no slot
+18 não contribui para nenhuma linha. Na prática o 3-4-3, a única formação que usa esse slot, ataca
+com dois dos seus três atacantes, e ainda divide por três.
+
+Spec: seção 3.4. Em `MODERN` a faixa de ataque vira 18 a 25.
+
+### Mando de campo invertido na conversão de chutes
+
+O ajuste de mando **aumenta** os dois pesos de não-gol do mandante e os **diminui** para o
+visitante. O mandante converte pior, cerca de 8,8% por chute, contra 11,1% do visitante. O maior
+volume de chutes do mandante quase cancela a diferença, o que provavelmente é por isso que ninguém
+percebeu.
+
+Spec: seção 3.6c. Em `MODERN` o sinal é corrigido.
+
+### O peso de "para fora" é sobrescrito
+
+No mesmo trecho, o peso de "para fora" é recalculado a partir do peso de "defendido", jogando fora
+a comparação entre defesa e ataque. Em toda partida com mando, a qualidade da defesa adversária
+deixa de influenciar se o chute vai para fora.
+
+Spec: seção 3.6c. Em `MODERN` o peso original é preservado. Há um par de testes de caracterização
+que prova os dois comportamentos.
+
+### Divisores de linha fixos
+
+Os divisores são constantes 5, 5 e 3, e não a quantidade de jogadores encontrada. Escalar quatro
+meias em vez de cinco custa um quinto da força de meio-campo, e um atacante isolado rende a própria
+força dividida por três. Até o 4-4-2, formação que a IA escolhe em 31% das vezes, sai penalizado.
+
+Spec: seção 3.4. **Não corrigido em `MODERN`**: isso é decisão de balanceamento, não defeito, e
+precisaria de uma alavanca própria.
+
+### Zero e um zagueiro dão no mesmo
+
+A regra anti-exploit contra escalações quebradas atribui pesos 0,10 e 0,05, mas o piso de 0,2 roda
+depois e engole os dois. Uma defesa sem zagueiro nenhum e uma com um zagueiro sofrem exatamente a
+mesma coisa.
+
+Spec: seção 3.6b, com a resolução registrada em `spec/OPEN-QUESTIONS.md`. Mantido como está: sem o
+piso, um zagueiro sofreria **mais** que nenhum, o que é pior.
+
+### A IA nunca é punida por defesa quebrada
+
+As regras anti-exploit acima só valem quando há clube humano na partida.
+
+Spec: seções 3.6b e 3.6c. Mantido.
+
+## Ainda não implementados
+
+Ficam registrados aqui para quando o código chegar nessas partes.
+
+- Três dos quatro botões de tática são inertes. Formação, postura e lado do ataque são escritos e
+  nunca lidos. Só a marcação faz algo, e principalmente na taxa de cartões (seção 3.12).
+- Depois da primeira lesão da partida, a taxa de cartões despenca, porque o limiar é sobrescrito
+  pelo limiar de lesão (seção 3.8).
+- A força exibida na interface usa divisão inteira e mostra zero com energia abaixo de 100
+  (seção 3.15). É defeito de exibição, não do motor.
+- A multa rescisória incide em exatamente 1 dos 8 caminhos de venda, o que torna listar um jogador
+  estritamente pior que oferecê-lo manualmente (seção 6.9).
+- Renovação de 3 anos custa +5% e a de 2 anos custa +15%. Contrato longo é sempre o melhor negócio
+  (seção 6.9).
+- Prorrogação nunca é simulada. Empate em mata-mata vai direto para uma fórmula abstrata de
+  pênaltis (seção 3.10).
+- Clubes da IA não têm dinheiro (seção 6.0). Esse é o mais estrutural de todos.
+
+## Como propor uma correção
+
+Um defeito vira delta do `MODERN` quando é claramente não intencional e a correção não muda o
+balanceamento de forma imprevisível. Um número que apenas parece mal calibrado é balanceamento, não
+defeito, e precisa de discussão antes.
+
+Em nenhum caso a correção entra como `if` no motor. Ela vira campo do `RuleSet`. Ver
+`CONTRIBUTING.md`.

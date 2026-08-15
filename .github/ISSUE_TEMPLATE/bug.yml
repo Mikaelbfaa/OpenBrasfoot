@@ -1,0 +1,61 @@
+name: Bug
+description: Algo no jogo se comporta de forma errada
+labels: ["bug", "needs-replay"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O motor é determinístico de propósito. Com a semente e o replay, qualquer pessoa
+        reproduz o seu caso exatamente. Sem eles, quase nada é investigável.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versão
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ruleset
+    attributes:
+      label: Conjunto de regras
+      options:
+        - CLASSIC
+        - MODERN
+    validations:
+      required: true
+
+  - type: input
+    id: seed
+    attributes:
+      label: Semente
+      description: O número mostrado na tela e gravado no save.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que você esperava, e o que aconteceu
+    validations:
+      required: true
+
+  - type: textarea
+    id: replay
+    attributes:
+      label: Replay
+      description: Anexe o arquivo de replay arrastando para esta caixa.
+
+  - type: checkboxes
+    id: not-a-quirk
+    attributes:
+      label: Confirmação
+      options:
+        - label: >
+            Li docs/known-quirks.md e este não é um defeito conhecido do original que o
+            conjunto CLASSIC reproduz de propósito.
+          required: true
+        - label: >
+            Não estou relatando com base em código descompilado do jogo original.
+          required: true

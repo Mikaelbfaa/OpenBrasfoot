@@ -33,6 +33,29 @@ Consequências práticas:
    `test(model):`, `docs(spec):`.
 5. `./gradlew check` verde antes de abrir o PR.
 
+## O que a validação roda
+
+Tudo abaixo roda no `./gradlew check` e de novo na integração contínua. Rodar localmente antes de
+abrir o PR economiza uma volta.
+
+| Verificação | O que impede |
+|---|---|
+| `checkDocumentStyle` | Símbolos tipográficos em arquivos `.md`. Letras acentuadas são permitidas |
+| `checkCommentStyle` | Caractere não ASCII ou sintaxe markdown dentro de comentário de código |
+| `checkPureDependencies` | Dependência externa entrando em `:model`, `:dataset` ou `:engine` |
+| `ArchitectureTest` | I/O, relógio, aleatoriedade de plataforma, iteração de `HashMap`, matemática transcendental e menção a conjuntos de regras dentro do `:engine` |
+| Testes de unidade | Vetores dourados calculados na mão a partir da spec |
+
+Além disso, a integração contínua recusa o PR se um arquivo de dados do jogo original for
+commitado, ou se aparecerem identificadores típicos de descompilação fora de `spec/` e `docs/`.
+
+Duas verificações merecem explicação, porque não são estilo:
+
+- **`checkPureDependencies`** existe para manter a simulação portátil. O motor não deve arrastar
+  nada além da biblioteca padrão.
+- **`ArchitectureTest`** existe porque cada item da lista produz carreiras que não se reproduzem a
+  partir da semente. Isso quebra o fluxo de relato de bug para todo mundo, não só para você.
+
 ## Regras de código
 
 ### Toda constante cita a spec
