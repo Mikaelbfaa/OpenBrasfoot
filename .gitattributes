@@ -1,2 +1,17 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# The gradle wrapper script is executed by a POSIX shell and must keep LF
+# endings even when checked out on Windows.
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows batch files need CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never normalize binaries.
+*.jar binary
+*.png binary
+*.wav binary
+*.zip binary
