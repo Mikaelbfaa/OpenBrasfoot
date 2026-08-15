@@ -14,6 +14,7 @@ val allowedRuntimeGroups = setOf(
     "org.jetbrains.kotlin",
     "org.jetbrains.kotlinx",
     "org.jetbrains",
+    "org.openbrasfoot",
 )
 
 val checkPureDependencies = tasks.register("checkPureDependencies") {

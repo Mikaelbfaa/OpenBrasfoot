@@ -14,3 +14,11 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+include(
+    ":model",
+    ":dataset",
+    ":engine",
+    ":cli",
+    ":validation",
+)
