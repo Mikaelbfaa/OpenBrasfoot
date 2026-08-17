@@ -47,14 +47,14 @@ Nomes de campo curtos são da ofuscação; a semântica abaixo é **confirmada**
 | Campo | Tipo | Significado | Getter original |
 |---|---|---|---|
 | `a` | String | Nome | `getNome` |
-| `d` | int | Idade | `getIdade` |
+| `d` | int | Idade. Três registros estão fora do plausível: dois jogadores com 0 e um com 56 | `getIdade` |
 | `c` | int | Nacionalidade (tabela de países) | `getPais` |
 | `e` | int | Posição: 0=Goleiro, 1=Lateral, 2=Zagueiro, 3=Meia, 4=Atacante (siglas G/L/Z/M/A) | `getPosicao` |
 | `i` | int | Lado: 0=Direita, 1=Esquerda | `getLado` |
 | `g` | int | Característica 1 (tabela abaixo) | `getCr1` |
 | `h` | int | Característica 2 (tabela abaixo) | `getCr2` |
-| `f` | int | Status: 1=titular, 0=reserva (exatamente 11 titulares por time nos arquivos) | `getStatus` |
-| `b` | boolean | "Estrela" - flag de craque; só 16 jogadores no dataset inteiro (Messi, CR7, Mbappé, Benzema...) | `isEstrela` |
+| `f` | int | Status: 1=titular, 0=reserva. **Nem sempre 11 por time**: 651 dos 703 times têm exatamente 11, e os outros 52 vão de 8 a 15 | `getStatus` |
+| `b` | boolean | "Estrela" - flag de craque; 16 jogadores nos elencos principais e 4 na base, 20 no total | `isEstrela` |
 | `j` | boolean | "Top mundial" - sempre `false` nos arquivos distribuídos | `isTopMundial` |
 | `tid` | int | ID único do jogador (0 nos juniores). **Nunca lido pelo código do jogo** - aparentemente só usado por ferramentas/editor | `getTid` |
 | `hash` | int | **TALENTO / POTENCIAL, 1-10** (0 ocorre nos dados). Campo mais importante depois da posição: controla a taxa de crescimento semanal, o bônus de teto de evolução, a força na promoção da base e o valor de mercado do júnior. Se o jogador é estrela e talento > 8, é forçado a 10. Ver `SIMULATION-SPEC.md` seção 4. | `getHash` |

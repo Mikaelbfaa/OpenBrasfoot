@@ -303,3 +303,16 @@ arbitrário e está registrado como tal.
 
 Isto é **observável**: basta abrir o jogo e ver quem está em cada divisão. Uma observação que
 contrarie a ordenação por nível derruba esta resolução, e o custo é uma função.
+
+### 25. A distribuição de talento nos arquivos não é a da seção 4.6
+
+A 4.6 dá distribuições de talento por qualidade do clube, com pico em 5 e 6 (25% a 35% cada). O
+campo `hash` dos 703 arquivos distribuídos é quase **uniforme**: cada valor de 1 a 10 aparece entre
+1400 e 1800 vezes, e o 0 aparece 186 vezes.
+
+**Resolução:** as duas coisas não estão em conflito, e o item 17 partia de uma premissa errada. As
+distribuições da 4.6 descrevem a **geração de um júnior novo em tempo de execução**, não o conteúdo
+dos arquivos. Um profissional importado traz o talento dele no arquivo e nada precisa ser sorteado.
+
+O item 17 fica revisto: só há sorteio quando a base passar a gerar jogadores, e aí a distribuição da
+4.6 é que vale.
