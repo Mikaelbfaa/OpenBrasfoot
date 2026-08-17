@@ -216,3 +216,20 @@ Resistência, então um lateral com essas duas cai no vazio.
 **Resolução:** 0, defensivo. A última cláusula é condicional e entrega 1, então não casar com ela
 significa não ser 1. O meia e o atacante recebem padrão 1 porque a spec diz isso explicitamente para
 eles; o lateral não tem essa frase.
+
+### 20. Uma fórmula para vários atributos: um sorteio ou um por atributo
+
+A 4.2 escreve a mesma fórmula para mais de um atributo em dois lugares. Na linha do goleiro,
+`Des/Arm/Fin = B+rnd(3)`. Na lista de bônus, `Armação -> Arm e Pas +B+rnd(5)`. Nos dois casos não
+está dito se o `rnd` é sorteado uma vez e usado nos dois ou três atributos, ou uma vez por atributo.
+
+**Resolução:** um sorteio por atributo, nos dois casos.
+
+O argumento é o efeito visível. Com sorteio único, todo goleiro do jogo sairia com desarme,
+armação e finalização exatamente iguais entre si, e todo jogador com a característica Armação
+teria o mesmo incremento em armação e passe. Isso seria um padrão perceptível na tabela de elenco,
+e nada na spec sugere que ele exista. A notação compacta economiza três linhas de tabela, o que
+explica a escrita sem implicar sorteio compartilhado.
+
+Há testes que fixam as duas escolhas, então se a observação contradisser, o que muda é um teste
+e uma linha.
