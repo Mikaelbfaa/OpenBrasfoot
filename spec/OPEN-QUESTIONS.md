@@ -233,3 +233,17 @@ explica a escrita sem implicar sorteio compartilhado.
 
 Há testes que fixam as duas escolhas, então se a observação contradisser, o que muda é um teste
 e uma linha.
+
+### 21. A spec nomeia os cinco países que pagam mais, mas não publica os cinco índices
+
+A 4.8 dá uma tabela de salário melhor para clubes de {ALE, FRA, ITA, ING, ESP}. A FORMAT-SPEC
+publica o índice numérico de quatro deles (3 Alemanha, 65 Espanha, 72 França, 104 Itália) e não o da
+Inglaterra. A tabela completa de 224 países está no arquivo `countries.json`, que não acompanha a
+spec.
+
+**Resolução:** o conjunto vira um campo do país no conjunto de dados, `majorLeague`, do mesmo jeito
+que o nível. Fixar quatro índices em código pagaria a menos para o quinto em silêncio, que é
+exatamente o tipo de erro que ninguém encontra jogando.
+
+O mesmo conjunto de cinco aparece na 4.5 (bônus continental de crescimento) e parcialmente na 4.10
+(limiares de topMundial), então o campo terá mais de um leitor.

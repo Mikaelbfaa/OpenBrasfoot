@@ -66,6 +66,11 @@ data class WorldDataset(
  * distributed table derives it from the FIFA world ranking by documented bands.
  * See OPEN-QUESTIONS item 14. That makes it a deliberate divergence, and also
  * makes correcting it a data edit rather than a code change.
+ *
+ * The major league flag marks the five countries section 4.8 pays more in.
+ * It is data for the same reason: the spec names the five but publishes the
+ * numeric index of only four of them, so hard coding the set would silently
+ * underpay the fifth. See OPEN-QUESTIONS item 21.
  */
 @Serializable
 data class CountryEntry(
@@ -73,6 +78,7 @@ data class CountryEntry(
     val name: String,
     @property:SpecRef("4.4") val level: Int,
     val continent: Int = Country.EUROPE_CONTINENT,
+    @property:SpecRef("4.8") val majorLeague: Boolean = false,
 ) {
     init {
         require(index >= 0) { "country index must not be negative, was $index" }
