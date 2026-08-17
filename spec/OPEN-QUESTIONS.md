@@ -204,3 +204,15 @@ resultado, para que a suposição fique visível.
 
 Vale notar que este caminho só vale para seleções. Um clube em liga escolhe pela divisão e nunca lê
 a reputação aqui.
+
+### 19. A cadeia do lateral na 4.3 não tem padrão
+
+A 4.3 fecha as cadeias do meia e do atacante com um padrão explícito, mas a do lateral termina numa
+condição: "1 se Velocidade/Cruzamento; 0 se Desarme/Marcação; senão 1 se Drible/Finalização/Passe/
+Armação". Um lateral que não casa com nenhuma das três fica sem estilo. As características de
+jogador de linha vão de 4 a 13, e as duas que ficam de fora de todos os testes são Cabeceio e
+Resistência, então um lateral com essas duas cai no vazio.
+
+**Resolução:** 0, defensivo. A última cláusula é condicional e entrega 1, então não casar com ela
+significa não ser 1. O meia e o atacante recebem padrão 1 porque a spec diz isso explicitamente para
+eles; o lateral não tem essa frase.
