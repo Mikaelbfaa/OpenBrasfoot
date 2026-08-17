@@ -1,5 +1,6 @@
 package org.openfoot.engine.world
 
+import org.openfoot.dataset.DatasetOptions
 import org.openfoot.model.Attr
 import org.openfoot.model.Position
 import org.openfoot.model.SplitMix64Rng
@@ -16,7 +17,7 @@ import kotlin.test.assertTrue
  */
 class SquadGenerationTest {
 
-    private val options = WorldOptions()
+    private val options = DatasetOptions()
 
     @Test
     fun `a squad is a pure function of the club stream`() {

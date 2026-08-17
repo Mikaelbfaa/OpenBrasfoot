@@ -63,7 +63,10 @@ private fun importInstallation(args: List<String>) {
         fail("could not import $install: ${failure.message}")
     }
 
-    val json = Json { prettyPrint = true }
+    val json = Json {
+        prettyPrint = true
+        encodeDefaults = true
+    }
     File(out).writeText(json.encodeToString(result.dataset))
 
     println("clubs     ${result.dataset.clubs.size}")

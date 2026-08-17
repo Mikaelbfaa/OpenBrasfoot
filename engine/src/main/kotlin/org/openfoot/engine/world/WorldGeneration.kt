@@ -36,19 +36,19 @@ data class World(
  * in the list, so reordering the dataset, adding a club or removing one leaves
  * every other club generating exactly what it generated before. That is what
  * makes a dataset editable without invalidating every seed anyone has shared.
+ *
+ * The options come from the dataset rather than from a parameter. A world built
+ * with different options is a different world, so which options were in force is
+ * a property of the data and not of the call.
  */
 @SpecRef("4")
-fun generateWorld(
-    dataset: WorldDataset,
-    seed: Long,
-    options: WorldOptions = WorldOptions(),
-): World {
+fun generateWorld(dataset: WorldDataset, seed: Long): World {
     val worldRng: Rng = SplitMix64Rng(seed).fork(SeedDomain.WORLDGEN)
 
     val clubs = dataset.clubs.map { club ->
         GeneratedClub(
             entry = club,
-            squad = generateSquad(club, dataset, options, worldRng.fork(clubKey(club.ref))),
+            squad = generateSquad(club, dataset, dataset.options, worldRng.fork(clubKey(club.ref))),
         )
     }
     return World(seed = seed, clubs = clubs)

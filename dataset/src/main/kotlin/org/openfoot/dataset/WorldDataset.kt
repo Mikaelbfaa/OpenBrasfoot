@@ -27,6 +27,7 @@ import org.openfoot.model.Trait
 @Serializable
 data class WorldDataset(
     val version: Int = CURRENT_VERSION,
+    val options: DatasetOptions = DatasetOptions(),
     val countries: List<CountryEntry>,
     val clubs: List<ClubEntry>,
 ) {
@@ -59,18 +60,29 @@ data class WorldDataset(
 }
 
 /**
+ * The options of the original that change what a world is, rather than how it
+ * looks.
+ *
+ * These are read from the installation rather than chosen, because a world built
+ * with different options is a different world and a dataset should say which one
+ * it describes. Both defaults are what the original ships with.
+ */
+@Serializable
+data class DatasetOptions(
+    @property:SpecRef("FORMAT-SPEC, habilidadeIndividual") val individualAbilities: Boolean = false,
+    @property:SpecRef("4.8") val monthlyWages: Boolean = true,
+)
+
+/**
  * One country, with the strength level that section 4.4 scales players by.
  *
  * The level is the one field here with no source in the original data files.
- * It lives in game code, which the clean-room rule puts out of reach, so the
- * distributed table derives it from the FIFA world ranking by documented bands.
- * See OPEN-QUESTIONS item 14. That makes it a deliberate divergence, and also
- * makes correcting it a data edit rather than a code change.
+ * It lives in game code, which the clean room rule puts out of reach, so it is
+ * derived instead: the level of the strongest club a country holds. See
+ * OPEN-QUESTIONS item 14. That makes it a deliberate divergence, and makes
+ * correcting it a data edit rather than a code change.
  *
  * The major league flag marks the five countries section 4.8 pays more in.
- * It is data for the same reason: the spec names the five but publishes the
- * numeric index of only four of them, so hard coding the set would silently
- * underpay the fifth. See OPEN-QUESTIONS item 21.
  */
 @Serializable
 data class CountryEntry(

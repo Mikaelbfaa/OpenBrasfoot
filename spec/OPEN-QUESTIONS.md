@@ -145,12 +145,24 @@ A 4.4 escala a força pelo nível do país do clube (`nívelPaís <= 13` dispara
 a 0,75). Essa tabela está no código do jogo, não em nenhum arquivo de dados, então está fora do
 alcance da regra clean-room.
 
-**Resolução:** `nível` vira campo do país no conjunto de dados, e a tabela distribuída é derivada do
-ranking mundial da FIFA por faixas: 1-5 dá 20, 6-10 dá 19, 11-20 dá 18, 21-30 dá 17, 31-40 dá 16,
-41-55 dá 15, 56-70 dá 14, 71-90 dá 13, 91-110 dá 12, 111-130 dá 11, 131-150 dá 10, 151-170 dá 9,
-171-190 dá 8, 191 ou pior dá 7.
+**Resolução:** `nível` vira campo do país no conjunto de dados, e o importador o **deriva dos
+próprios dados**: o nível do clube mais forte que o país tem.
 
-Isto é **INFERIDO e uma divergência deliberada**: o original usa uma tabela fixa e o CLASSIC não vai
+Esta resolução substitui uma anterior, que derivava o nível do ranking mundial da FIFA por faixas. A
+derivação a partir dos dados é melhor por três motivos. Não depende de fonte externa nenhuma, então
+não há licença a respeitar nem número inventado de memória. Fica na mesma escala que o nível de
+clube, que é com o que a 4.4 compara. E é reproduzível: qualquer pessoa com a mesma instalação chega
+na mesma tabela.
+
+A derivação se valida sozinha no conjunto distribuído: os cinco países que ela classifica no topo
+(nível 20) são exatamente os cinco que a 4.8 paga mais, uma tabela que a derivação não consulta. A
+distribuição cai suavemente de 20 até 11, e só 23 dos 134 países ficam em 13 ou menos, cobrindo 34
+dos 703 clubes.
+
+Um país sem nenhum clube não tem como ser avaliado e cai num valor acima do limiar, para que a falta
+de dado não enfraqueça um elenco em silêncio.
+
+Continua sendo uma **divergência deliberada**: o original usa uma tabela própria e o CLASSIC não vai
 reproduzir esses multiplicadores até que ela seja observada. Como é dado e não lógica, trocar a
 tabela depois não mexe em código nenhum.
 
@@ -241,12 +253,20 @@ publica o índice numérico de quatro deles (3 Alemanha, 65 Espanha, 72 França,
 Inglaterra. A tabela completa de 224 países está no arquivo `countries.json`, que não acompanha a
 spec.
 
-**Resolução:** o conjunto vira um campo do país no conjunto de dados, `majorLeague`, do mesmo jeito
-que o nível. Fixar quatro índices em código pagaria a menos para o quinto em silêncio, que é
-exatamente o tipo de erro que ninguém encontra jogando.
+**Resolução:** o índice da Inglaterra é **97**, e isto veio dos dados, não de chute.
 
-O mesmo conjunto de cinco aparece na 4.5 (bônus continental de crescimento) e parcialmente na 4.10
-(limiares de topMundial), então o campo terá mais de um leitor.
+A convenção de nome de arquivo marca cada clube com o país (`1deagosto_ang`, `barcelona_esp`), então
+o sufixo dá o código do país de cada índice. O sufixo `ing` aparece no índice 97. E os índices
+publicados pela FORMAT-SPEC estão em ordem alfabética portuguesa (3 Alemanha, 5 Angola, 11 Argentina,
+21 Bélgica, 29 Brasil, 65 Espanha, 72 França, 104 Itália, 154 Portugal), o que coloca 97 exatamente
+onde Inglaterra pertence, entre França e Itália.
+
+O conjunto é `{3, 65, 72, 97, 104}`. Evidência independente: a derivação de nível de país do item 14,
+que não consulta esta lista, classifica exatamente esses cinco no topo.
+
+O campo `majorLeague` do país continua existindo, porque o mesmo conjunto reaparece na 4.5 (bônus
+continental de crescimento) e parcialmente na 4.10 (limiares de topMundial), e porque um conjunto de
+dados que não venha de uma instalação precisa poder dizer isso por conta própria.
 
 ### 22. Onde entram os multiplicadores da 4.9
 
@@ -316,3 +336,18 @@ dos arquivos. Um profissional importado traz o talento dele no arquivo e nada pr
 
 O item 17 fica revisto: só há sorteio quando a base passar a gerar jogadores, e aí a distribuição da
 4.6 é que vale.
+
+### 26. Nenhum arquivo diz o continente de um país
+
+A 3.3 usa o continente do clube no deságio do Mundial de Clubes, e a 4.9 usa a nacionalidade europeia
+num degrau de valor de mercado. Nenhum arquivo distribuído tem campo de continente, e a tabela está
+no código do jogo.
+
+**Resolução:** por enquanto o importador grava um continente que não é a Europa, e registra isso.
+
+O motivo de não inventar a tabela agora é que ela é inerte: o Mundial de Clubes precisa de
+competições, que não existem, e o degrau de valor da 4.9 precisa de clube de nível 21 ou mais, que
+nenhum arquivo expressa. Escolher "não Europa" garante que a falta de dado não conceda isenção
+europeia a ninguém, que é o erro que passaria despercebido.
+
+Quando as competições chegarem, isto deixa de ser inerte e precisa de tabela de verdade.

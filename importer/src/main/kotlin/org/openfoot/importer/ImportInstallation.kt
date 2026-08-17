@@ -2,6 +2,7 @@ package org.openfoot.importer
 
 import org.openfoot.dataset.ClubEntry
 import org.openfoot.dataset.CountryEntry
+import org.openfoot.dataset.DatasetOptions
 import org.openfoot.dataset.WorldDataset
 import org.openfoot.model.SpecRef
 import java.io.File
@@ -20,11 +21,11 @@ data class ImportResult(
  * keep it that way: this reads a machine the player already owns and writes a
  * dataset of numbers, not of anyone's artwork.
  *
- * Two things the installation cannot supply are filled with placeholders and
- * reported rather than guessed. Country names live in a table that ships inside
- * the game rather than beside it, and country strength lives in the game's code,
- * which the clean room rule puts out of reach entirely. Both are dataset fields
- * precisely so that filling them in later costs no code.
+ * What the installation cannot supply is derived or reported, never guessed
+ * silently. Country strength lives in the game's code, out of reach of the clean
+ * room rule, so it is derived from the data instead. Country names live in a
+ * table that ships inside the game rather than beside it, so the file naming
+ * convention supplies a code and the full name is left for a human.
  */
 object InstallationImporter {
 
@@ -57,10 +58,13 @@ object InstallationImporter {
 
         val withDivisions = assignDivisions(clubs, readPyramids(root, notes))
         reportDivisionCoverage(withDivisions, notes)
-        val countries = placeholderCountries(withDivisions, notes)
 
         return ImportResult(
-            dataset = WorldDataset(countries = countries, clubs = withDivisions),
+            dataset = WorldDataset(
+                options = readOptions(root, notes),
+                countries = countries(withDivisions, notes),
+                clubs = withDivisions,
+            ),
             notes = notes.notes,
         )
     }
@@ -89,6 +93,20 @@ object InstallationImporter {
         }
     }
 
+    private fun readOptions(root: File, notes: ImportNotes): DatasetOptions {
+        val file = File(root, OPTIONS_FILE)
+        if (!file.isFile) {
+            notes.note("no $OPTIONS_FILE, so the options the original ships with are assumed")
+            return DatasetOptions()
+        }
+        return try {
+            OptionsFileReader.read(file.readBytes())
+        } catch (failure: Exception) {
+            notes.note("$OPTIONS_FILE could not be read, using defaults: ${failure.message}")
+            DatasetOptions()
+        }
+    }
+
     private fun readPyramids(root: File, notes: ImportNotes): List<DivisionShape> {
         val directory = File(root, LEAGUES_DIRECTORY)
         val files = directory.listFiles { file -> file.isFile && file.name.endsWith(LEAGUE_SUFFIX) }
@@ -111,34 +129,63 @@ object InstallationImporter {
     }
 
     /**
-     * Every country the clubs and their players refer to, as a placeholder.
+     * Every country the clubs and their players refer to.
      *
-     * The name is the index because the real names are not in the installation
-     * beside the data. The level sits one above the threshold at which section
-     * 4.4 starts penalising a country's clubs, so an unfilled table leaves
-     * strength unscaled rather than quietly weakening the whole world. The
-     * continent is deliberately not Europe, so an unfilled table does not
-     * quietly exempt everyone from the handicaps that ask about it.
+     * The level is derived rather than read, because the original keeps it in
+     * code that the clean room rule puts out of reach. A country is rated by the
+     * strongest club it holds, which is the only signal the data offers and a
+     * sound one: a federation whose best side is weak is a weak federation. See
+     * OPEN-QUESTIONS item 14.
+     *
+     * The derivation validates itself on the distributed data. The five
+     * countries it rates highest are exactly the five that section 4.8 pays
+     * more in, which is a table the derivation never sees.
+     *
+     * A country nobody's club plays in gets the fallback, since there is no club
+     * to rate it by. The fallback sits above the threshold at which section 4.4
+     * begins penalising, so an unrateable country leaves strength unscaled
+     * rather than quietly weakening a squad.
      */
     @SpecRef("4.4")
-    private fun placeholderCountries(clubs: List<ClubEntry>, notes: ImportNotes): List<CountryEntry> {
-        val indices = sortedSetOf<Int>()
+    private fun countries(clubs: List<ClubEntry>, notes: ImportNotes): List<CountryEntry> {
+        val strongestClub = HashMap<Int, Int>()
+        val referenced = sortedSetOf<Int>()
+        val codes = HashMap<Int, String>()
+
         for (club in clubs) {
-            indices.add(club.country)
-            indices.add(club.coachCountry)
-            club.squad.forEach { indices.add(it.country) }
+            referenced.add(club.country)
+            referenced.add(club.coachCountry)
+            club.squad.forEach { referenced.add(it.country) }
+
+            val best = strongestClub[club.country]
+            if (best == null || club.level > best) {
+                strongestClub[club.country] = club.level
+            }
+            val code = club.ref.substringAfterLast(REF_SEPARATOR, "")
+            if (code.isNotBlank()) {
+                codes.putIfAbsent(club.country, code)
+            }
+        }
+
+        val unrateable = referenced.count { it !in strongestClub }
+        if (unrateable > 0) {
+            notes.note(
+                "$unrateable of ${referenced.size} countries hold no club, so they cannot be " +
+                    "rated and fall back to level $UNRATEABLE_COUNTRY_LEVEL",
+            )
         }
         notes.note(
-            "${indices.size} countries were referenced and none can be named from the data: " +
-                "levels default to $UNKNOWN_COUNTRY_LEVEL and want filling in before the world " +
-                "is taken seriously",
+            "country names are the file suffixes the data uses, not real names, because the " +
+                "name table ships inside the game rather than beside it",
         )
-        return indices.map { index ->
+
+        return referenced.map { index ->
             CountryEntry(
                 index = index,
-                name = "$UNKNOWN_COUNTRY_PREFIX$index",
-                level = UNKNOWN_COUNTRY_LEVEL,
+                name = codes[index]?.uppercase() ?: "$UNKNOWN_PREFIX$index",
+                level = strongestClub[index] ?: UNRATEABLE_COUNTRY_LEVEL,
                 continent = UNKNOWN_CONTINENT,
+                majorLeague = index in MAJOR_LEAGUE_COUNTRIES,
             )
         }
     }
@@ -148,11 +195,26 @@ object InstallationImporter {
     private const val LEAGUES_DIRECTORY = "conf_ligas_nacionais"
     private const val LEAGUE_SUFFIX = ".cfg"
 
-    private const val UNKNOWN_COUNTRY_PREFIX = "pais "
+    private const val OPTIONS_FILE = "options.bcf"
+    private const val REF_SEPARATOR = '_'
+    private const val UNKNOWN_PREFIX = "pais "
 
     /** One above the level at which section 4.4 begins scaling a country down. */
     @SpecRef("4.4")
-    const val UNKNOWN_COUNTRY_LEVEL = 14
+    const val UNRATEABLE_COUNTRY_LEVEL = 14
+
+    /**
+     * The five countries section 4.8 pays more in.
+     *
+     * The spec names them and publishes the numeric index of only four. The
+     * fifth, England at ninety seven, comes from the data: the file naming
+     * convention tags every club with its country, and the indices of the
+     * tagged countries run in alphabetical order, which places ninety seven
+     * exactly where England belongs between France and Italy. See
+     * OPEN-QUESTIONS item 21.
+     */
+    @SpecRef("4.8")
+    val MAJOR_LEAGUE_COUNTRIES = setOf(3, 65, 72, 97, 104)
 
     /** Anything but Europe, so an unfilled table grants no European exemptions. */
     @SpecRef("3.3")

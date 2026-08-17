@@ -1,23 +1,12 @@
 package org.openfoot.engine.world
 
 import org.openfoot.dataset.ClubEntry
+import org.openfoot.dataset.DatasetOptions
 import org.openfoot.dataset.PlayerEntry
 import org.openfoot.dataset.WorldDataset
 import org.openfoot.model.Country
 import org.openfoot.model.Rng
 import org.openfoot.model.SpecRef
-
-/**
- * The switches that change what a generated world looks like.
- *
- * Both are options of the original rather than rule differences, which is why
- * they are not fields of a rule set. Monthly wages is the original's own
- * default, and the whole of section 4.8 produces a weekly figure that the
- * option quadruples.
- */
-data class WorldOptions(
-    @property:SpecRef("4.8") val monthlyWages: Boolean = true,
-)
 
 /**
  * Turns one dataset entry into a generated player.
@@ -41,7 +30,7 @@ internal fun generatePlayer(
     countryLevel: Int,
     majorLeagueCountry: Boolean,
     europeanNationality: Boolean,
-    options: WorldOptions,
+    options: DatasetOptions,
     rng: Rng,
 ): Player {
     val bands = ClubBands.bands(club.division, club.reputation, club.nationalTeam)
@@ -136,7 +125,7 @@ internal fun generatePlayer(
 fun generateSquad(
     club: ClubEntry,
     dataset: WorldDataset,
-    options: WorldOptions,
+    options: DatasetOptions,
     clubRng: Rng,
 ): List<Player> {
     val country = dataset.country(club.country)

@@ -4,9 +4,6 @@ import org.openfoot.model.Country
 import org.openfoot.model.Position
 import org.openfoot.model.Side
 import org.openfoot.model.Trait
-import java.io.ByteArrayOutputStream
-import java.io.ObjectOutputStream
-import java.io.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -23,75 +20,40 @@ import kotlin.test.assertTrue
  */
 class TeamFileReaderTest {
 
-    private class Squadman(
-        val a: String,
-        val b: Boolean,
-        val c: Int,
-        val d: Int,
-        val e: Int,
-        val f: Int,
-        val g: Int,
-        val h: Int,
-        val i: Int,
-        val j: Boolean,
-        val hash: Int,
-    ) : Serializable
-
-    private class Team(
-        val a: Int,
-        val b: Int,
-        val c: Int,
-        val d: String,
-        val e: String,
-        val f: String,
-        val g: Int,
-        val h: String,
-        val i: Int,
-        val n: Int,
-        val vid: Int,
-        val l: ArrayList<Squadman>,
-    ) : Serializable
-
     private fun squadman(
         name: String = "Jogador",
         age: Int = 25,
         country: Int = Country.BRAZIL,
         position: Int = 3,
-        side: Int = 0,
         firstTrait: Int = 11,
         secondTrait: Int = 12,
         status: Int = 1,
-        star: Boolean = false,
-        topWorld: Boolean = false,
-        talent: Int = 6,
-    ) = Squadman(
-        a = name, b = star, c = country, d = age, e = position, f = status,
-        g = firstTrait, h = secondTrait, i = side, j = topWorld, hash = talent,
+    ) = ImportFixtures.squadman(
+        name = name,
+        age = age,
+        country = country,
+        position = position,
+        firstTrait = firstTrait,
+        secondTrait = secondTrait,
+        status = status,
     )
 
     private fun team(
+        ref: String = "clube_bra",
         country: Int = Country.BRAZIL,
         state: Int = 18,
-        level: Int = 18,
-        ref: String = "clube_bra",
-        name: String = "Clube",
-        reputation: Int = 4,
         version: Int = 185,
-        squad: List<Squadman> = listOf(squadman()),
-    ) = Team(
-        a = country, b = state, c = level, d = ref, e = name,
-        f = "Estadio", g = 45000, h = "Tecnico", i = country, n = reputation,
-        vid = version, l = ArrayList(squad),
+        squad: List<ImportFixtures.Squadman> = listOf(squadman()),
+    ) = ImportFixtures.team(
+        ref = ref,
+        country = country,
+        state = state,
+        version = version,
+        squad = squad,
     )
 
-    private fun bytes(value: Any): ByteArray {
-        val out = ByteArrayOutputStream()
-        ObjectOutputStream(out).use { it.writeObject(value) }
-        return out.toByteArray()
-    }
-
     private fun read(value: Any, fileRef: String = "clube_bra", notes: ImportNotes = ImportNotes()) =
-        TeamFileReader.read(bytes(value), fileRef, notes)
+        TeamFileReader.read(ImportFixtures.bytes(value), fileRef, notes)
 
     @Test
     fun `a well formed file becomes a club entry`() {
