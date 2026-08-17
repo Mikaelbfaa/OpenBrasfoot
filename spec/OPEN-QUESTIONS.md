@@ -280,3 +280,26 @@ quem cada um é.
 
 Isto é uma simplificação deliberada, não uma leitura da spec. Se algum dia a opção puder ser trocada
 com efeito visível, este item vira uma decisão de verdade.
+
+### 24. Nenhum arquivo diz em qual divisão cada clube joga
+
+O arquivo do time não tem campo de divisão. O arquivo de configuração da liga nacional descreve a
+forma da pirâmide (`pais`, `divisao`, `nTimes`, `nRebaixados`) e **não tem lista de times**. Ou seja,
+a associação clube-divisão não está em nenhum dado distribuído, e a divisão escolhe a base de força
+da 4.4 (20 na primeira divisão contra 1 fora da pirâmide), então errar isso muda todo jogador.
+
+**Resolução:** ordenar os clubes de cada país por nível, decrescente, e preencher cada divisão na
+ordem até o `nTimes` dela.
+
+A evidência é forte e verificável: no conjunto distribuído, os vinte clubes brasileiros de maior
+nível são exatamente os vinte que disputaram a Série A de 2022, e os vinte seguintes são exatamente
+os da Série B. O corte de nível cai exatamente na fronteira (níveis 19, 18, 17 e 16 somam vinte
+clubes), então nem empate houve ali.
+
+Empates são desfeitos pela referência do arquivo. Nas divisões de baixo os níveis se repetem muito
+(cinquenta clubes brasileiros no nível 7), e sem critério fixo a mesma base de dados geraria
+pirâmides diferentes a cada execução, quebrando toda semente já compartilhada. O critério é
+arbitrário e está registrado como tal.
+
+Isto é **observável**: basta abrir o jogo e ver quem está em cada divisão. Uma observação que
+contrarie a ordenação por nível derruba esta resolução, e o custo é uma função.
