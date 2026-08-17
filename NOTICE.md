@@ -2,7 +2,7 @@
 
 ## O que este projeto é
 
-OpenBrasfoot é uma **reimplementação comportamental** de um jogo de gerenciamento de futebol.
+OpenFoot é uma **reimplementação comportamental** de um jogo de gerenciamento de futebol.
 Ele foi escrito do zero a partir de especificações que descrevem comportamento observável:
 fórmulas, constantes, probabilidades e fluxo de controle.
 

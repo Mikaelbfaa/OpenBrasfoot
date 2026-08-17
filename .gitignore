@@ -22,7 +22,7 @@ Thumbs.db
 *.hprof
 local.properties
 
-# OpenBrasfoot artifacts produced by the CLI
+# OpenFoot artifacts produced by the CLI
 *.ofs
 *.ofs.bak*
 *.ofr

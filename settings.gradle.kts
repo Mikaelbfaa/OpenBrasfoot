@@ -1,4 +1,4 @@
-rootProject.name = "openbrasfoot"
+rootProject.name = "openfoot"
 
 pluginManagement {
     includeBuild("build-logic")

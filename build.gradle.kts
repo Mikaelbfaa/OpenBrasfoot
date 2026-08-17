@@ -1,8 +1,8 @@
 plugins {
-    id("openbrasfoot.docs")
+    id("openfoot.docs")
 }
 
 allprojects {
-    group = "org.openbrasfoot"
+    group = "org.openfoot"
     version = "0.1.0-SNAPSHOT"
 }

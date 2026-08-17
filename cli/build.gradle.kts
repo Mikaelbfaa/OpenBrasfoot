@@ -1,6 +1,6 @@
 plugins {
-    id("openbrasfoot.kotlin-jvm")
-    id("openbrasfoot.quality")
+    id("openfoot.kotlin-jvm")
+    id("openfoot.quality")
     application
 }
 
@@ -10,6 +10,6 @@ dependencies {
 }
 
 application {
-    mainClass.set("org.openbrasfoot.cli.MainKt")
-    applicationName = "openbrasfoot-cli"
+    mainClass.set("org.openfoot.cli.MainKt")
+    applicationName = "openfoot-cli"
 }

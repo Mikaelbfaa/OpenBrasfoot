@@ -1,6 +1,6 @@
 plugins {
-    id("openbrasfoot.kotlin-pure")
-    id("openbrasfoot.quality")
+    id("openfoot.kotlin-pure")
+    id("openfoot.quality")
 }
 
 dependencies {
