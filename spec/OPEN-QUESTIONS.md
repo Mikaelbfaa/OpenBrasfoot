@@ -267,3 +267,16 @@ padrão de leitura para os multiplicadores acima deles.
 
 Como todos são multiplicações, a ordem entre eles não importa; só importa estarem depois da soma.
 Há um arredondamento único no fim, então nem a ordem entre eles muda o centavo.
+
+### 23. Atributos individuais são sempre gerados, mesmo com a opção desligada
+
+A FORMAT-SPEC diz, como CONFIRMADO, que o original só gera os sete atributos individuais quando a
+opção `habilidadeIndividual` está ligada. Com ela desligada o jogador tem só a força.
+
+**Resolução:** geramos sempre. Custa sete sorteios e não é observável com a opção desligada, porque
+nesse modo o motor lê a força e nunca olha os atributos. Em troca, o jogador é o mesmo jogador
+independentemente de como a opção está, o que evita que ligar a opção no meio de uma carreira mude
+quem cada um é.
+
+Isto é uma simplificação deliberada, não uma leitura da spec. Se algum dia a opção puder ser trocada
+com efeito visível, este item vira uma decisão de verdade.
