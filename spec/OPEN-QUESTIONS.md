@@ -247,3 +247,23 @@ exatamente o tipo de erro que ninguém encontra jogando.
 
 O mesmo conjunto de cinco aparece na 4.5 (bônus continental de crescimento) e parcialmente na 4.10
 (limiares de topMundial), então o campo terá mais de um leitor.
+
+### 22. Onde entram os multiplicadores da 4.9
+
+O bloco da 4.9 lista os multiplicadores (estrela, topMundial, atacante, titular) entre a definição
+de `baseNível` e o termo de idade, mas a linha que produz o resultado, `valor = quadrático x
+baseNível`, vem depois. O texto não diz sobre o que eles incidem.
+
+A escolha muda o número. Um titular estrela de força 50, 24 anos, clube nível 20:
+- multiplicando o `baseNível` antes do termo de idade: `600 x 1,7 = 1020`, mais 176, dá 11,96 M.
+- multiplicando o valor pronto: `(600 + 176) x 1,7`, dá 13,19 M.
+
+**Resolução:** incidem sobre o valor pronto, depois de o `baseNível` estar completo.
+
+A aferição da própria spec (`100^2 x (600+176)`) prova que o termo de idade entra **dentro** do
+`baseNível`, então o `baseNível` está fechado antes de qualquer multiplicação. E os descontos por
+temporada de chegada, que vêm logo abaixo na mesma lista e claramente incidem sobre o valor, dão o
+padrão de leitura para os multiplicadores acima deles.
+
+Como todos são multiplicações, a ordem entre eles não importa; só importa estarem depois da soma.
+Há um arredondamento único no fim, então nem a ordem entre eles muda o centavo.

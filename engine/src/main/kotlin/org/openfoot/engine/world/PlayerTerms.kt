@@ -139,3 +139,113 @@ private const val MONTHLY_MULTIPLIER = 4
 /** The age past which the salary formula starts subtracting. */
 @SpecRef("4.8")
 internal const val DECLINE_AGE = 32
+
+/**
+ * What a player would cost to buy.
+ *
+ * Value grows with the square of strength, which is by far the dominant term:
+ * a player twice as strong is worth four times as much before anything else is
+ * considered. Everything else is a modifier on that, and the age term is the
+ * only one that can subtract.
+ *
+ * The arrival discount of section 4.9 is not applied. It scales a player by how
+ * recently he joined, and at world creation nobody has joined anything, so
+ * every player counts as long standing and takes no discount. See
+ * OPEN-QUESTIONS item 16.
+ */
+@SpecRef("4.9")
+fun marketValue(
+    strength: Int,
+    age: Int,
+    position: Position,
+    starter: Boolean,
+    star: Boolean,
+    topWorld: Boolean,
+    clubLevel: Int,
+    europeanNationality: Boolean,
+): Long {
+    val doubled = (strength * VALUE_STRENGTH_FACTOR).toLong()
+    val quadratic = doubled * doubled
+
+    val levelBase = clubLevelBase(clubLevel) + ageTerm(age)
+    val effectiveBase = if (levelBase <= 0) COLLAPSED_VALUE_BASE else levelBase
+
+    var value = quadratic.toDouble() * effectiveBase
+    if (star) {
+        value *= starMultiplier(clubLevel, europeanNationality)
+    }
+    if (topWorld) {
+        value *= TOP_WORLD_VALUE_MULTIPLIER
+    }
+    if (position == Position.FORWARD) {
+        value *= FORWARD_VALUE_MULTIPLIER
+    }
+    if (starter) {
+        value *= STARTER_VALUE_MULTIPLIER
+    }
+    return bfRoundLong(value)
+}
+
+/**
+ * What the club a player sits at is worth to his price, before age.
+ */
+@SpecRef("4.9")
+private fun clubLevelBase(clubLevel: Int): Int = when {
+    clubLevel >= 21 -> 750
+    clubLevel >= 20 -> 600
+    clubLevel >= 18 -> 500
+    clubLevel >= 12 -> 400
+    else -> 366
+}
+
+/**
+ * How far a player is from the age the market considers his peak.
+ *
+ * Positive up to thirty two, then decaying, then frankly negative. Past that
+ * point a player can be worth so little that the base collapses to a floor.
+ * Ages below sixteen are treated as sixteen, so a value can be asked for a
+ * player younger than the professional game admits.
+ */
+@SpecRef("4.9")
+internal fun ageTerm(age: Int): Int {
+    val effective = maxOf(age, MINIMUM_VALUED_AGE)
+    return when {
+        effective < 20 -> (32 - effective) * 27
+        effective <= 25 -> (32 - effective) * 22
+        effective < 32 -> (32 - effective) * 15
+        effective < 34 -> (34 - effective) * 10
+        else -> -(effective - 34) * 50
+    }
+}
+
+/**
+ * A star is worth more, and worth more again at a club good enough to be
+ * shopping in Europe. Both of the higher rungs need a club level above twenty,
+ * which no data file expresses, so a star at world creation always takes the
+ * lowest rung.
+ */
+@SpecRef("4.9")
+internal fun starMultiplier(clubLevel: Int, europeanNationality: Boolean): Double = when {
+    clubLevel >= 22 && europeanNationality -> 3.0
+    clubLevel >= 21 && europeanNationality -> 2.0
+    else -> 1.7
+}
+
+@SpecRef("4.9")
+private const val VALUE_STRENGTH_FACTOR = 2
+
+@SpecRef("4.9")
+internal const val MINIMUM_VALUED_AGE = 16
+
+/** What the base falls back to when age has driven it to nothing. */
+@SpecRef("4.9")
+internal const val COLLAPSED_VALUE_BASE = 60
+
+@SpecRef("4.9")
+private const val TOP_WORLD_VALUE_MULTIPLIER = 1.6
+
+@SpecRef("4.9")
+private const val FORWARD_VALUE_MULTIPLIER = 1.3
+
+@SpecRef("4.9")
+private const val STARTER_VALUE_MULTIPLIER = 1.2
