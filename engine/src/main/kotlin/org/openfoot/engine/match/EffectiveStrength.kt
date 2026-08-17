@@ -2,18 +2,11 @@ package org.openfoot.engine.match
 
 import org.openfoot.model.Attr
 import org.openfoot.model.CompetitionKind
+import org.openfoot.model.Country
 import org.openfoot.model.Position
 import org.openfoot.model.Slot
 import org.openfoot.model.SpecRef
 import org.openfoot.model.bfRound
-
-/** Country identifier of Brazil in the original data files. */
-@SpecRef("FORMAT-SPEC, paises")
-const val BRAZIL_COUNTRY = 29
-
-/** Continent identifier of Europe in the original data files. */
-@SpecRef("FORMAT-SPEC, paises")
-const val EUROPE_CONTINENT = 0
 
 /**
  * Everything outside the player himself that changes his rating for one match.
@@ -130,14 +123,14 @@ internal fun competitionMultiplier(context: StrengthContext): Double = when (con
     CompetitionKind.CONTINENTAL_PRIMARY -> when {
         context.sideReputation < 3 -> 0.75
         context.sideReputation == 3 -> 0.85
-        context.sideCountry == BRAZIL_COUNTRY -> 0.90
+        context.sideCountry == Country.BRAZIL -> 0.90
         else -> 1.0
     }
 
     CompetitionKind.CLUB_WORLD_CUP -> when {
         context.sideReputation < 3 -> 0.55
         context.sideReputation == 3 -> 0.75
-        context.sideContinent != EUROPE_CONTINENT -> 0.90
+        context.sideContinent != Country.EUROPE_CONTINENT -> 0.90
         else -> 1.0
     }
 

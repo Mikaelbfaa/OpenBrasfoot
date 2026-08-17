@@ -2,6 +2,7 @@ package org.openfoot.engine.match
 
 import org.openfoot.model.Attr
 import org.openfoot.model.CompetitionKind
+import org.openfoot.model.Country
 import org.openfoot.model.Marking
 import org.openfoot.model.Position
 import org.openfoot.model.Slot
@@ -24,7 +25,7 @@ object Lineups {
         individualAbilities: Boolean = false,
         reputation: Int = 5,
         country: Int = 65,
-        continent: Int = EUROPE_CONTINENT,
+        continent: Int = Country.EUROPE_CONTINENT,
         isHome: Boolean = true,
         homeReputation: Int = 5,
         awayReputation: Int = 5,

@@ -2,6 +2,7 @@ package org.openfoot.engine.match
 
 import org.openfoot.model.Attr
 import org.openfoot.model.CompetitionKind
+import org.openfoot.model.Country
 import org.openfoot.model.Position
 import org.openfoot.model.Slot
 import kotlin.test.Test
@@ -19,7 +20,7 @@ class EffectiveStrengthTest {
         individual: Boolean = false,
         reputation: Int = 5,
         country: Int = 65,
-        continent: Int = EUROPE_CONTINENT,
+        continent: Int = Country.EUROPE_CONTINENT,
         isHome: Boolean = true,
         homeReputation: Int = 5,
         awayReputation: Int = 5,
@@ -183,7 +184,7 @@ class EffectiveStrengthTest {
         )
         val european = effectiveStrength(
             70, abilities(), Position.MIDFIELDER, Slot(12),
-            context(kind = CompetitionKind.CLUB_WORLD_CUP, reputation = 4, continent = EUROPE_CONTINENT),
+            context(kind = CompetitionKind.CLUB_WORLD_CUP, reputation = 4, continent = Country.EUROPE_CONTINENT),
         )
         assertEquals(3.9, weak, 1e-9)
         assertEquals(6.3, outsideEurope, 1e-9)
@@ -194,7 +195,7 @@ class EffectiveStrengthTest {
     fun `the primary continental cup handicaps brazilian clubs specifically`() {
         val brazilian = effectiveStrength(
             70, abilities(), Position.MIDFIELDER, Slot(12),
-            context(kind = CompetitionKind.CONTINENTAL_PRIMARY, reputation = 4, country = BRAZIL_COUNTRY),
+            context(kind = CompetitionKind.CONTINENTAL_PRIMARY, reputation = 4, country = Country.BRAZIL),
         )
         val spanish = effectiveStrength(
             70, abilities(), Position.MIDFIELDER, Slot(12),
