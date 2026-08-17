@@ -105,7 +105,7 @@ class InitialStrengthTest {
     fun `no player can be born anywhere near the strength ceiling`() {
         val strongest = initialStrength(
             clubLevel = ClubEntry.LEVEL_RANGE.last,
-            bands = ClubBands.bands(division = null, reputation = 5),
+            bands = ClubBands.bands(division = null, reputation = 5, nationalTeam = true),
             countryLevel = 20,
             starter = true,
             star = true,

@@ -103,10 +103,12 @@ data class CountryEntry(
  * cannot key anything. The ref also seeds this club's generator, which is why
  * the dataset rejects duplicates.
  *
- * A null division means the squad is a national team, which section 4.4 bands
- * by reputation instead of by division. A club that plays no league at all has
- * not been observed in the distributed data; if one appears, it is a new gap
- * rather than a silent fall through to the national team path.
+ * Section 4.4 bands a national team by reputation and everyone else by
+ * division, so the two are separate fields. A null division means the club
+ * plays no league the dataset knows about, which is not the same thing as being
+ * a national team, and lands on the weakest band rather than the reputation
+ * path. Conflating the two would quietly promote every club of unknown division
+ * to whatever its reputation deserves.
  */
 @Serializable
 data class ClubEntry(
@@ -116,6 +118,7 @@ data class ClubEntry(
     @property:SpecRef("FORMAT-SPEC, time") val level: Int,
     @property:SpecRef("FORMAT-SPEC, time") val reputation: Int,
     @property:SpecRef("4.4") val division: Int? = null,
+    @property:SpecRef("4.4") val nationalTeam: Boolean = false,
     @property:SpecRef("FORMAT-SPEC, estados") val state: Int? = null,
     val stadium: String = "",
     val capacity: Int = 0,
@@ -133,6 +136,9 @@ data class ClubEntry(
         }
         require(division == null || division >= 0) {
             "club $ref division must not be negative, was $division"
+        }
+        require(!nationalTeam || division == null) {
+            "club $ref is a national team and also plays division $division"
         }
         require(state == null || country == Country.BRAZIL) {
             "club $ref carries state $state but country $country, and only Brazil has states"
@@ -206,11 +212,14 @@ data class PlayerEntry(
 
     companion object {
         /**
-         * Wide enough for a youth player and for the oldest professional the
-         * retirement table of 4.11 tolerates, which always retires past 48.
+         * Wide enough for a youth player and for the oldest the distributed
+         * data actually contains, which is fifty six. The retirement table of
+         * 4.11 retires everyone past forty eight, so such a player leaves at the
+         * first turnover, but he exists on disk and refusing to read him would
+         * cost a whole club.
          */
         @SpecRef("4.11")
-        val AGE_RANGE = 15..48
+        val AGE_RANGE = 15..60
 
         /**
          * Talent runs one to ten, and zero does occur in the distributed files,

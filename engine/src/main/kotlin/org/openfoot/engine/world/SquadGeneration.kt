@@ -44,7 +44,7 @@ internal fun generatePlayer(
     options: WorldOptions,
     rng: Rng,
 ): Player {
-    val bands = ClubBands.bands(club.division, club.reputation)
+    val bands = ClubBands.bands(club.division, club.reputation, club.nationalTeam)
     val qualitySeed = ClubBands.qualitySeed(club.level)
 
     val style = playerStyle(entry.position, entry.firstTrait, entry.secondTrait)

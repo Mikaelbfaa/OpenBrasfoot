@@ -57,20 +57,24 @@ object ClubBands {
     }
 
     /**
-     * The bands for a squad, chosen by division when the squad plays a league
-     * and by reputation when it is a national team.
+     * The bands for a squad: by reputation for a national team, by division for
+     * everyone else.
      *
-     * A division outside the top three lands on the weakest pair, which covers
-     * the fourth tier and the division zero of a country with no league
-     * pyramid alike. Reputation below three does the same, so the three lowest
-     * reputations are indistinguishable here.
+     * Only a national team reads reputation. A club whose division is unknown
+     * lands on the weakest pair rather than on the reputation path, because a
+     * missing division is not evidence of standing and treating it as one would
+     * quietly promote every such club.
+     *
+     * A division outside the top three lands on the weakest pair too, which
+     * covers the fourth tier and the division zero of a country with no league
+     * pyramid alike. Reputation below four is indistinguishable here.
      */
     @SpecRef("4.4")
-    fun bands(division: Int?, reputation: Int): GenerationBands =
-        if (division == null) nationalTeamBands(reputation) else leagueBands(division)
+    fun bands(division: Int?, reputation: Int, nationalTeam: Boolean = false): GenerationBands =
+        if (nationalTeam) nationalTeamBands(reputation) else leagueBands(division)
 
     @SpecRef("4.4")
-    private fun leagueBands(division: Int): GenerationBands = when (division) {
+    private fun leagueBands(division: Int?): GenerationBands = when (division) {
         1 -> GenerationBands(strengthBase = 20, abilityBand = 7)
         2 -> GenerationBands(strengthBase = 15, abilityBand = 3)
         3 -> GenerationBands(strengthBase = 5, abilityBand = 1)

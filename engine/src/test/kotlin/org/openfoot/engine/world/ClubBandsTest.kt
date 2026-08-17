@@ -70,16 +70,21 @@ class ClubBandsTest {
     }
 
     @Test
+    fun `a club of unknown division takes the weakest pair, not its reputation`() {
+        assertEquals(GenerationBands(1, 1), ClubBands.bands(division = null, reputation = 5))
+    }
+
+    @Test
     fun `reputation decides the bands only for a national team`() {
-        assertEquals(GenerationBands(22, 7), ClubBands.bands(division = null, reputation = 5))
-        assertEquals(GenerationBands(15, 4), ClubBands.bands(division = null, reputation = 4))
+        assertEquals(GenerationBands(22, 7), ClubBands.bands(division = null, reputation = 5, nationalTeam = true))
+        assertEquals(GenerationBands(15, 4), ClubBands.bands(division = null, reputation = 4, nationalTeam = true))
     }
 
     @Test
     fun `the three lowest reputations are indistinguishable`() {
         val expected = GenerationBands(5, 1)
         for (reputation in 0..3) {
-            assertEquals(expected, ClubBands.bands(division = null, reputation), "reputation $reputation")
+            assertEquals(expected, ClubBands.bands(division = null, reputation, nationalTeam = true), "reputation $reputation")
         }
     }
 
