@@ -19,6 +19,7 @@ include(
     ":model",
     ":dataset",
     ":engine",
+    ":importer",
     ":cli",
     ":validation",
 )
