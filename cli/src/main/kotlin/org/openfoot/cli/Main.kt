@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import org.openfoot.dataset.WorldDataset
 import org.openfoot.engine.world.World
 import org.openfoot.engine.world.generateWorld
+import org.openfoot.importer.InstallationImporter
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -14,6 +15,7 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         "worldgen" -> worldgen(args.drop(1))
+        "import" -> importInstallation(args.drop(1))
         "help", "--help" -> println(USAGE)
         null -> {
             println(USAGE)
@@ -29,11 +31,50 @@ fun main(args: Array<String>) {
 }
 
 private val USAGE = """
-    usage: openfoot-cli worldgen --dataset <path> --seed <number>
+    usage: openfoot-cli import   --install <path> --out <path>
+           openfoot-cli worldgen --dataset <path> --seed <number>
 
-      Builds a world from a dataset and prints what came out. The same dataset
-      and the same seed always print the same thing.
+      import   reads your own installation of the original game and writes a
+               dataset. Nothing is copied but numbers, and the files stay put.
+      worldgen builds a world from a dataset and prints what came out. The same
+               dataset and the same seed always print the same thing.
 """.trimIndent()
+
+/**
+ * Reads an installation and writes a dataset.
+ *
+ * Everything the installation could not supply is printed rather than left for
+ * the reader to discover, because a dataset with placeholder country levels
+ * generates a world that looks right and is not.
+ */
+private fun importInstallation(args: List<String>) {
+    val options = parseOptions(args)
+    val install = options["--install"] ?: fail("import needs --install <path>")
+    val out = options["--out"] ?: fail("import needs --out <path>")
+
+    val root = File(install)
+    if (!root.isDirectory) {
+        fail("no installation directory at $install")
+    }
+
+    val result = try {
+        InstallationImporter.importFrom(root)
+    } catch (failure: Exception) {
+        fail("could not import $install: ${failure.message}")
+    }
+
+    val json = Json { prettyPrint = true }
+    File(out).writeText(json.encodeToString(result.dataset))
+
+    println("clubs     ${result.dataset.clubs.size}")
+    println("players   ${result.dataset.clubs.sumOf { it.squad.size }}")
+    println("countries ${result.dataset.countries.size}")
+    println("written   $out")
+    if (result.notes.isNotEmpty()) {
+        println("notes     ${result.notes.size}")
+        result.notes.forEach { println("  $it") }
+    }
+}
 
 /**
  * Reads a dataset, generates a world and describes it.

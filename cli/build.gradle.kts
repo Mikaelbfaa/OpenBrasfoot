@@ -7,6 +7,7 @@ plugins {
 dependencies {
     implementation(project(":engine"))
     implementation(project(":dataset"))
+    implementation(project(":importer"))
     implementation(libs.kotlinx.serialization.json)
 }
 
