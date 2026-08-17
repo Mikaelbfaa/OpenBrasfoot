@@ -191,3 +191,16 @@ distribuição documentada, e nesta versão o valor é inerte de qualquer forma:
 é condicionado a ter vindo da base, seja pelo `veio de base` do crescimento semanal, seja pelo
 `desenvolvimento de base >= 60` do teto. Quando a base for implementada, este item precisa ser
 revisto contra o que os arquivos realmente contêm.
+
+### 18. A tabela de reputação da 4.4 não cobre reputação zero
+
+A 4.4 lista as faixas por reputação de 5 até 1. A reputação vai de 0 a 5 (seção 5.5), então falta
+uma linha.
+
+**Resolução:** reputação 0 usa a mesma faixa de 1, 2 e 3, ou seja base 5 e faixa 1. As três
+reputações mais baixas já são indistinguíveis na tabela, então estender a menor para o zero não
+inventa comportamento novo, só fecha o buraco. Há um teste que fixa que 0, 1, 2 e 3 dão o mesmo
+resultado, para que a suposição fique visível.
+
+Vale notar que este caminho só vale para seleções. Um clube em liga escolhe pela divisão e nunca lê
+a reputação aqui.
