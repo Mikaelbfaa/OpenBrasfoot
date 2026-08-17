@@ -187,10 +187,6 @@ object TeamFileReader {
     @SpecRef("FORMAT-SPEC, time")
     private const val SQUAD = "l"
 
-    /** The youth list. Read but not yet imported, since youth is not generated. */
-    @SpecRef("FORMAT-SPEC, time")
-    const val YOUTH = "m"
-
     @SpecRef("FORMAT-SPEC, jogador")
     private const val PLAYER_NAME = "a"
 
