@@ -132,7 +132,7 @@ class SerializedStreamReader(private val bytes: ByteArray) {
     private fun readFieldValue(typeCode: Char): Any? = when (typeCode) {
         'I' -> readInt()
         'Z' -> readByte() != 0
-        'B' -> readByte()
+        'B' -> readByte().toByte().toInt()
         'S' -> readSignedShort()
         'J' -> readLong()
         'D' -> Double.fromBits(readLong())

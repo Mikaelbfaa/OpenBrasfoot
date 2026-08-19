@@ -154,6 +154,21 @@ class SerializedStreamReaderTest {
     }
 
     @Test
+    fun `a negative byte field keeps its sign`() {
+        val record = read(
+            Wide(
+                byteField = -1,
+                shortField = 0,
+                longField = 0,
+                doubleField = 0.0,
+                floatField = 0.0f,
+                charField = 'a',
+            ),
+        )
+        assertEquals(-1, record.fields["byteField"])
+    }
+
+    @Test
     fun `asking for a field that is not there says which fields are`() {
         val record = read(Element(1, "um"))
         val failure = assertFailsWith<IllegalArgumentException> { record.int("ausente") }
