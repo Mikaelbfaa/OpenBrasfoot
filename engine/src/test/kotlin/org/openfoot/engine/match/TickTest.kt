@@ -56,6 +56,35 @@ class TickTest {
         assertEquals(TickEvent.MISPLACED_PASS, outcome.event)
     }
 
+    /**
+     * Finding 3. The two tests above only pin that 0.10 lands on TACKLE and
+     * 0.90 lands on MISPLACED_PASS, which is also true of a lopsided split, so
+     * they cannot tell a 70/30 coin from the even one section 3.5 documents.
+     * The coin is EVEN_COIN, weights [1.0, 1.0] with default multipliers of
+     * [1.0, 1.0], so weightedPick's own contract fixes the boundary exactly:
+     * total is 2.0, and index 0 (TACKLE) is picked while running (1.0) is
+     * strictly greater than the draw (nextDouble times total), so the boundary
+     * sits at a raw nextDouble of 0.5 and the comparison is strict. That is the
+     * same weights and multipliers WeightedChoiceTest already exercises at
+     * 0.49, 0.5 and 0.51, reused here through the real coin rather than the
+     * primitive directly.
+     */
+    @Test
+    fun `the loose ball coin is even right at one half, not some wider split`() {
+        val justBelow = playTick(evenSetup(), TeamSide.HOME, 0, ScriptedRng(0.99, 0.49)).event
+        val onTheBoundary = playTick(evenSetup(), TeamSide.HOME, 0, ScriptedRng(0.99, 0.5)).event
+        val justAbove = playTick(evenSetup(), TeamSide.HOME, 0, ScriptedRng(0.99, 0.51)).event
+
+        assertEquals(TickEvent.TACKLE, justBelow, "a draw just under 0.5 must still select TACKLE")
+        assertEquals(
+            TickEvent.MISPLACED_PASS,
+            onTheBoundary,
+            "weightedPick's strict comparison sends a draw exactly on the boundary to the " +
+                "following outcome, MISPLACED_PASS",
+        )
+        assertEquals(TickEvent.MISPLACED_PASS, justAbove, "a draw just over 0.5 must select MISPLACED_PASS")
+    }
+
     @Test
     fun `a won duel with no chance costs three draws`() {
         val rng = ScriptedRng(0.01, 0.99, 0.10)

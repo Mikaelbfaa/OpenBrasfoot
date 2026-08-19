@@ -47,17 +47,22 @@ fun matchClock(rng: Rng): MatchClock {
     )
 }
 
+/**
+ * Declared internal, not private: SeedStreamsTest derives the longest legal
+ * match's minute count from this and the two stoppage maximums below, rather
+ * than copying the 91 to 97 range as a second literal.
+ */
 @SpecRef("3.1")
-private const val REGULATION_HALF_MINUTES = 45
+internal const val REGULATION_HALF_MINUTES = 45
 
 @SpecRef("3.1")
 private const val FIRST_HALF_STOPPAGE_MIN = 0
 
 @SpecRef("3.1")
-private const val FIRST_HALF_STOPPAGE_MAX = 2
+internal const val FIRST_HALF_STOPPAGE_MAX = 2
 
 @SpecRef("3.1")
 private const val SECOND_HALF_STOPPAGE_MIN = 1
 
 @SpecRef("3.1")
-private const val SECOND_HALF_STOPPAGE_MAX = 5
+internal const val SECOND_HALF_STOPPAGE_MAX = 5

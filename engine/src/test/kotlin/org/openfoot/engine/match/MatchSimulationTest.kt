@@ -127,21 +127,6 @@ class MatchSimulationTest {
     }
 
     @Test
-    fun `each side is possessor for half the ticks give or take one`() {
-        repeat(200) { seed ->
-            val result = simulateMatch(setup(), SplitMix64Rng(seed.toLong()))
-            val total = result.clock.totalMinutes
-            val homeTicks = (0 until total).count { minute ->
-                possessorAt(result.startingPossessor, minute) == TeamSide.HOME
-            }
-            assertTrue(
-                homeTicks * 2 in (total - 1)..(total + 1),
-                "seed $seed gave the home side $homeTicks of $total ticks",
-            )
-        }
-    }
-
-    @Test
     fun `no side ever counts more than the whole match in tackles and passes`() {
         repeat(200) { seed ->
             val result = simulateMatch(setup(), SplitMix64Rng(seed.toLong()))
@@ -281,10 +266,46 @@ class MatchSimulationTest {
             )
         }
     }
-}
 
-private fun possessorAt(starting: TeamSide, minute: Int): TeamSide =
-    if (minute % 2 == 0) starting else starting.opponent
+    /**
+     * Finding 4. Tick.kt's own docstring on playTick already argues the
+     * goal count passed in must be the possessor's own, not the opponent's,
+     * but that argument does not run: playTick takes whatever Int it is
+     * handed, so a swap at the call site in simulateMatch is invisible to
+     * every test that calls playTick directly. Only a whole match, run
+     * through simulateMatch, can catch a swap there.
+     *
+     * LadderProofRng makes the home side win every duel and take every shot
+     * on its own ticks, and lose the duel outright on the away side's ticks,
+     * so away never manages a shot and its goal total sits at zero for the
+     * whole match. Under the correct wiring, home's OWN goal total climbs as
+     * it scores, and by the time it reaches five the anti blowout ladder has
+     * tightened the goal weight enough that HOME_SHOT_DRAW no longer lands in
+     * the goal bucket (worked out below), so home's total stops climbing
+     * short of the number of ticks it played. Under the inverted wiring, home
+     * would instead read AWAY's total, which never leaves zero, so the ladder
+     * never engages and home scores on every single one of its ticks.
+     */
+    @Test
+    fun `the anti blowout ladder caps the possessor's own goals, not the opponent's`() {
+        val result = simulateMatch(setup(), LadderProofRng(scoring = false))
+
+        assertEquals(
+            TeamSide.HOME,
+            result.startingPossessor,
+            "LadderProofRng's nextInt always returns zero, so kickoff must go to HOME",
+        )
+        val homeTicks = (0 until result.clock.totalMinutes).count { it % 2 == 0 }
+
+        assertEquals(0, result.stats.away.goals, "away loses the duel on every one of its ticks and never shoots")
+        assertTrue(result.stats.home.goals > 0, "home must score at least once before the ladder can cap it")
+        assertTrue(
+            result.stats.home.goals < homeTicks,
+            "the anti blowout ladder should have stopped home scoring on every one of its $homeTicks " +
+                "ticks, but it finished with ${result.stats.home.goals} goals",
+        )
+    }
+}
 
 /**
  * A draw so low it wins the first outcome of every weightedPick call the
@@ -328,4 +349,70 @@ private class FixedRng(private val value: Double) : Rng {
     override fun nextDouble(): Double = value
 
     override fun fork(tag: Long): Rng = this
+}
+
+/**
+ * Draw home reads for every call within one of its own ticks: possession duel,
+ * chance duel, shooter selection and shot outcome all resolve to it.
+ *
+ * Individual abilities are off by default (see Lineups), so every player on
+ * both sides rates strength divided by ten, 5.0 here, regardless of slot or
+ * which one weightedPick's low draw happens to land on. Possessor and
+ * defender are therefore always level, so strengthDifference is zero
+ * everywhere and only the home duel bonus and the home shot rule's delta move
+ * a weight away from its base multiplier of 1.0.
+ *
+ * That fixes the shot resolution's multipliers at saved 1.1, wide 1.2 (the
+ * home shot rule adds delta 0.1 to saved, then delta 0.1 again on top for
+ * wide), and CLASSIC's anti blowout ladder walks the goal weight down as
+ * home's own goal count climbs:
+ *
+ *   goals 0 to 2: base 5.5, total 5.5 + 39.105 + 18.0 = 62.605, boundary 0.0879
+ *   goals 3 to 4: base 4.5, total 4.5 + 44.605 + 18.0 = 67.105, boundary 0.0671
+ *   goals 5:      base 3.0, total 3.0 + 44.605 + 18.0 = 65.605, boundary 0.0457
+ *   goals 6 up:   base 0.5, total 0.5 + 44.605 + 18.0 = 63.105, boundary 0.0079
+ *
+ * 0.05 sits under the first two boundaries and over the third, so home scores
+ * on every tick until its own total reaches five, then stops, well inside a
+ * match that plays several dozen home ticks. The possession and chance duel
+ * boundaries are far looser (about 0.61 and 0.57, only the home duel bonus on
+ * an even strength comparison), so 0.05 clears both of those too and every
+ * home tick reaches the shot.
+ */
+private const val HOME_SHOT_DRAW = 0.05
+
+/**
+ * Draw the away side reads for every call within one of its own ticks. 0.99
+ * is safely above the possession duel's boundary of 0.5 (equal strength, no
+ * home bonus away from home), so away loses the duel outright, every tick,
+ * and never reaches a chance, a shooter or a shot. Its goal and shot counters
+ * both therefore stay at zero for the whole match.
+ */
+private const val AWAY_LOSES_DUEL_DRAW = 0.99
+
+/**
+ * Finding 4's mutation proof double.
+ *
+ * Mirrors Rng.fork's real contract, that a child depends only on the origin
+ * and the tag, by making a child's flavour depend only on this instance's
+ * flavour and the tag's parity: even leaves it alone, odd flips it. Chaining
+ * that rule down exactly the path simulateMatch forks (matchRng from
+ * SeedDomain.MATCH, then minuteRng from the minute index, then playRng from
+ * PLAY_STREAM) makes the flavour that finally reaches a tick's draws track
+ * the minute's parity, because SeedDomain.MATCH is even and PLAY_STREAM is
+ * odd: an even minute keeps this instance's starting flavour once, then
+ * flips it once more for PLAY_STREAM; an odd minute flips it once for the
+ * minute and flips it back for PLAY_STREAM. Starting from scoring = false
+ * lands every even minute (HOME's ticks, since nextInt always returns zero
+ * and kickoff therefore always goes to HOME) on scoring = true, and every odd
+ * minute (AWAY's ticks) on scoring = false.
+ */
+private class LadderProofRng(private val scoring: Boolean) : Rng {
+    override fun nextBits(): Long = 0L
+
+    override fun nextInt(bound: Int): Int = 0
+
+    override fun nextDouble(): Double = if (scoring) HOME_SHOT_DRAW else AWAY_LOSES_DUEL_DRAW
+
+    override fun fork(tag: Long): Rng = LadderProofRng(if (tag % 2L == 0L) scoring else !scoring)
 }

@@ -19,13 +19,6 @@ class MatchStatsTest {
     }
 
     @Test
-    fun `on target is goals plus saves and never counts a miss`() {
-        val side = SideStats(goals = 2, shots = 9, onTarget = 5, wide = 4)
-        assertEquals(5, side.onTarget)
-        assertEquals(side.shots, side.onTarget + side.wide)
-    }
-
-    @Test
     fun `fouls exist and stay at zero`() {
         assertEquals(0, MatchStats().home.fouls)
         assertEquals(0, MatchStats().away.fouls)

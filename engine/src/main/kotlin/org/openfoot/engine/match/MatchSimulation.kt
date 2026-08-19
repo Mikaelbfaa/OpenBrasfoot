@@ -136,9 +136,15 @@ internal fun MatchStats.record(outcome: TickOutcome): MatchStats {
     return MatchStats(home, away)
 }
 
-/** The stream the once per match draws come from. */
+/**
+ * The stream the once per match draws come from.
+ *
+ * Declared internal, not private, so SeedStreamsTest can assert it stays
+ * distinct from PLAY_STREAM and DISCIPLINE_STREAM and outside the range a
+ * minute index can reach, without needing a copy of the literal in the test.
+ */
 @SpecRef("3.1")
-private const val SETUP_STREAM = 0x5E7DL
+internal const val SETUP_STREAM = 0x5E7DL
 
 /**
  * Reserved for section 3.8, which rolls discipline, injury and substitution
@@ -154,6 +160,11 @@ private const val SETUP_STREAM = 0x5E7DL
 @SpecRef("3.8")
 internal const val DISCIPLINE_STREAM = 0xD15CL
 
-/** The stream one tick draws from. */
+/**
+ * The stream one tick draws from.
+ *
+ * Declared internal for the same reason as SETUP_STREAM: SeedStreamsTest reads
+ * it to assert the reservation holds.
+ */
 @SpecRef("3.5")
-private const val PLAY_STREAM = 0x71CBL
+internal const val PLAY_STREAM = 0x71CBL
