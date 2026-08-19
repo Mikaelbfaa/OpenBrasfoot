@@ -399,3 +399,46 @@ para país não configurado a partir do nível dos clubes, em vez de jogar todos
 
 Enquanto isso não for decidido, qualquer aferição estatística feita fora do Brasil e da Espanha mede
 este item e não o motor.
+
+### 28. A contagem de tiques da 3.1 não bate com a da 3.16
+
+A 3.1 dá `extra1 = rand(0..2)` e `extra2 = rand(1..5)`, com o primeiro tempo nos minutos
+`0..44+extra1` e o segundo em `0..44+extra2`. Isso dá `45+extra1` mais `45+extra2` tiques, ou seja
+de 91 a 97, que é exatamente a faixa que a própria 3.1 afirma. A média é `45+1+45+3 = 94`, logo
+cada time é possuidor 47 vezes.
+
+A 3.16 fala em cerca de 92 tiques e cerca de 46 posses por time, e os números derivados dela são
+aritmética sobre 46, e não sobre 47:
+
+```
+chutes do mandante   46 x 0,614 x 0,565 = 15,96   a spec diz "~16 chutes"
+chutes do visitante  46 x 0,55  x 0,50  = 12,65   a spec diz "~12,6 chutes"
+```
+
+Com 47 o número do visitante seria 12,93, que teria sido escrito 12,9. Ou seja, a 3.16 foi calculada
+com 92 enquanto a 3.1 produz 94.
+
+**Resolução:** implementar a 3.1 ao pé da letra, porque a faixa de 91 a 97 que ela declara é
+consistente com as fórmulas dela mesma, e as cifras com til da 3.16 não são. A validação deriva a
+contagem esperada de chutes da posse **medida**, nunca de um 46 fixo. É o mesmo tratamento que o
+item 9 já dá ao parágrafo de alavanca da 3.16.
+
+Isto é **observável**: contar os minutos de uma partida no jogo original resolve.
+
+### 29. A posse exibida não chega aos 55/45 da 3.16
+
+A 3.5 diz que a porcentagem exibida vem de um contador separado de vitórias no duelo de posse.
+Contando o vencedor do duelo a cada tique, o mandante fica, em 92 tiques:
+
+```
+46 x 0,614 + 46 x (1 - 0,55) = 28,24 + 20,70 = 48,94 de 92 = 53,2 por cento
+```
+
+A 3.16 diz cerca de 55/45.
+
+**Resolução:** contar o vencedor do duelo a cada tique, que é a única leitura que a frase da 3.5
+admite. A validação verifica uma faixa que contém 53,2 e exclui 50,0 e 60,0, e registra o valor
+medido, para que uma correção futura da spec tenha com o que comparar.
+
+A diferença é pequena e pode ser só arredondamento generoso da 3.16, mas registrar é mais barato
+que redescobrir.
