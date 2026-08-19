@@ -79,8 +79,14 @@ O primeiro não reproduz: a fórmula de 3.6a dá **67,07%** com divisor 8 e 63,8
 O segundo não reproduz de jeito nenhum, porque **o duelo de chance não lê o meio-campo** - ele
 compara ataque contra defesa.
 
-Todos os outros números de 3.16 reproduzem exatamente: 0.614, 0.565, 0.55, 0.50, ~16 chutes,
-~12,6 chutes, 9,81%, 8,8%, 11,1%.
+Dos outros números de 3.16, três reproduzem exatamente em qualquer escalação: 0.614, 0.55 e 9,81%.
+Os dois de conversão, 8,8% e 11,1%, reproduzem só de forma aproximada: o valor medido é 8,71% e
+11,09%, e a diferença vem da alavanca anti-goleada da 3.6c, que a 3.16 não leva em conta. Os quatro
+restantes - 0.565, 0.50, ~16 chutes e ~12,6 chutes - só reproduzem quando a linha de defesa e a linha
+de ataque preenchem exatamente os divisores fixos da 3.4 (5 defensores, 3 atacantes), e mesmo assim os
+volumes de chute só fecham depois de também recontar as posses como 47 em vez de 46, que é o item 28.
+Num 4-4-2, a formação que a IA mais escolhe, essas duas linhas ficam desiguais e os quatro números não
+fecham; ver itens 28 e 30.
 
 **Resolução:** tratar esse parágrafo como narrativo. Testar apenas os valores exatos. Item aberto na
 spec.
@@ -399,3 +405,98 @@ para país não configurado a partir do nível dos clubes, em vez de jogar todos
 
 Enquanto isso não for decidido, qualquer aferição estatística feita fora do Brasil e da Espanha mede
 este item e não o motor.
+
+### 28. A contagem de tiques da 3.1 não bate com a da 3.16
+
+A 3.1 dá `extra1 = rand(0..2)` e `extra2 = rand(1..5)`, com o primeiro tempo nos minutos
+`0..44+extra1` e o segundo em `0..44+extra2`. Isso dá `45+extra1` mais `45+extra2` tiques, ou seja
+de 91 a 97, que é exatamente a faixa que a própria 3.1 afirma. A média é `45+1+45+3 = 94`, logo
+cada time é possuidor 47 vezes.
+
+A 3.16 fala em cerca de 92 tiques e cerca de 46 posses por time, e os números derivados dela são
+aritmética sobre 46, e não sobre 47:
+
+```
+chutes do mandante   46 x 0,614 x 0,565 = 15,96   a spec diz "~16 chutes"
+chutes do visitante  46 x 0,55  x 0,50  = 12,65   a spec diz "~12,6 chutes"
+```
+
+Com 47 o número do visitante seria 12,93, que teria sido escrito 12,9. Ou seja, a 3.16 foi calculada
+com 92 enquanto a 3.1 produz 94.
+
+**Resolução:** implementar a 3.1 ao pé da letra, porque a faixa de 91 a 97 que ela declara é
+consistente com as fórmulas dela mesma, e as cifras com til da 3.16 não são. A validação deriva a
+contagem esperada de chutes da posse **medida**, nunca de um 46 fixo. É o mesmo tratamento que o
+item 9 já dá ao parágrafo de alavanca da 3.16.
+
+Isto é **observável**: contar os minutos de uma partida no jogo original resolve.
+
+### 29. A posse exibida não chega aos 55/45 da 3.16
+
+A 3.5 diz que a porcentagem exibida vem de um contador separado de vitórias no duelo de posse.
+Contando o vencedor do duelo a cada tique, o mandante fica, em 92 tiques:
+
+```
+46 x 0,614 + 46 x (1 - 0,55) = 28,24 + 20,70 = 48,94 de 92 = 53,2 por cento
+```
+
+A 3.16 diz cerca de 55/45.
+
+**Resolução:** contar o vencedor do duelo a cada tique, que é a única leitura que a frase da 3.5
+admite. A validação verifica uma faixa que contém 53,2 e exclui 50,0 e 60,0, e registra o valor
+medido, para que uma correção futura da spec tenha com o que comparar.
+
+A diferença é pequena e pode ser só arredondamento generoso da 3.16, mas registrar é mais barato
+que redescobrir.
+
+### 30. Os volumes de chute da 3.16 só aparecem com todas as linhas no divisor
+
+A 3.16 dá `P(chute | posse)` de 0,565 para o mandante e 0,50 para o visitante, e deriva daí os
+"~16 chutes" e os "~12,6 chutes". O 0,50 do visitante só sai se `ATAQUE(TB)` e `DEFESA(OPP)` forem
+iguais, porque o duelo de chance da 3.6b compara **essas duas linhas** e não um time contra o outro.
+Dois times equivalentes não bastam: as duas grandezas comparadas vêm de linhas diferentes. É a mesma
+leitura que o item 9 já registrou ao notar que o duelo de chance não lê o meio-campo.
+
+Com os divisores fixos da 3.4 (5 para a defesa, 5 para o meio, 3 para o ataque), a igualdade exige
+5 defensores e 3 atacantes. Num 4-4-2, que é a formação que a IA mais escolhe, sobram 4 defensores e
+2 atacantes, e com força 50 dos dois lados (nota 4,8 por jogador, já com o multiplicador 0,95 da liga
+nacional para reputação 3) as linhas ficam desiguais:
+
+```
+DEFESA = 4 x 4,8 / 5 = 3,84      ATAQUE = 2 x 4,8 / 3 = 3,20
+
+visitante  wA = 1 + (3,20 - 3,84)/8 = 0,92   wD = 1,08   P(chute) = 0,92/2,00 = 0,460
+mandante   wA = 0,92 + 0,3        = 1,22   wD = 1,08   P(chute) = 1,22/2,30 = 0,530
+```
+
+Com 5 defensores e 3 atacantes as duas linhas valem 4,8, a diferença zera e voltam os 0,50 e 0,565
+da 3.16. Medido em 20000 partidas com semente fixa, temporada 1, campo normal:
+
+| Grandeza | 4-4-2 | Linhas no divisor | 3.16 |
+|---|---|---|---|
+| Chutes do mandante | 15,31 | 16,32 | ~16 |
+| Chutes do visitante | 11,93 | 12,96 | ~12,6 |
+| Gols do mandante | 1,333 | 1,421 | ~1,4 |
+| Gols do visitante | 1,324 | 1,435 | ~1,4 |
+
+"Linhas no divisor" é a única escalação de onze jogadores que põe defesa e ataque exatamente sobre os
+seus divisores: 5 defensores, 3 atacantes e, por consequência, 2 meias. Ela reproduz a 3.16 ao
+centésimo, o que localiza a diferença na escalação e não na montagem do motor. O meio-campo fica
+desfalcado e cai para a nota degenerada de 0,01, o que não muda nada aqui porque acontece dos dois
+lados e o duelo de posse lê só a diferença.
+
+Note ainda que os "~12,6" da 3.16 são aritmética sobre 46 posses. Sobre as 47 que a 3.1 produz, a
+mesma conta dá 12,92, que é o valor medido. O item 28 e este se somam.
+
+O resto da 3.16 bate exatamente nas duas escalações: 0,614 e 0,55 no duelo de posse, e 8,71 por cento
+contra 11,09 por cento na conversão, ante os 8,8 e 11,1 da 3.15. Ou seja, o mando invertido está
+reproduzido; o que não reproduz é só o volume.
+
+**Resolução:** tratar os volumes de chute da 3.16 como calculados sobre uma escalação com todas as
+linhas cheias, e não sobre uma escalação real. A validação afirma as duas coisas: as faixas medidas
+do 4-4-2, que é o caso que o jogo produz, e a reprodução exata da 3.16 com as linhas no divisor, que
+é a prova de que a diferença vem do defeito 3 da 3.15 (divisores fixos) e não de um erro de
+montagem. Nenhuma faixa foi alargada para acomodar a 3.16.
+
+Isto é **observável**: ler a média de chutes de uma temporada IA contra IA no jogo original, junto
+com a formação escalada, resolve.

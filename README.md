@@ -17,6 +17,8 @@ Motor de partida:
 - `effectiveStrength`, a função de força efetiva que é o átomo do motor de partida
 - Agregados de linha, com os divisores fixos do original e a ordem de lista que decide quem entra
 - Os três duelos: posse, criação de chance e resolução de chute, com o sorteio do finalizador
+- O laço de tiques e o estado de partida, com as estatísticas da seção 3.13 e um placar
+- A aferição estatística da seção 3.16, que confere a partida inteira contra o comportamento descrito
 - `RuleSet`, com os conjuntos `CLASSIC` e `MODERN`, onde os defeitos do original viram dado e não `if`
 
 Criação de mundo:
@@ -38,8 +40,8 @@ Infraestrutura:
 - Testes de arquitetura que impedem I/O, relógio, aleatoriedade de plataforma e não determinismo
 - Verificadores de estilo de comentário e de documento
 
-Ainda falta, para uma partida completa: o laço de tiques, tipos de gol, disciplina e lesões,
-energia, assistências e notas.
+Ainda falta, para uma partida completa: tipos de gol, disciplina e lesões, energia, substituições,
+assistências e notas.
 
 ## Como compilar
 
