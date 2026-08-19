@@ -13,21 +13,21 @@ uma issue com o rótulo `spec-gap`.
 A seção 3.5 lista `D = 8` para as temporadas 1 a 4 sem dizer a qual família de duelo se aplica, e só
 então dá 11 e 10 "a partir da temporada 5".
 
-**Resolução:** 8.0 para os três duelos antes da temporada 5. Guardado num único campo do `RuleSet`,
+**Resolução (INFERIDO):** 8.0 para os três duelos antes da temporada 5. Guardado num único campo do `RuleSet`,
 então uma correção na spec é uma linha.
 
 ### 2. Numeração de temporada
 
 Não está dito se a contagem começa em 0 ou 1.
 
-**Resolução:** base 1. A compressão começa quando `temporada >= 5`.
+**Resolução (INFERIDO):** base 1. A compressão começa quando `temporada >= 5`.
 
 ### 3. O piso de 0.2 contra os pesos anti-exploit em 3.6b
 
 Lendo literalmente, o piso roda **depois** da atribuição anti-exploit, então 0.10 e 0.05 viram ambos
 0.2 e os dois casos ficam indistinguíveis.
 
-**Resolução:** manter a ordem literal. Existe um teste que afirma que os dois casos são iguais, para
+**Resolução (INFERIDO):** manter a ordem literal. Existe um teste que afirma que os dois casos são iguais, para
 que a suposição fique visível. Evidência a favor: sem o piso, uma defesa com um zagueiro sofreria
 **mais** finalizações do que uma com zero, o que não faz sentido.
 
@@ -35,14 +35,14 @@ que a suposição fique visível. Evidência a favor: sem o piso, uma defesa com
 
 A spec escreve `round(wDef x 0.2)` sem dizer a escala.
 
-**Resolução:** `bfRound` para inteiro, como todo `round` da spec. Para um peso de defesa perto de
+**Resolução (INFERIDO):** `bfRound` para inteiro, como todo `round` da spec. Para um peso de defesa perto de
 1.0 isso dá 0, que então bate no piso de 0.2.
 
 ### 5. Onde entra o bônus de marcação no meio-campo
 
 A spec diz que a marcação soma 0 / 0.04 / 0.08, mas não diz se antes ou depois do divisor.
 
-**Resolução:** somado ao **total** do meio-campo, antes do divisor fixo. É a única leitura que
+**Resolução (MEDIDO, `LineAggregatesTest`):** somado ao **total** do meio-campo, antes do divisor fixo. É a única leitura que
 produz os 0.008 e 0.016 na escala 0 a 10 que a seção 3.12 cita. No caso degenerado de menos de três
 meias o bônus não é aplicado.
 
@@ -50,7 +50,7 @@ meias o bônus não é aplicado.
 
 `round(GK x 0.2)` pode ser inteiro ou decimal.
 
-**Resolução:** inteiro, na escala 0 a 10. É a única leitura que reproduz o exemplo da seção 5.3: um
+**Resolução (MEDIDO, `LineAggregatesTest`):** inteiro, na escala 0 a 10. É a única leitura que reproduz o exemplo da seção 5.3: um
 jogador de linha com força 70 no gol rende 1.0 contra 7.0 de um goleiro de verdade. Consequência
 aceita: força 40 no gol dá legitimamente 0.0, e o piso de 0.2 da resolução de chute cuida disso.
 
@@ -59,14 +59,14 @@ aceita: força 40 no gol dá legitimamente 0.0, e o piso de 0.2 da resolução d
 Tanto o anti-exploit de 3.6b quanto o bônus de cabeceio do finalizador falam em "zagueiro" sem dizer
 se é posição natural ou slot.
 
-**Resolução:** faixa de slots 3 a 8, coerente com a regra da seção 5.1 de que o motor agrupa por
+**Resolução (INFERIDO):** faixa de slots 3 a 8, coerente com a regra da seção 5.1 de que o motor agrupa por
 slot e nunca por posição natural. As duas leituras só divergem para um jogador improvisado.
 
 ### 8. Elegibilidade do finalizador
 
 "Sorteio ponderado entre os escalados (exceto goleiro)" não diz se o banco entra.
 
-**Resolução:** somente slots 2 a 25, ou seja, apenas quem está em campo. Reservas têm peso base
+**Resolução (INFERIDO):** somente slots 2 a 25, ou seja, apenas quem está em campo. Reservas têm peso base
 zero, mas os bônus por característica são aditivos, então sem o filtro um atacante do banco poderia
 finalizar.
 
@@ -88,8 +88,8 @@ volumes de chute só fecham depois de também recontar as posses como 47 em vez 
 Num 4-4-2, a formação que a IA mais escolhe, essas duas linhas ficam desiguais e os quatro números não
 fecham; ver itens 28 e 30.
 
-**Resolução:** tratar esse parágrafo como narrativo. Testar apenas os valores exatos. Item aberto na
-spec.
+**Resolução (MEDIDO, `DuelsTest`, `ShotResolutionTest`, `SanityCheckTest`):** tratar esse parágrafo
+como narrativo. Testar apenas os valores exatos. Item aberto na spec.
 
 ## Seção 4 - criação do mundo
 
@@ -98,7 +98,7 @@ spec.
 A seção 0 diz que o original cria um gerador novo, sem semente, a cada sorteio. Não existe ordem a
 imitar, e nenhuma seção descreve a criação do mundo como uma sequência.
 
-**Resolução:** definimos a nossa. A semente deriva por posição no mundo, nunca por contagem de
+**Resolução (INFERIDO):** definimos a nossa. A semente deriva por posição no mundo, nunca por contagem de
 sorteios: `raiz -> WORLDGEN -> clube -> jogador`, com a chave do clube vinda do `fileRef`. Dentro de
 um jogador os sorteios são sequenciais, na ordem estilo, força, atributos, bônus de característica,
 contrato. Isso torna irrelevante a ordem em que os clubes são gerados, que é o que permite gerar em
@@ -110,7 +110,7 @@ Lateral ofensivo, volante e meia armador listam seis atributos. Falta **Gol** no
 quatro linhas dão os sete, e toda linha de jogador de linha usa o mesmo idioma: `Gol = 1+rnd(k)`,
 com k igual a 4 no lateral defensivo, 7 no zagueiro e 6 no atacante.
 
-**Resolução:** `Gol = 1+rnd(4)` nas três linhas omissas.
+**Resolução (INFERIDO):** `Gol = 1+rnd(4)` nas três linhas omissas.
 
 Vale registrar por quê, porque a leitura oposta parece mais conservadora e não é. Deixar o atributo
 em zero também é uma escolha que a spec não faz: zero vem do vetor zerado da implementação, não do
@@ -132,7 +132,7 @@ com habilidade individual ligada e leia a coluna Gol na tabela de elenco.
 O bloco principal calcula a força de jogadores que já existem, e o parágrafo seguinte monta um
 elenco do zero com 3 GOL, 4 LAT, 4 ZAG, 5 MEI, 4 ATA. Não está dito quando cada caminho vale.
 
-**Resolução:** o caminho principal vale para clubes que trazem elenco no arquivo; o elenco sintético
+**Resolução (INFERIDO):** o caminho principal vale para clubes que trazem elenco no arquivo; o elenco sintético
 é para clubes sem elenco. Nesta versão só o primeiro é implementado, e o segundo fica registrado
 para quando existir clube sem dados.
 
@@ -141,7 +141,7 @@ para quando existir clube sem dados.
 Os mesmos números (div1 20 e 7, reputação 5 dá 22 e 7) aparecem como base e faixa na SIMULATION-SPEC
 e como teto e piso na FORMAT-SPEC.
 
-**Resolução:** vale a leitura da 4.4, porque a fórmula usa os dois de forma aditiva
+**Resolução (INFERIDO):** vale a leitura da 4.4, porque a fórmula usa os dois de forma aditiva
 (`força = nívelMapeado + base + rnd(3)`), o que não faz sentido para um teto. A FORMAT-SPEC descreve
 o mesmo efeito por fora, olhando a faixa de valores que sai.
 
@@ -151,7 +151,7 @@ A 4.4 escala a força pelo nível do país do clube (`nívelPaís <= 13` dispara
 a 0,75). Essa tabela está no código do jogo, não em nenhum arquivo de dados, então está fora do
 alcance da regra clean-room.
 
-**Resolução:** `nível` vira campo do país no conjunto de dados, e o importador o **deriva dos
+**Resolução (INFERIDO):** `nível` vira campo do país no conjunto de dados, e o importador o **deriva dos
 próprios dados**: o nível do clube mais forte que o país tem.
 
 Esta resolução substitui uma anterior, que derivava o nível do ranking mundial da FIFA por faixas. A
@@ -177,7 +177,7 @@ tabela depois não mexe em código nenhum.
 A 4.2 diz que na criação do mundo `A` é o nível mapeado do clube, "-4 se > 4". O parêntese admite
 mais de uma leitura.
 
-**Resolução:** literal, `A = nívelMapeado - 4` quando `nívelMapeado > 4`, senão o próprio.
+**Resolução (INFERIDO):** literal, `A = nívelMapeado - 4` quando `nívelMapeado > 4`, senão o próprio.
 
 Na prática não há ambiguidade nenhuma: o nível do time vai de 6 a 20 (FORMAT-SPEC, campo `c`) e a
 tabela de mapeamento devolve o próprio valor até 15, então o menor nível mapeado possível é 6. A
@@ -195,7 +195,7 @@ degrau em silêncio.
 O valor de mercado da 4.9 desconta por quando o jogador chegou ao clube, mas não diz o que vale para
 quem já estava lá quando o mundo foi criado.
 
-**Resolução:** contam como "mais antigo", sem desconto. Ninguém chegou por transferência antes da
+**Resolução (INFERIDO):** contam como "mais antigo", sem desconto. Ninguém chegou por transferência antes da
 primeira temporada existir.
 
 ### 17. De onde vem o talento de um profissional na criação do mundo
@@ -204,7 +204,7 @@ O talento (`es`, o campo `hash` do arquivo) existe em todo jogador, mas a única
 spec dá está na seção 4.6, que trata da base. A 4.4 só fixa `es = 7 + rnd(4)` para o elenco
 sintético, e não diz nada sobre os profissionais que vêm do arquivo.
 
-**Resolução:** sortear pela mesma distribuição da 4.6, escolhida pela qualidade do clube. É a única
+**Resolução (INFERIDO):** sortear pela mesma distribuição da 4.6, escolhida pela qualidade do clube. É a única
 distribuição documentada, e nesta versão o valor é inerte de qualquer forma: todo efeito do talento
 é condicionado a ter vindo da base, seja pelo `veio de base` do crescimento semanal, seja pelo
 `desenvolvimento de base >= 60` do teto. Quando a base for implementada, este item precisa ser
@@ -215,7 +215,7 @@ revisto contra o que os arquivos realmente contêm.
 A 4.4 lista as faixas por reputação de 5 até 1. A reputação vai de 0 a 5 (seção 5.5), então falta
 uma linha.
 
-**Resolução:** reputação 0 usa a mesma faixa de 1, 2 e 3, ou seja base 5 e faixa 1. As três
+**Resolução (INFERIDO):** reputação 0 usa a mesma faixa de 1, 2 e 3, ou seja base 5 e faixa 1. As três
 reputações mais baixas já são indistinguíveis na tabela, então estender a menor para o zero não
 inventa comportamento novo, só fecha o buraco. Há um teste que fixa que 0, 1, 2 e 3 dão o mesmo
 resultado, para que a suposição fique visível.
@@ -231,7 +231,7 @@ Armação". Um lateral que não casa com nenhuma das três fica sem estilo. As c
 jogador de linha vão de 4 a 13, e as duas que ficam de fora de todos os testes são Cabeceio e
 Resistência, então um lateral com essas duas cai no vazio.
 
-**Resolução:** 0, defensivo. A última cláusula é condicional e entrega 1, então não casar com ela
+**Resolução (INFERIDO):** 0, defensivo. A última cláusula é condicional e entrega 1, então não casar com ela
 significa não ser 1. O meia e o atacante recebem padrão 1 porque a spec diz isso explicitamente para
 eles; o lateral não tem essa frase.
 
@@ -241,7 +241,7 @@ A 4.2 escreve a mesma fórmula para mais de um atributo em dois lugares. Na linh
 `Des/Arm/Fin = B+rnd(3)`. Na lista de bônus, `Armação -> Arm e Pas +B+rnd(5)`. Nos dois casos não
 está dito se o `rnd` é sorteado uma vez e usado nos dois ou três atributos, ou uma vez por atributo.
 
-**Resolução:** um sorteio por atributo, nos dois casos.
+**Resolução (INFERIDO):** um sorteio por atributo, nos dois casos.
 
 O argumento é o efeito visível. Com sorteio único, todo goleiro do jogo sairia com desarme,
 armação e finalização exatamente iguais entre si, e todo jogador com a característica Armação
@@ -259,7 +259,7 @@ publica o índice numérico de quatro deles (3 Alemanha, 65 Espanha, 72 França,
 Inglaterra. A tabela completa de 224 países está no arquivo `countries.json`, que não acompanha a
 spec.
 
-**Resolução:** o índice da Inglaterra é **97**, e isto veio dos dados, não de chute.
+**Resolução (INFERIDO):** o índice da Inglaterra é **97**, e isto veio dos dados, não de chute.
 
 A convenção de nome de arquivo marca cada clube com o país (`1deagosto_ang`, `barcelona_esp`), então
 o sufixo dá o código do país de cada índice. O sufixo `ing` aparece no índice 97. E os índices
@@ -284,7 +284,7 @@ A escolha muda o número. Um titular estrela de força 50, 24 anos, clube nível
 - multiplicando o `baseNível` antes do termo de idade: `600 x 1,7 = 1020`, mais 176, dá 11,96 M.
 - multiplicando o valor pronto: `(600 + 176) x 1,7`, dá 13,19 M.
 
-**Resolução:** incidem sobre o valor pronto, depois de o `baseNível` estar completo.
+**Resolução (INFERIDO):** incidem sobre o valor pronto, depois de o `baseNível` estar completo.
 
 A aferição da própria spec (`100^2 x (600+176)`) prova que o termo de idade entra **dentro** do
 `baseNível`, então o `baseNível` está fechado antes de qualquer multiplicação. E os descontos por
@@ -299,7 +299,7 @@ Há um arredondamento único no fim, então nem a ordem entre eles muda o centav
 A FORMAT-SPEC diz, como CONFIRMADO, que o original só gera os sete atributos individuais quando a
 opção `habilidadeIndividual` está ligada. Com ela desligada o jogador tem só a força.
 
-**Resolução:** geramos sempre. Custa sete sorteios e não é observável com a opção desligada, porque
+**Resolução (INFERIDO):** geramos sempre. Custa sete sorteios e não é observável com a opção desligada, porque
 nesse modo o motor lê a força e nunca olha os atributos. Em troca, o jogador é o mesmo jogador
 independentemente de como a opção está, o que evita que ligar a opção no meio de uma carreira mude
 quem cada um é.
@@ -314,7 +314,7 @@ forma da pirâmide (`pais`, `divisao`, `nTimes`, `nRebaixados`) e **não tem lis
 a associação clube-divisão não está em nenhum dado distribuído, e a divisão escolhe a base de força
 da 4.4 (20 na primeira divisão contra 1 fora da pirâmide), então errar isso muda todo jogador.
 
-**Resolução:** ordenar os clubes de cada país por nível, decrescente, e preencher cada divisão na
+**Resolução (INFERIDO):** ordenar os clubes de cada país por nível, decrescente, e preencher cada divisão na
 ordem até o `nTimes` dela.
 
 A evidência é forte e verificável: no conjunto distribuído, os vinte clubes brasileiros de maior
@@ -336,7 +336,7 @@ A 4.6 dá distribuições de talento por qualidade do clube, com pico em 5 e 6 (
 campo `hash` dos 703 arquivos distribuídos é quase **uniforme**: cada valor de 1 a 10 aparece entre
 1400 e 1800 vezes, e o 0 aparece 186 vezes.
 
-**Resolução:** as duas coisas não estão em conflito, e o item 17 partia de uma premissa errada. As
+**Resolução (INFERIDO):** as duas coisas não estão em conflito, e o item 17 partia de uma premissa errada. As
 distribuições da 4.6 descrevem a **geração de um júnior novo em tempo de execução**, não o conteúdo
 dos arquivos. Um profissional importado traz o talento dele no arquivo e nada precisa ser sorteado.
 
@@ -349,7 +349,7 @@ A 3.3 usa o continente do clube no deságio do Mundial de Clubes, e a 4.9 usa a 
 num degrau de valor de mercado. Nenhum arquivo distribuído tem campo de continente, e a tabela está
 no código do jogo.
 
-**Resolução:** por enquanto o importador grava um continente que não é a Europa, e registra isso.
+**Resolução (INFERIDO):** por enquanto o importador grava um continente que não é a Europa, e registra isso.
 
 O motivo de não inventar a tabela agora é que ela é inerte: o Mundial de Clubes precisa de
 competições, que não existem, e o degrau de valor da 4.9 precisa de clube de nível 21 ou mais, que
@@ -424,7 +424,7 @@ chutes do visitante  46 x 0,55  x 0,50  = 12,65   a spec diz "~12,6 chutes"
 Com 47 o número do visitante seria 12,93, que teria sido escrito 12,9. Ou seja, a 3.16 foi calculada
 com 92 enquanto a 3.1 produz 94.
 
-**Resolução:** implementar a 3.1 ao pé da letra, porque a faixa de 91 a 97 que ela declara é
+**Resolução (MEDIDO, `SanityCheckTest`):** implementar a 3.1 ao pé da letra, porque a faixa de 91 a 97 que ela declara é
 consistente com as fórmulas dela mesma, e as cifras com til da 3.16 não são. A validação deriva a
 contagem esperada de chutes da posse **medida**, nunca de um 46 fixo. É o mesmo tratamento que o
 item 9 já dá ao parágrafo de alavanca da 3.16.
@@ -442,7 +442,7 @@ Contando o vencedor do duelo a cada tique, o mandante fica, em 92 tiques:
 
 A 3.16 diz cerca de 55/45.
 
-**Resolução:** contar o vencedor do duelo a cada tique, que é a única leitura que a frase da 3.5
+**Resolução (MEDIDO, `SanityCheckTest`):** contar o vencedor do duelo a cada tique, que é a única leitura que a frase da 3.5
 admite. A validação verifica uma faixa que contém 53,2 e exclui 50,0 e 60,0, e registra o valor
 medido, para que uma correção futura da spec tenha com o que comparar.
 
@@ -492,7 +492,7 @@ O resto da 3.16 bate exatamente nas duas escalações: 0,614 e 0,55 no duelo de 
 contra 11,09 por cento na conversão, ante os 8,8 e 11,1 da 3.15. Ou seja, o mando invertido está
 reproduzido; o que não reproduz é só o volume.
 
-**Resolução:** tratar os volumes de chute da 3.16 como calculados sobre uma escalação com todas as
+**Resolução (MEDIDO, `SanityCheckTest`):** tratar os volumes de chute da 3.16 como calculados sobre uma escalação com todas as
 linhas cheias, e não sobre uma escalação real. A validação afirma as duas coisas: as faixas medidas
 do 4-4-2, que é o caso que o jogo produz, e a reprodução exata da 3.16 com as linhas no divisor, que
 é a prova de que a diferença vem do defeito 3 da 3.15 (divisores fixos) e não de um erro de

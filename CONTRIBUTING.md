@@ -115,6 +115,21 @@ O determinismo existe justamente para tornar essa exigência justa.
 Se o comportamento que você precisa implementar não está descrito, **não adivinhe em silêncio**.
 Abra uma issue com o rótulo `spec-gap` e registre em `spec/OPEN-QUESTIONS.md`.
 
+### Toda resolução carrega uma classe de evidência
+
+Cada item de `spec/OPEN-QUESTIONS.md` termina num parágrafo `**Resolução:**`, e esse parágrafo agora
+precisa declarar uma de três classes logo depois do rótulo:
+
+- **CONFIRMADO** - lido da lógica do original. Só o time de spec pode produzir isso.
+- **INFERIDO** - dedução a partir da spec, sem verificação. É uma aposta declarada como aposta.
+- **MEDIDO** - verificado contra o motor, **citando o teste que prova**.
+
+O motivo é simples: uma resolução sem classe de evidência lê como fato, trabalho futuro constrói em
+cima dela, e uma inferência não marcada é exatamente como o item 9 deu errado - nove números
+declarados como reprodução exata da seção 3.16, sem motor nenhum para checar, até que o motor enfim
+existiu e quatro dos nove eram falsos. Uma afirmação do tipo "X reproduz exatamente" agora exige ou
+um teste nomeado, ou um `INFERIDO` honesto.
+
 ## Dados e arte
 
 Nunca faça commit de arquivos do jogo original. As extensões estão bloqueadas no `.gitignore` e na
