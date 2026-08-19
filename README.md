@@ -6,11 +6,11 @@ baixados pelo site oficial. O jogo foi/está sendo escrito do zero numa platafor
 
 ## Situação atual
 
-O projeto está na v0.1, que é a fase do motor: nenhuma interface gráfica ainda.
-A prioridade é acertar a matemática da simulação e provar que ela bate com o comportamento
-observado do jogo original, antes de construir telas em cima.
+Nenhuma interface gráfica ainda. A prioridade é acertar a matemática da simulação e provar que ela
+bate com o comportamento observado do jogo original, antes de construir telas em cima. O que existe
+hoje roda por linha de comando.
 
-Já funciona:
+Motor de partida:
 
 - Gerador aleatório determinístico, com derivação de semente por posição no mundo
 - Grade de 25 slots, posições, características e tipos de competição
@@ -18,8 +18,25 @@ Já funciona:
 - Agregados de linha, com os divisores fixos do original e a ordem de lista que decide quem entra
 - Os três duelos: posse, criação de chance e resolução de chute, com o sorteio do finalizador
 - `RuleSet`, com os conjuntos `CLASSIC` e `MODERN`, onde os defeitos do original viram dado e não `if`
+
+Criação de mundo:
+
+- Esquema de dados aberto, próprio, que valida as faixas ao ser lido
+- Força inicial, os sete atributos individuais, estilo, bônus de característica, contrato, salário
+  e valor de mercado
+- Um mundo inteiro reproduzível a partir da semente, com o fluxo de cada clube derivado da
+  referência dele, então editar a base de dados não invalida sementes já compartilhadas
+
+Importador:
+
+- Leitor do formato de serialização que os arquivos do original usam, escrito a partir da spec
+- Times, configuração de liga nacional e arquivo de opções viram o esquema aberto
+- Tudo que a instalação não sabe informar é derivado ou relatado, nunca chutado em silêncio
+
+Infraestrutura:
+
 - Testes de arquitetura que impedem I/O, relógio, aleatoriedade de plataforma e não determinismo
-- Verificador de estilo de comentário
+- Verificadores de estilo de comentário e de documento
 
 Ainda falta, para uma partida completa: o laço de tiques, tipos de gol, disciplina e lesões,
 energia, assistências e notas.
@@ -37,6 +54,25 @@ Rodar todas as verificações, incluindo testes de arquitetura e vetores dourado
 ```
 ./gradlew check
 ```
+
+## Como experimentar
+
+Não há jogo para jogar ainda, mas dá para ver o motor produzindo um mundo. O importador lê a sua
+própria instalação do original e escreve uma base de dados; nada é copiado além de números, e os
+arquivos ficam onde estão.
+
+```
+./gradlew :cli:installDist
+./cli/build/install/openfoot-cli/bin/openfoot-cli import --install /caminho/do/Brasfoot --out base.json
+./cli/build/install/openfoot-cli/bin/openfoot-cli worldgen --dataset base.json --seed 42
+```
+
+A mesma base com a mesma semente imprime exatamente a mesma coisa, em qualquer máquina. Duas
+execuções podem ser comparadas com `diff`.
+
+Vale ler as notas que o `import` imprime. A instalação distribuída só configura liga para o Brasil e
+para a Espanha, então a maioria dos clubes sai sem divisão, e isso os deixa mais fracos do que o
+nível deles sugere. Ver o item 27 de [`spec/OPEN-QUESTIONS.md`](spec/OPEN-QUESTIONS.md).
 
 ## Filosofia
 
