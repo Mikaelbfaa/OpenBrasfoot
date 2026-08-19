@@ -70,12 +70,14 @@ val checkDocumentStyle = tasks.register("checkDocumentStyle") {
     group = "verification"
     description = "Fails on typographic symbols in markdown that have a plain ASCII equivalent."
 
-    // Hidden directories (any path segment starting with a dot, such as .git,
-    // .gradle or .superpowers) are skipped because this check polices what
-    // gets committed and reviewed, and tooling scratch directories are never
-    // committed. The .git and .gradle excludes are kept explicit anyway
-    // since they are also matched by the hidden-directory pattern, and build
-    // is listed separately because it is not a hidden directory.
+    /**
+     * Hidden directories (any path segment starting with a dot, such as .git,
+     * .gradle or .superpowers) are skipped because this check polices what
+     * gets committed and reviewed, and tooling scratch directories are never
+     * committed. The .git and .gradle excludes are kept explicit anyway
+     * since they are also matched by the hidden-directory pattern, and build
+     * is listed separately because it is not a hidden directory.
+     */
     val documents = fileTree(projectDir) {
         include("**/*.md")
         exclude("**/build/**", "**/.git/**", "**/.gradle/**", "**/.*/**")

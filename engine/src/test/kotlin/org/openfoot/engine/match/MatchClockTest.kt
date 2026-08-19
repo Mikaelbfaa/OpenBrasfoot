@@ -19,10 +19,12 @@ import kotlin.test.assertTrue
  */
 class MatchClockTest {
 
+    /**
+     * extra1 = randRange(0, 2) draws 2 -> 0 + 2 = 2 -> firstHalf = 45 + 2 = 47.
+     * extra2 = randRange(1, 5) draws 0 -> 1 + 0 = 1 -> secondHalf = 45 + 1 = 46.
+     */
     @Test
     fun `the first half takes the first draw and the second half the second`() {
-        // extra1 = randRange(0, 2) draws 2 -> 0 + 2 = 2 -> firstHalf = 45 + 2 = 47.
-        // extra2 = randRange(1, 5) draws 0 -> 1 + 0 = 1 -> secondHalf = 45 + 1 = 46.
         val clock = matchClock(ScriptedInts(2, 0))
         assertEquals(47, clock.firstHalfMinutes)
         assertEquals(46, clock.secondHalfMinutes)
@@ -35,25 +37,31 @@ class MatchClockTest {
         assertEquals(2, rng.draws)
     }
 
+    /**
+     * extra1 draws 0 -> 0 + 0 = 0. extra2 draws 0 -> 1 + 0 = 1.
+     * total = 45 + 0 + 45 + 1 = 91, the minimum both ranges allow.
+     */
     @Test
     fun `the shortest match the draws allow is ninety one minutes`() {
-        // extra1 draws 0 -> 0 + 0 = 0. extra2 draws 0 -> 1 + 0 = 1.
-        // total = 45 + 0 + 45 + 1 = 91, the minimum both ranges allow.
         assertEquals(91, matchClock(ScriptedInts(0, 0)).totalMinutes)
     }
 
+    /**
+     * extra1 draws 2 (its top bound, nextInt(3)) -> 0 + 2 = 2.
+     * extra2 draws 4 (its top bound, nextInt(5)) -> 1 + 4 = 5.
+     * total = 45 + 2 + 45 + 5 = 97, the maximum both ranges allow.
+     */
     @Test
     fun `the longest match the draws allow is ninety seven minutes`() {
-        // extra1 draws 2 (its top bound, nextInt(3)) -> 0 + 2 = 2.
-        // extra2 draws 4 (its top bound, nextInt(5)) -> 1 + 4 = 5.
-        // total = 45 + 2 + 45 + 5 = 97, the maximum both ranges allow.
         assertEquals(97, matchClock(ScriptedInts(2, 4)).totalMinutes)
     }
 
+    /**
+     * extra1 in 0..2 and extra2 in 1..5, so total = 90 + extra1 + extra2
+     * ranges over 91..97 regardless of which generator draws it.
+     */
     @Test
     fun `every clock a real generator produces stays inside the stated range`() {
-        // extra1 in 0..2 and extra2 in 1..5, so total = 90 + extra1 + extra2
-        // ranges over 91..97 regardless of which generator draws it.
         repeat(2000) { seed ->
             val total = matchClock(SplitMix64Rng(seed.toLong())).totalMinutes
             assertTrue(total in 91..97, "seed $seed gave $total minutes")
