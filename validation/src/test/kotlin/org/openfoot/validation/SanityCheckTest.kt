@@ -201,7 +201,7 @@ class SanityCheckTest {
          * pulls the average a little under it. Section 3.15 says 8.8 per cent,
          * so this one agrees.
          */
-        @SpecRef("3.6c")
+        @SpecRef("3.15")
         val HOME_CONVERSION = 0.085..0.089
 
         /**
@@ -210,7 +210,7 @@ class SanityCheckTest {
          * and the pair of them is the inverted home advantage of the classic
          * rules.
          */
-        @SpecRef("3.6c")
+        @SpecRef("3.15")
         val AWAY_CONVERSION = 0.109..0.113
 
         /**
@@ -241,8 +241,20 @@ class SanityCheckTest {
         @SpecRef("3.16")
         val FULL_LINE_GOALS = 1.37..1.48
 
+        /**
+         * The sample: twenty thousand matches played with the four four two
+         * lineup, which every test above except the last checks against
+         * section 3.16's figures.
+         */
+        @SpecRef("3.16")
         val MATCHES: List<MatchResult> by lazy { play(EqualSides.setup()) }
 
+        /**
+         * The same sample size, played with the lineup whose defensive and
+         * attacking lines exactly fill section 3.4's fixed divisors: five
+         * defenders and three forwards.
+         */
+        @SpecRef("3.4")
         val LINES_AT_DIVISOR: List<MatchResult> by lazy { play(EqualSides.linesAtDivisorSetup()) }
 
         /**

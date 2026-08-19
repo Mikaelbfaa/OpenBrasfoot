@@ -79,8 +79,11 @@ O primeiro não reproduz: a fórmula de 3.6a dá **67,07%** com divisor 8 e 63,8
 O segundo não reproduz de jeito nenhum, porque **o duelo de chance não lê o meio-campo** - ele
 compara ataque contra defesa.
 
-Todos os outros números de 3.16 reproduzem exatamente: 0.614, 0.565, 0.55, 0.50, ~16 chutes,
-~12,6 chutes, 9,81%, 8,8%, 11,1%.
+Dos outros números de 3.16, cinco reproduzem exatamente em qualquer escalação: 0.614, 0.55, 9,81%,
+8,8%, 11,1%. Os quatro restantes - 0.565, 0.50, ~16 chutes e ~12,6 chutes - só reproduzem exatamente
+quando a linha de defesa e a linha de ataque preenchem exatamente os divisores fixos da 3.4 (5
+defensores, 3 atacantes). Num 4-4-2, a formação que a IA mais escolhe, essas duas linhas ficam
+desiguais e os quatro números não fecham; ver item 30.
 
 **Resolução:** tratar esse parágrafo como narrativo. Testar apenas os valores exatos. Item aberto na
 spec.
