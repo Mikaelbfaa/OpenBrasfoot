@@ -37,15 +37,6 @@ deixa de influenciar se o chute vai para fora.
 Spec: seção 3.6c. Em `MODERN` o peso original é preservado. Há um par de testes de caracterização
 que prova os dois comportamentos.
 
-### Divisores de linha fixos
-
-Os divisores são constantes 5, 5 e 3, e não a quantidade de jogadores encontrada. Escalar quatro
-meias em vez de cinco custa um quinto da força de meio-campo, e um atacante isolado rende a própria
-força dividida por três. Até o 4-4-2, formação que a IA escolhe em 31% das vezes, sai penalizado.
-
-Spec: seção 3.4. **Não corrigido em `MODERN`**: isso é decisão de balanceamento, não defeito, e
-precisaria de uma alavanca própria.
-
 ### Zero e um zagueiro dão no mesmo
 
 A regra anti-exploit contra escalações quebradas atribui pesos 0,10 e 0,05, mas o piso de 0,2 roda
@@ -78,6 +69,37 @@ Ficam registrados aqui para quando o código chegar nessas partes.
 - Prorrogação nunca é simulada. Empate em mata-mata vai direto para uma fórmula abstrata de
   pênaltis (seção 3.10).
 - Clubes da IA não têm dinheiro (seção 6.0). Esse é o mais estrutural de todos.
+
+## Não são defeitos
+
+Coisas que parecem defeito, já foram consideradas, e ficam como estão nos dois conjuntos de regras.
+Estão aqui para que ninguém gaste um PR tentando corrigi-las.
+
+### Divisores de linha fixos
+
+Os divisores são constantes 5, 5 e 3, e não a quantidade de jogadores encontrada. Escalar quatro
+meias em vez de cinco custa um quinto da força de meio-campo, e um atacante isolado rende a própria
+força dividida por três.
+
+Isso já foi descrito aqui como defeito. Não é. Some os tamanhos nominais das linhas: 5 na defesa,
+5 no meio, 3 no ataque, ou seja **13 jogadores para os 10 de linha que existem**. Todo time está
+sempre 3 curto, e **escolher onde ficar curto é a decisão de formação**. Os divisores são o preço
+de cada falta: um atacante a menos custa um terço do ataque, um zagueiro a menos custa um quinto da
+defesa, então encurtar o ataque é caro e encurtar a defesa é barato.
+
+O 5-2-3 preenche defesa e ataque por inteiro e joga toda a falta no meio-campo, que é justamente o
+que decide o duelo de posse: ataque forte, defesa forte, e quase nenhuma bola. O 4-4-2 divide a dor
+e termina com o ataque estruturalmente abaixo da defesa. As duas coisas são posições coerentes num
+trade-off de verdade.
+
+A alternativa, dividir pela quantidade encontrada, transformaria o ataque na média de quem está lá
+na frente. Um atacante atacaria exatamente igual a três, e a formação deixaria de afetar a força de
+qualquer linha. Seria um jogo mais pobre.
+
+Spec: seção 3.4. **Mantido em `CLASSIC` e em `MODERN`.**
+
+O que é defeito de verdade e continua corrigido em `MODERN` é o slot 18, logo acima: ali o jogador
+não entra em nenhuma conta. Isso não é trade-off, é um jogador que não existe.
 
 ## Como propor uma correção
 
