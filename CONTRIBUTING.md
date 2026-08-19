@@ -42,7 +42,7 @@ abrir o PR economiza uma volta.
 |---|---|
 | `checkDocumentStyle` | Símbolos tipográficos em arquivos `.md`. Letras acentuadas são permitidas |
 | `checkCommentStyle` | Caractere não ASCII ou sintaxe markdown dentro de comentário de código |
-| `checkPureDependencies` | Dependência externa entrando em `:model`, `:dataset` ou `:engine` |
+| `checkPureDependencies` | Dependência fora da lista permitida entrando em `:model`, `:dataset` ou `:engine` |
 | `ArchitectureTest` | I/O, relógio, aleatoriedade de plataforma, iteração de `HashMap`, matemática transcendental e menção a conjuntos de regras dentro do `:engine` |
 | Testes de unidade | Vetores dourados calculados na mão a partir da spec |
 
@@ -51,8 +51,11 @@ commitado, ou se aparecerem identificadores típicos de descompilação fora de 
 
 Duas verificações merecem explicação, porque não são estilo:
 
-- **`checkPureDependencies`** existe para manter a simulação portátil. O motor não deve arrastar
-  nada além da biblioteca padrão.
+- **`checkPureDependencies`** existe para manter a simulação portátil. Os módulos puros só podem
+  depender da biblioteca padrão do Kotlin, de `kotlinx` e uns dos outros. A `kotlinx-serialization`
+  entra na lista porque o esquema de dados e o `RuleSet` são tipos de valor declarativos, não I/O;
+  qualquer outra biblioteca é recusada. Se o seu código precisa de uma, ele pertence a um módulo que
+  não tem de ficar puro, como o `:importer` ou o `:cli`.
 - **`ArchitectureTest`** existe porque cada item da lista produz carreiras que não se reproduzem a
   partir da semente. Isso quebra o fluxo de relato de bug para todo mundo, não só para você.
 
