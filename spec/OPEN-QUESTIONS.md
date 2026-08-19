@@ -351,3 +351,51 @@ nenhum arquivo expressa. Escolher "não Europa" garante que a falta de dado não
 europeia a ninguém, que é o erro que passaria despercebido.
 
 Quando as competições chegarem, isto deixa de ser inerte e precisa de tabela de verdade.
+
+### 27. Um país sem arquivo de liga deixa todos os seus clubes fora de qualquer divisão
+
+O item 24 resolve **como** ordenar os clubes de um país dentro da pirâmide dele. Não trata do caso
+em que não há pirâmide nenhuma, que na instalação distribuída é o caso dominante e não a exceção:
+`conf_ligas_nacionais/` traz apenas `BRA.cfg` e `ESP.cfg`, então **533 dos 703 clubes ficam sem
+divisão**.
+
+Isso não é um detalhe de calibragem. A divisão entra em três lugares e todos empurram na mesma
+direção:
+
+| Onde | Divisão 1 | Sem divisão |
+|---|---|---|
+| Base de força da 4.4 | 20 | 1 |
+| Teto de crescimento da 4.5 | 80 a 100 por reputação | 30 |
+| Piso de declínio da 4.5 | 35 | 1 |
+
+O efeito já é visível num mundo gerado. Bayern e Real Madrid têm o mesmo nível 20 nos arquivos, ou
+seja, os dados dizem que são equivalentes:
+
+```
+realmadrid_esp   div 1     melhor 67  Benzema
+liverpool_ing    div nula  melhor 47  Salah
+bayern_ale       div nula  melhor 45  Neuer
+juventus_it      div nula  melhor 36  Szczesny
+milan_it         div nula  melhor 33  Calabria
+```
+
+E a parte que ainda não aparece é pior que essa. Quando a evolução semanal da 4.5 entrar, o Neuer
+com 45 já está acima do teto de 30 do `div0`, logo nunca cresce, e declina rumo ao piso de 1.
+O Benzema cresce rumo a 100 e nunca cai abaixo de 35. Em poucas temporadas todo país sem arquivo de
+liga desaba, o que o jogo original claramente não faz.
+
+**Resolução atual:** nenhuma. O importador registra uma nota dizendo quantos clubes ficaram sem
+divisão, e a nota subestima o problema porque só menciona a base de geração da 4.4.
+
+**Hipótese a testar:** os dois `.cfg` são configurações **sobreponíveis** pelo usuário, colocadas por
+cima de uma tabela de ligas embutida no jogo, e não o conjunto completo das ligas. Isso explicaria ao
+mesmo tempo por que só dois arquivos são distribuídos e por que o Bayern não é fraco no jogo real.
+A tabela embutida ficaria no código, fora do alcance da regra clean-room, exatamente como a tabela de
+nível de país do item 14.
+
+**Como decidir:** é observável. Basta abrir o original e ver se a Alemanha tem liga com divisões, e
+quantas. Se tiver, o recurso não pode ser `div0`, e a saída provável é derivar uma pirâmide sintética
+para país não configurado a partir do nível dos clubes, em vez de jogar todos na faixa mais fraca.
+
+Enquanto isso não for decidido, qualquer aferição estatística feita fora do Brasil e da Espanha mede
+este item e não o motor.
