@@ -39,6 +39,14 @@ class SerializedStreamReaderTest {
         val charField: Char,
     ) : Serializable
 
+    private open class Parent(private val shared: Int) : Serializable {
+        fun parentShared(): Int = shared
+    }
+
+    private class Child(parentShared: Int, private val shared: String) : Parent(parentShared) {
+        fun childShared(): String = shared
+    }
+
     private fun serialize(value: Any): ByteArray {
         val bytes = ByteArrayOutputStream()
         ObjectOutputStream(bytes).use { it.writeObject(value) }
@@ -166,6 +174,12 @@ class SerializedStreamReaderTest {
             ),
         )
         assertEquals(-1, record.fields["byteField"])
+    }
+
+    @Test
+    fun `a field name declared at two levels of the hierarchy is refused`() {
+        val failure = assertFailsWith<IllegalArgumentException> { read(Child(1, "dois")) }
+        assertTrue(failure.message.orEmpty().contains("shared"), failure.message.orEmpty())
     }
 
     @Test

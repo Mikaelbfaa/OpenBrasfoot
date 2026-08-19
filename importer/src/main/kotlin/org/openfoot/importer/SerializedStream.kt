@@ -16,6 +16,12 @@ const val LIST_CLASS = "java.util.ArrayList"
  * matching a class name, because those names belong to the original and naming
  * them in code is what the clean room rule forbids. Records are recognised by
  * the fields they carry instead.
+ *
+ * One flat map holds the fields of every level of a class hierarchy, so a name
+ * declared twice cannot be represented. The reader refuses such a record rather
+ * than letting the inner declaration shadow the outer one, because obfuscated
+ * names are single letters and a silent collision would lose a value without
+ * anything looking wrong.
  */
 class SerializedRecord(
     val className: String,
@@ -100,7 +106,12 @@ class SerializedStreamReader(private val bytes: ByteArray) {
 
         for (level in descriptor.hierarchy()) {
             for (field in level.fields) {
-                fields[field.name] = readFieldValue(field.typeCode)
+                val value = readFieldValue(field.typeCode)
+                require(!fields.containsKey(field.name)) {
+                    "${descriptor.name} declares '${field.name}' at more than one level of its " +
+                        "hierarchy, and a record keyed by bare field name cannot hold both"
+                }
+                fields[field.name] = value
             }
             when {
                 level.name == LIST_CLASS ->
