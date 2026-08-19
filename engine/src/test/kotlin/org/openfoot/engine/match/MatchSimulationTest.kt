@@ -46,6 +46,41 @@ class MatchSimulationTest {
         assertTrue(results.toSet().size > 1, "forty seeds produced one identical match")
     }
 
+    /**
+     * Finding 1. rng is a seed source that simulateMatch forks once and never
+     * consumes further, so passing the SAME instance to two calls replays the
+     * identical match both times: nothing about the first call's draws moves
+     * what the second call sees. This is the footgun the docstring now warns
+     * about, pinned so a future change that starts threading the parent's
+     * state through the loop is caught here instead of by a silent repeated
+     * fixture later.
+     */
+    @Test
+    fun `passing the same Rng instance to two calls replays the identical match`() {
+        val sharedRng = SplitMix64Rng(11)
+
+        val first = simulateMatch(setup(), sharedRng)
+        val second = simulateMatch(setup(), sharedRng)
+
+        assertEquals(first, second, "the same Rng instance must not make the second call diverge")
+    }
+
+    /**
+     * Finding 1's other half: the correct pattern. A caller simulating several
+     * matches from one generator, such as a round of fixtures, must fork a
+     * fresh child per match rather than pass the parent instance twice, and
+     * doing so does give different matches.
+     */
+    @Test
+    fun `forking a fresh child per match gives different matches`() {
+        val seasonRng = SplitMix64Rng(11)
+
+        val first = simulateMatch(setup(), seasonRng.fork(1L))
+        val second = simulateMatch(setup(), seasonRng.fork(2L))
+
+        assertTrue(first != second, "forking per match should not reproduce the same fixture twice")
+    }
+
     @Test
     fun `the match runs exactly as many ticks as the clock says`() {
         repeat(200) { seed ->

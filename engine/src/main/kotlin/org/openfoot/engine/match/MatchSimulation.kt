@@ -32,6 +32,17 @@ data class MatchResult(
  * the match and the displayed possession percentage comes from the duel counter
  * instead.
  *
+ * The rng argument is a seed source, not a stream to be consumed. This function
+ * forks it exactly once, at SeedDomain.MATCH, and never reads from it again;
+ * every draw the match makes comes from children of that one fork. The result
+ * therefore depends only on the generator's origin seed, never on how many
+ * values it had already produced before this call, so passing the SAME Rng
+ * instance to two calls of simulateMatch replays the identical match twice. A
+ * caller that simulates several matches from one generator, such as a whole
+ * round of fixtures, must fork a fresh child per match, for example
+ * seasonRng.fork(matchId), rather than pass that one instance to every call, or
+ * the whole round comes out as one match repeated.
+ *
  * Every minute draws from its own stream, derived from the minute index. A fork
  * depends only on the origin seed and the tag and never on how much the parent
  * has produced, so the number of draws one minute makes cannot move the next
