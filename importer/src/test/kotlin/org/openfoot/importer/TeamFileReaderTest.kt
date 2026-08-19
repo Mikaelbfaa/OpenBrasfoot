@@ -157,6 +157,26 @@ class TeamFileReaderTest {
     }
 
     @Test
+    fun `a club that ends up with no players says so`() {
+        val notes = ImportNotes()
+        val club = read(team(squad = emptyList()), notes = notes)
+        assertEquals(emptyList(), club.squad)
+        assertTrue(notes.notes.single().contains("no players"), notes.notes.toString())
+    }
+
+    @Test
+    fun `losing every player to damage is reported twice over`() {
+        val notes = ImportNotes()
+        val club = read(
+            team(squad = listOf(squadman(name = "Impossivel", position = 4, firstTrait = 2))),
+            notes = notes,
+        )
+        assertEquals(emptyList(), club.squad)
+        assertEquals(2, notes.notes.size, notes.notes.toString())
+        assertTrue(notes.notes.last().contains("no players"), notes.notes.toString())
+    }
+
+    @Test
     fun `a clean file produces no notes at all`() {
         val notes = ImportNotes()
         read(team(), notes = notes)

@@ -46,6 +46,11 @@ object TeamFileReader {
      * internally. The stored copy is preferred when the two disagree, because
      * it is what the original uses to find artwork, but a disagreement is
      * recorded because it means a file has been renamed.
+     *
+     * A club that comes out with no players is reported rather than returned
+     * quietly. It is the one outcome that costs a whole club without any single
+     * step having failed, since a squad list that is absent, null or holding
+     * something other than players all read as simply empty.
      */
     fun read(bytes: ByteArray, fileRef: String, notes: ImportNotes): ClubEntry {
         val record = SerializedStreamReader(bytes).readRoot()
@@ -65,9 +70,15 @@ object TeamFileReader {
         }
 
         val country = record.int(TEAM_COUNTRY)
-        val level = record.int(TEAM_LEVEL).coerceIn(ClubEntry.LEVEL_RANGE)
-        if (level != record.int(TEAM_LEVEL)) {
-            notes.note("$storedRef level ${record.int(TEAM_LEVEL)} clamped to $level")
+        val storedLevel = record.int(TEAM_LEVEL)
+        val level = storedLevel.coerceIn(ClubEntry.LEVEL_RANGE)
+        if (level != storedLevel) {
+            notes.note("$storedRef level $storedLevel clamped to $level")
+        }
+
+        val squad = record.records(SQUAD).mapNotNull { player(it, storedRef, notes) }
+        if (squad.isEmpty()) {
+            notes.note("$storedRef imports with no players and can field nothing")
         }
 
         return ClubEntry(
@@ -81,7 +92,7 @@ object TeamFileReader {
             capacity = record.int(TEAM_CAPACITY).coerceAtLeast(0),
             coach = record.text(TEAM_COACH),
             coachCountry = record.intOrNull(TEAM_COACH_COUNTRY) ?: country,
-            squad = record.records(SQUAD).mapNotNull { player(it, storedRef, notes) },
+            squad = squad,
         )
     }
 
