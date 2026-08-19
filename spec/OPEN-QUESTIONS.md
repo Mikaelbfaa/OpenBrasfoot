@@ -390,7 +390,7 @@ com 45 já está acima do teto de 30 do `div0`, logo nunca cresce, e declina rum
 O Benzema cresce rumo a 100 e nunca cai abaixo de 35. Em poucas temporadas todo país sem arquivo de
 liga desaba, o que o jogo original claramente não faz.
 
-**Resolução atual:** nenhuma. O importador registra uma nota dizendo quantos clubes ficaram sem
+**Resolução atual (EM ABERTO):** nenhuma. O importador registra uma nota dizendo quantos clubes ficaram sem
 divisão, e a nota subestima o problema porque só menciona a base de geração da 4.4.
 
 **Hipótese a testar:** os dois `.cfg` são configurações **sobreponíveis** pelo usuário, colocadas por
