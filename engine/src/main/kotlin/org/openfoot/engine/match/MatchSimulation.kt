@@ -83,9 +83,13 @@ fun simulateMatch(setup: MatchSetup, rng: Rng): MatchResult {
  * A tackle belongs to the side that did not have the ball. Everything else
  * belongs to the side that did. The duel winner is counted separately from all
  * of it, because that is the number the original displays as possession.
+ *
+ * Internal rather than private so a test can call it directly with hand built
+ * TickOutcome values and pin the crediting rules above without needing a whole
+ * match to exercise every event and both possessors.
  */
 @SpecRef("3.13")
-private fun MatchStats.record(outcome: TickOutcome): MatchStats {
+internal fun MatchStats.record(outcome: TickOutcome): MatchStats {
     val possessor = outcome.possessor
     val defender = possessor.opponent
 
