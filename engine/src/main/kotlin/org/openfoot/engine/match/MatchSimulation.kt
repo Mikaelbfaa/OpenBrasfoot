@@ -46,13 +46,20 @@ data class MatchResult(
  * Every minute draws from its own stream, derived from the minute index. A fork
  * depends only on the origin seed and the tag and never on how much the parent
  * has produced, so the number of draws one minute makes cannot move the next
- * one. That is what makes a match reproducible while the engine is still being
- * built: section 3.8 will add draws in the reserved discipline stream, and not
- * one draw made here will move.
+ * one. That guarantee is about stream position only, not about the whole match
+ * staying reproducible forever: section 3.8 brings sendings off, injuries and
+ * substitutions, which mutate the lineup and therefore the line aggregates for
+ * every later tick. Once that lands, a match recorded today will not replay
+ * identically, because what a later tick's duels compare will have changed
+ * even though the stream position feeding that tick has not moved at all.
  *
- * Human sides are not handled here. Section 3.1 skips automatic simulation
- * whenever a human club is involved, because the live viewer drives those tick
- * by tick, and the viewer does not exist yet.
+ * A human sided match is not routed away here. The original sends any match
+ * with a human managed club to its live viewer instead of simulating it
+ * automatically, and that viewer does not exist in this project yet, so
+ * nothing currently calls simulateMatch that way. Calling it with a human
+ * sided setup in the meantime is not nonsensical: the anti exploit rules of
+ * sections 3.6b and 3.6c legitimately read MatchSetup.hasHumanSide regardless
+ * of how the match was reached, so this function does not reject the case.
  */
 @SpecRef("3.1")
 fun simulateMatch(setup: MatchSetup, rng: Rng): MatchResult {

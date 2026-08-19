@@ -79,11 +79,14 @@ O primeiro não reproduz: a fórmula de 3.6a dá **67,07%** com divisor 8 e 63,8
 O segundo não reproduz de jeito nenhum, porque **o duelo de chance não lê o meio-campo** - ele
 compara ataque contra defesa.
 
-Dos outros números de 3.16, cinco reproduzem exatamente em qualquer escalação: 0.614, 0.55, 9,81%,
-8,8%, 11,1%. Os quatro restantes - 0.565, 0.50, ~16 chutes e ~12,6 chutes - só reproduzem exatamente
-quando a linha de defesa e a linha de ataque preenchem exatamente os divisores fixos da 3.4 (5
-defensores, 3 atacantes). Num 4-4-2, a formação que a IA mais escolhe, essas duas linhas ficam
-desiguais e os quatro números não fecham; ver item 30.
+Dos outros números de 3.16, três reproduzem exatamente em qualquer escalação: 0.614, 0.55 e 9,81%.
+Os dois de conversão, 8,8% e 11,1%, reproduzem só de forma aproximada: o valor medido é 8,71% e
+11,09%, e a diferença vem da alavanca anti-goleada da 3.6c, que a 3.16 não leva em conta. Os quatro
+restantes - 0.565, 0.50, ~16 chutes e ~12,6 chutes - só reproduzem quando a linha de defesa e a linha
+de ataque preenchem exatamente os divisores fixos da 3.4 (5 defensores, 3 atacantes), e mesmo assim os
+volumes de chute só fecham depois de também recontar as posses como 47 em vez de 46, que é o item 28.
+Num 4-4-2, a formação que a IA mais escolhe, essas duas linhas ficam desiguais e os quatro números não
+fecham; ver itens 28 e 30.
 
 **Resolução:** tratar esse parágrafo como narrativo. Testar apenas os valores exatos. Item aberto na
 spec.
