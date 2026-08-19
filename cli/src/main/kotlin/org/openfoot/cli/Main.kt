@@ -41,6 +41,29 @@ private val USAGE = """
 """.trimIndent()
 
 /**
+ * Why the dataset cannot be written where it was asked for, or null when it
+ * can.
+ *
+ * Asked before the import runs rather than after. Reading an installation takes
+ * seven hundred files, and finding out about the destination once that is done
+ * throws all of it away over a typo.
+ *
+ * A missing directory is refused instead of created. Somebody who mistypes a
+ * path wants to be told, not to find a tree of empty directories later.
+ */
+internal fun outputPathProblem(out: String): String? {
+    val file = File(out)
+    if (file.isDirectory) {
+        return "$out is a directory, and the dataset needs a file name"
+    }
+    val parent = file.absoluteFile.parentFile
+    if (parent != null && !parent.isDirectory) {
+        return "no directory at $parent to write $out into"
+    }
+    return null
+}
+
+/**
  * Reads an installation and writes a dataset.
  *
  * Everything the installation could not supply is printed rather than left for
@@ -56,6 +79,7 @@ private fun importInstallation(args: List<String>) {
     if (!root.isDirectory) {
         fail("no installation directory at $install")
     }
+    outputPathProblem(out)?.let { fail(it) }
 
     val result = try {
         InstallationImporter.importFrom(root)
