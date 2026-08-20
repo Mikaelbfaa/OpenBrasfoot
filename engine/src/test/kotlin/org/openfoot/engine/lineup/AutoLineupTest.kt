@@ -5,6 +5,7 @@ import org.openfoot.engine.world.Player
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
 import org.openfoot.model.RuleSets
+import org.openfoot.model.Side
 import org.openfoot.model.Slot
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -137,6 +138,107 @@ class AutoLineupTest {
             "cells 2 and 9 name a side and no sub role, so an offensive fullback fits them",
         )
         assertEquals(Position.FULLBACK, playerAt(9, eleven).naturalPosition, "and the same on the left")
+    }
+
+    /**
+     * Cells 2 and 9 are the flank pair section 3.2 spells out in words,
+     * "Laterais (direito / esquerdo)", and this pins the table from both ends.
+     *
+     * The squad carries exactly two natural fullbacks, one of each flank, and
+     * the left sided one is the stronger, so the pool offers him first.
+     * Formation 4 fills the right cell before the left one. On the exact pass
+     * the right cell refuses the stronger man on side alone and takes the
+     * weaker one; the left cell then takes the stronger. A table that named
+     * the two flanks the other way round, or that demanded no side at all,
+     * would seat the stronger man in cell 2 and the weaker in cell 9 in both
+     * cases, so the pair of assertions below tells all three tables apart.
+     *
+     * This squad and the one in the test below it are the only fixtures in
+     * this class with a left sided player at all. Everywhere else every
+     * fixture player is right sided, which means cell 9 cannot match anybody
+     * on the exact pass and always reaches its man through the pass that
+     * ignores the side.
+     */
+    @Test
+    fun `the fullback cells take the fullback of their own flank, not the stronger one`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+            Squads.holdingMidfielder(strength = 70),
+            Squads.holdingMidfielder(strength = 69),
+            Squads.midfielder(strength = 75),
+            Squads.midfielder(strength = 74),
+            Squads.fullback(strength = 60, side = Side.RIGHT),
+            Squads.fullback(strength = 65, side = Side.LEFT),
+            Squads.centreback(strength = 66),
+            Squads.centreback(strength = 64),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(60, playerAt(2, eleven).strength, "the right cell takes the right sided fullback")
+        assertEquals(
+            Side.RIGHT,
+            squad[playerAt(2, eleven).id.value].side,
+            "cell 2 is the right of the pair, so the stronger left sided fullback is refused here",
+        )
+        assertEquals(65, playerAt(9, eleven).strength, "and the left cell takes the left sided one")
+        assertEquals(
+            Side.LEFT,
+            squad[playerAt(9, eleven).id.value].side,
+            "cell 9 is the left of the pair",
+        )
+    }
+
+    /**
+     * The other two flank pairs of section 3.2, the wing backs 10 and 17 and
+     * the wingers 18 and 25, pinned the same way and in one lineup, because
+     * formation 10 is the only formation that uses all four cells.
+     *
+     * Its cell order is 1, 18, 25, 23, 11, 13, 4, 6, 8, 10 and 17, so each
+     * pair is filled right before left. On both flanks the left sided man is
+     * the stronger of the two and therefore comes first in the pool, so a
+     * table with the flanks swapped, or with no side demanded, would seat him
+     * in the right hand cell of the pair.
+     *
+     * The centre forward is right sided and stronger than either winger. He is
+     * refused by cells 18 and 25 on sub role, not on side, which is what makes
+     * this test redden as well if cells 18 and 25 stop demanding the winger
+     * reading; the dedicated pin for that row is below.
+     */
+    @Test
+    fun `the wing back and winger cells take the man of their own flank`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.winger(strength = 70, side = Side.RIGHT),
+            Squads.winger(strength = 75, side = Side.LEFT),
+            Squads.forward(strength = 80, side = Side.RIGHT),
+            Squads.holdingMidfielder(strength = 72),
+            Squads.holdingMidfielder(strength = 71),
+            Squads.centreback(strength = 66),
+            Squads.centreback(strength = 65),
+            Squads.centreback(strength = 64),
+            Squads.fullback(strength = 60, side = Side.RIGHT),
+            Squads.fullback(strength = 62, side = Side.LEFT),
+        )
+
+        val eleven = fillEleven(squad, Formations.byId(10), rules)
+
+        assertEquals(70, playerAt(18, eleven).strength, "cell 18 is the right winger cell")
+        assertEquals(75, playerAt(25, eleven).strength, "cell 25 is the left one")
+        assertEquals(60, playerAt(10, eleven).strength, "cell 10 is the right wing back cell")
+        assertEquals(62, playerAt(17, eleven).strength, "cell 17 is the left one")
+        assertEquals(
+            Side.RIGHT,
+            squad[playerAt(18, eleven).id.value].side,
+            "the stronger left sided winger is refused by cell 18 on side alone",
+        )
+        assertEquals(
+            Side.RIGHT,
+            squad[playerAt(10, eleven).id.value].side,
+            "and the stronger left sided fullback by cell 10",
+        )
     }
 
     @Test

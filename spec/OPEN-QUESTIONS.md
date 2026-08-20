@@ -688,8 +688,20 @@ alcançáveis nunca chegariam a ignorar isso (item 32); o efeito seria zagueiro 
 zagueiro, quatro improvisos a x0,5 por time e por partida.
 
 **Resolução (INFERIDO):** `Slot.requiredSide` e `Slot.requiredStyle` em `AutoLineup.kt`, uma linha por
-faixa da tabela da 3.2. Fixado em `AutoLineupTest`, teste "a natural fullback keeps the fullback cell
-whatever his style".
+faixa da tabela da 3.2.
+
+O lado está fixado em dois testes de `AutoLineupTest`, um por par de flanco, cada um montado para
+ficar vermelho tanto se os dois lados forem trocados quanto se a tabela deixar de exigir lado nenhum:
+"the fullback cells take the fullback of their own flank, not the stronger one", para as células 2 e
+9, e "the wing back and winger cells take the man of their own flank", para as células 10, 17, 18 e
+25. Os dois montam um elenco em que o jogador do flanco esquerdo é o mais forte do par, então
+qualquer das duas tabelas erradas o escalaria na célula da direita.
+
+O teste "a natural fullback keeps the fullback cell whatever his style" **não fixa lado nenhum**:
+ele afirma só que as células 2 e 9 não exigem sub-papel, que é uma linha da tabela de estilo. Uma
+versão anterior deste item o citava como prova do lado, e era falso. Até os dois testes acima
+existirem nenhum teste do repositório distinguia a tabela de lado, porque todo jogador de fixture era
+destro e `Side.LEFT` não aparecia na suíte inteira.
 
 ### 35. O que acontece com uma célula que esgota a cascata inteira
 
