@@ -108,6 +108,7 @@ data class RuleSet(
     @property:SpecRef("3.9") val keeperExemptHalf: Half,
 
     @property:SpecRef("3.15") val lineupRelaxationPasses: Int,
+    @property:SpecRef("5.4") val benchTemplate: List<Int>,
 ) {
     /**
      * Midfield bonus for a marking setting. Indexed by ordinal so the table

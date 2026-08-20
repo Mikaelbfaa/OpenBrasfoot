@@ -169,14 +169,7 @@ fun fillEleven(
     rules: RuleSet,
     availability: Availability = Availability.FULL_SQUAD,
 ): List<MatchPlayer> {
-    val availabilities = squad.mapIndexed { index, player -> availability.of(index, player) }
-    val pool = squad.indices
-        .filter { availabilities[it].canPlay }
-        .sortedWith(
-            compareByDescending<Int> { squad[it].strength }
-                .thenByDescending { availabilities[it].energy },
-        )
-
+    val pool = sortedPool(squad, availability)
     val taken = BooleanArray(squad.size)
     val eleven = mutableListOf<MatchPlayer>()
     for (slot in formation.slots) {
@@ -185,6 +178,82 @@ fun fillEleven(
         eleven += squad[chosen].inSlot(slot, PlayerId(chosen))
     }
     return eleven
+}
+
+/**
+ * The pool of section 5.4 step 1 and 2: not injured, not suspended, sorted by
+ * strength descending and then energy descending, and nothing else. Shared by
+ * the eleven and the bench, because both are drawn from the same ordering and
+ * a second copy of it would be a second place for the two to drift apart.
+ */
+@SpecRef("5.4")
+private fun sortedPool(squad: List<Player>, availability: Availability): List<Int> {
+    val availabilities = squad.mapIndexed { index, player -> availability.of(index, player) }
+    return squad.indices
+        .filter { availabilities[it].canPlay }
+        .sortedWith(
+            compareByDescending<Int> { squad[it].strength }
+                .thenByDescending { availabilities[it].energy },
+        )
+}
+
+/**
+ * The eleven a squad fields together with who sits behind them, which is what
+ * the rest of the engine asks for: a match never needs one without the other.
+ */
+@SpecRef("5.4")
+data class MatchdaySquad(
+    val onPitch: List<MatchPlayer>,
+    val bench: List<MatchPlayer>,
+)
+
+/**
+ * Names the eleven of section 5.4 step 3 and then the bench of step 4, from
+ * whoever the eleven left behind.
+ *
+ * The bench template, 1, 1, 2, 4, 4, 12, 15, 15, 20, 20, 23, is read as model
+ * cells, not as cells a substitute stands in: cell 1 asks for the goalkeeper
+ * reading, cell 2 for a fullback on the right, cell 4 for a centre back, cell
+ * 12 for a holding midfielder, cell 15 for an attacking one and cell 20 and 23
+ * for a centre forward, twice and once. Each entry runs through the same
+ * position cascade and side/style relaxation that fills the eleven, so a bench
+ * place that finds nobody of its own kind cascades exactly as a pitch cell
+ * would, right down to the catch all that seats the strongest man left over
+ * regardless of fit.
+ *
+ * A squad too small to fill every bench place benches fewer rather than
+ * failing: once every remaining player has been used, the catch all itself has
+ * nobody left to hand back, and the template stops rather than repeating a man
+ * already on the pitch or already on the bench.
+ *
+ * Every bench entry carries Slot.UNUSED_SUBSTITUTE, which is section 3.2's
+ * minus one for a substitute who has not come on, never the template cell that
+ * chose him. The template cell is only ever a question asked of the pool, not
+ * an answer recorded on the player.
+ */
+@SpecRef("5.4")
+fun autoLineup(
+    squad: List<Player>,
+    formation: Formation,
+    rules: RuleSet,
+    availability: Availability = Availability.FULL_SQUAD,
+): MatchdaySquad {
+    val onPitch = fillEleven(squad, formation, rules, availability)
+
+    val pool = sortedPool(squad, availability)
+    val taken = BooleanArray(squad.size)
+    for (player in onPitch) {
+        taken[player.id.value] = true
+    }
+
+    val bench = mutableListOf<MatchPlayer>()
+    for (cell in rules.benchTemplate) {
+        val chosen = chooseFor(Slot(cell), squad, pool, taken, rules) ?: break
+        taken[chosen] = true
+        bench += squad[chosen].inSlot(Slot.UNUSED_SUBSTITUTE, PlayerId(chosen))
+    }
+
+    return MatchdaySquad(onPitch, bench)
 }
 
 /**

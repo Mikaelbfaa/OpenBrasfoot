@@ -152,6 +152,7 @@ object RuleSets {
         keeperExemptHalf = Half.FIRST,
 
         lineupRelaxationPasses = 2,
+        benchTemplate = listOf(1, 1, 2, 4, 4, 12, 15, 15, 20, 20, 23),
     )
 
     /**

@@ -717,3 +717,34 @@ houver onze disponíveis, e com menos só quando o elenco não tem onze aptos. F
 `AutoLineupTest`, testes "eleven are fielded even when nobody fits anything" e "a midfield cell tries
 a fullback before a forward, and the last cell takes whoever is left", este último por afirmar
 exatamente qual jogador o preenchimento final escala.
+
+### 36. Como o banco fixo da 5.4 passo 4 escolhe quem senta em cada célula modelo
+
+A 5.4 dá o banco como uma lista fixa de células modelo, `1, 1, 2, 4, 4, 12, 15, 15, 20, 20, 23`, e diz
+o que cada uma significa (2 goleiros, 1 lateral, 2 zagueiros, 1 volante, 2 meias, 3 atacantes), mas não
+diz como uma célula modelo escolhe seu ocupante quando o elenco não tem exatamente o tipo pedido.
+
+**Resolução (INFERIDO):** cada célula do banco passa pela mesma busca relaxada da célula em campo,
+`chooseFor`: a cascata de posição do item 33, os passes de lado e estilo do item 34, e o mesmo catch
+all do item 35, que senta o jogador mais forte que sobrou quando a cascata inteira falha. O pool é o
+mesmo da escalação titular, ordenado uma vez por força e energia, e continua de onde a titular parou,
+nunca reordenado nem reiniciado. Uma célula do banco carrega `Slot.UNUSED_SUBSTITUTE` (o menos um da
+3.2), nunca o valor da célula modelo, que é só a pergunta feita ao pool e não uma resposta gravada no
+jogador.
+
+A alternativa seria uma leitura mais simples, que casasse a célula modelo só pela posição natural e
+deixasse a vaga vazia sem casar. Rejeitada por dois motivos: geraria um banco de tamanho variável por
+um motivo diferente do que a 3.16 já reconhece (elenco pequeno demais), e o catch all já é o
+comportamento que a própria 5.4 exige da escalação titular quando uma célula não acha ninguém, então
+usar uma regra diferente para o banco criaria uma segunda leitura sem necessidade.
+
+Consequência aceita: quando o elenco não tem o tipo de jogador que uma célula do banco pede e a
+cascata inteira falha, o catch all senta ali o jogador mais forte que sobrou, seja qual for sua
+posição, exatamente como fara com uma célula em campo. Isso só é observável com um elenco bem
+desequilibrado, porque o catch all só dispara depois de a cascata de cinco posições e os passes de
+lado/estilo se esgotarem.
+
+Quando o elenco é pequeno demais para completar as onze células do banco, o preenchimento para em vez
+de falhar: uma vez que todo jogador restante já foi usado, a própria busca relaxada não acha mais
+ninguém, catch all incluso, e as células seguintes do modelo ficam sem ocupante. Fixado em
+`AutoLineupTest`, teste "a squad too small to fill the bench benches fewer rather than failing".

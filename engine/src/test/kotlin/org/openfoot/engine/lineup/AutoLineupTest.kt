@@ -5,6 +5,7 @@ import org.openfoot.engine.world.Player
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
 import org.openfoot.model.RuleSets
+import org.openfoot.model.Slot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -29,6 +30,8 @@ import kotlin.test.assertTrue
 class AutoLineupTest {
 
     private val fourFourTwo = Formations.byId(4)
+
+    private val rules = RuleSets.CLASSIC
 
     /**
      * Formation 4 orders its cells 1, 22, 24, 11, 13, 14, 16, 2, 9, 3, 5:
@@ -539,5 +542,79 @@ class AutoLineupTest {
                 "${formation.name} fills its cells in list order",
             )
         }
+    }
+
+    /**
+     * A squad of twenty four, three deep in every position, so that the bench
+     * template can be satisfied in full and what it asks for is visible.
+     */
+    private fun deepSquad(): List<Player> = Squads.of(
+        Squads.keeper(50), Squads.keeper(48), Squads.keeper(46),
+        Squads.centreback(70), Squads.centreback(68), Squads.centreback(66),
+        Squads.centreback(64), Squads.centreback(62), Squads.centreback(60),
+        Squads.fullback(70), Squads.fullback(68), Squads.fullback(66), Squads.fullback(64),
+        Squads.midfielder(80), Squads.midfielder(78), Squads.midfielder(76),
+        Squads.midfielder(74), Squads.midfielder(72), Squads.midfielder(70),
+        Squads.forward(90), Squads.forward(88), Squads.forward(86),
+        Squads.forward(84), Squads.forward(82),
+    )
+
+    @Test
+    fun `the bench is eleven deep when the squad allows`() {
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+
+        assertEquals(11, matchday.onPitch.size, "eleven on the pitch")
+        assertEquals(11, matchday.bench.size, "eleven on the bench")
+    }
+
+    @Test
+    fun `an unused substitute carries the unused substitute cell`() {
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+
+        assertTrue(
+            matchday.bench.all { it.slot == Slot.UNUSED_SUBSTITUTE },
+            "section 3.2 leaves an unused substitute on minus one, not on a bench cell",
+        )
+    }
+
+    @Test
+    fun `the bench holds two keepers`() {
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val benchKeepers = matchday.bench.count { it.naturalPosition == Position.GOALKEEPER }
+
+        assertEquals(2, benchKeepers, "the template of section 5.4 asks for two")
+    }
+
+    @Test
+    fun `a squad too small to fill the bench benches fewer rather than failing`() {
+        val thirteen = deepSquad().take(13)
+
+        val matchday = autoLineup(thirteen, fourFourTwo, rules)
+
+        assertEquals(11, matchday.onPitch.size, "eleven still take the field")
+        assertEquals(2, matchday.bench.size, "and the two left over sit down")
+    }
+
+    @Test
+    fun `nobody is on the pitch and on the bench at once`() {
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val pitchIds = matchday.onPitch.map { it.id }.toSet()
+
+        assertTrue(
+            matchday.bench.none { it.id in pitchIds },
+            "a player cannot be his own substitute",
+        )
+    }
+
+    @Test
+    fun `every identity across the pitch and the bench is distinct`() {
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val all = (matchday.onPitch + matchday.bench).map { it.id }
+
+        assertEquals(
+            all.size,
+            all.distinct().size,
+            "initialState refuses a collision, so it must not be possible to build one",
+        )
     }
 }
