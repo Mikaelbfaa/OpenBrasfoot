@@ -241,6 +241,142 @@ class AutoLineupTest {
         )
     }
 
+    /**
+     * The winger row of section 3.2, cells 18 and 25, is what makes item 35
+     * happen at all: winger is a sub role only a forward can hold, so a winger
+     * cell in a squad with no winger matches nobody at any position of the
+     * cascade, and under classic's two passes nothing ever ignores the sub
+     * role. The cell then falls to the catch all and takes the strongest man
+     * left, whatever he plays.
+     *
+     * This squad has three forwards and none of them a winger, and the
+     * strongest player in it is a midfielder, so the catch all is visible: it
+     * seats him at cell 18 rather than any forward. A cell that demanded the
+     * offensive reading instead, or no sub role at all, would match the
+     * offensive forward rated 80 on the exact pass and never reach the catch
+     * all, which is the whole trigger of item 35 disappearing quietly.
+     */
+    @Test
+    fun `a winger cell in a squad with no winger falls to the catch all`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.midfielder(strength = 90),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+            Squads.holdingMidfielder(strength = 72),
+            Squads.holdingMidfielder(strength = 71),
+            Squads.centreback(strength = 66),
+            Squads.centreback(strength = 65),
+            Squads.centreback(strength = 64),
+            Squads.fullback(strength = 60, side = Side.RIGHT),
+            Squads.fullback(strength = 62, side = Side.LEFT),
+        )
+
+        val eleven = fillEleven(squad, Formations.byId(10), rules)
+
+        assertEquals(
+            Position.MIDFIELDER,
+            playerAt(18, eleven).naturalPosition,
+            "no forward in this squad is a winger, so cell 18 exhausts the cascade and the catch " +
+                "all seats the strongest man left, who plays in midfield",
+        )
+        assertEquals(90, playerAt(18, eleven).strength, "the strongest man in the squad")
+        assertEquals(
+            Position.FORWARD,
+            playerAt(23, eleven).naturalPosition,
+            "while the central forward cell, which asks for the centre forward reading, is filled " +
+                "by a forward in the ordinary way",
+        )
+    }
+
+    /**
+     * The wing back row, cells 10 and 17. Section 3.2 lists them apart from
+     * their neighbours as alas and has them demand a fullback, and section
+     * 4.3's derivation makes that the offensive reading of one.
+     *
+     * Formation 9 fills its two wing back cells last, and by then this squad
+     * has two fullbacks left: a defensive one rated 62 and an offensive one
+     * rated 55, both right sided so that side decides nothing here. Cell 10
+     * passes over the stronger man on sub role alone. A cell that asked for no
+     * sub role would take him, since he is ahead in the pool and on the right
+     * flank.
+     */
+    @Test
+    fun `a wing back cell demands the offensive reading of a fullback`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+            Squads.holdingMidfielder(strength = 70),
+            Squads.holdingMidfielder(strength = 69),
+            Squads.midfielder(strength = 75),
+            Squads.centreback(strength = 65),
+            Squads.centreback(strength = 64),
+            Squads.centreback(strength = 63),
+            Squads.defensiveFullback(strength = 62, side = Side.RIGHT),
+            Squads.fullback(strength = 55, side = Side.RIGHT),
+        )
+
+        val eleven = fillEleven(squad, Formations.byId(9), rules)
+
+        assertEquals(
+            55,
+            playerAt(10, eleven).strength,
+            "cell 10 takes the offensive fullback and refuses the stronger defensive one on sub role",
+        )
+        assertEquals(
+            62,
+            playerAt(17, eleven).strength,
+            "the defensive fullback is then the only man left, and cell 17 seats him through the " +
+                "catch all rather than through any pass that accepts him",
+        )
+    }
+
+    /**
+     * The central attack row, cells 19 to 24, which section 3.2 calls
+     * atacantes centrais and which section 4.3 reads as the centre forward.
+     *
+     * The strongest player in this squad is a winger, so he heads the pool and
+     * is offered to cell 22 first. The cell refuses him on sub role and takes
+     * the offensive forward rated 80 instead. A cell asking for no sub role
+     * would take the winger, since nothing else separates them.
+     *
+     * The winger then falls all the way through: every remaining cell either
+     * asks for a sub role he does not have or belongs to a position he does
+     * not play, so the last cell of formation 4, the second centre back cell,
+     * seats him through the catch all of item 35.
+     */
+    @Test
+    fun `a centre forward cell refuses a stronger winger`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.winger(strength = 90),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+            Squads.holdingMidfielder(strength = 70),
+            Squads.holdingMidfielder(strength = 69),
+            Squads.midfielder(strength = 75),
+            Squads.fullback(strength = 60),
+            Squads.fullback(strength = 59),
+            Squads.centreback(strength = 65),
+            Squads.centreback(strength = 64),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(
+            80,
+            playerAt(22, eleven).strength,
+            "the winger rated 90 sits ahead of him in the pool and is refused on sub role",
+        )
+        assertEquals(79, playerAt(24, eleven).strength, "and the other centre forward cell takes the 79")
+        assertEquals(
+            90,
+            playerAt(5, eleven).strength,
+            "the winger fits no cell of this formation and ends up at centre back through the catch all",
+        )
+    }
+
     @Test
     fun `a holding midfielder takes the holding cell ahead of a stronger playmaker`() {
         val squad = Squads.of(

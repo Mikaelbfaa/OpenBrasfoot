@@ -703,6 +703,15 @@ versão anterior deste item o citava como prova do lado, e era falso. Até os do
 existirem nenhum teste do repositório distinguia a tabela de lado, porque todo jogador de fixture era
 destro e `Side.LEFT` não aparecia na suíte inteira.
 
+O sub-papel está fixado em seis linhas, uma por faixa da tabela. As células 1 e 3-8, as 11-13, as
+14-16 e a escolha de não exigir nada em 2 e 9 já estavam cobertas pelos testes de cascata e pelo
+"a natural fullback keeps the fullback cell whatever his style". As outras três linhas não estavam, e
+cada uma ganhou um teste montado para ficar vermelho se ela for afrouxada: "a winger cell in a squad
+with no winger falls to the catch all" (18 e 25 exigem ponta), "a wing back cell demands the
+offensive reading of a fullback" (10 e 17 exigem o lateral ofensivo) e "a centre forward cell refuses
+a stronger winger" (19-24 exigem o centroavante). Antes deles as três linhas podiam ser trocadas por
+`null`, ou a linha das pontas por ofensivo, sem nenhum teste reclamar.
+
 ### 35. O que acontece com uma célula que esgota a cascata inteira
 
 A 5.4 descreve a busca relaxada e para por aí. Não diz o que fazer quando nenhuma das cinco posições
@@ -729,6 +738,11 @@ houver onze disponíveis, e com menos só quando o elenco não tem onze aptos. F
 `AutoLineupTest`, testes "eleven are fielded even when nobody fits anything" e "a midfield cell tries
 a fullback before a forward, and the last cell takes whoever is left", este último por afirmar
 exatamente qual jogador o preenchimento final escala.
+
+O gatilho descrito acima, a célula de ponta num elenco sem ponta, está fixado em "a winger cell in a
+squad with no winger falls to the catch all". Ele existe porque a exigência de ponta em 18 e 25 é
+carregada: enquanto essa linha da tabela do item 34 não tinha teste, trocá-la por ofensivo deixava a
+suíte verde e levava junto, em silêncio, o gatilho deste item.
 
 ### 36. Como o banco fixo da 5.4 passo 4 escolhe quem senta em cada célula modelo
 
