@@ -29,12 +29,20 @@ enum class TickEvent {
  * other event, shot outcomes and the misplaced pass alike, belongs to the
  * possessor. That pairing is fixed by the enum itself, so there is no separate
  * field to get wrong.
+ *
+ * The shooter is null exactly when the tick produced no shot: a lost
+ * possession duel, or a chance duel that did not come off. A shot may still
+ * carry a null shooter when the possessing side had nobody eligible to take
+ * it, which section 3.6c already handles on its own by falling back to the
+ * missing shooter rating, so isShot does not imply a non null shooter, only
+ * the other direction holds.
  */
 @SpecRef("3.5")
 data class TickOutcome(
     val possessor: TeamSide,
     val possessionWinner: TeamSide,
     val event: TickEvent,
+    @property:SpecRef("3.6") val shooter: MatchPlayer? = null,
 ) {
     val isShot: Boolean
         get() = event == TickEvent.GOAL || event == TickEvent.SAVE || event == TickEvent.WIDE
@@ -80,7 +88,7 @@ fun playTick(
         ShotOutcome.SAVED -> TickEvent.SAVE
         ShotOutcome.WIDE -> TickEvent.WIDE
     }
-    return TickOutcome(possessor, winner, event)
+    return TickOutcome(possessor, winner, event, shooter)
 }
 
 /**
