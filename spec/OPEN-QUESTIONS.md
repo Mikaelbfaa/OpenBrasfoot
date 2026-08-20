@@ -564,6 +564,13 @@ Três argumentos pesam a favor de A:
    preferência e viraria letra morta. Logo o corte não é no primeiro passe, e entre os outros dois
    vale o argumento do limite.
 
+**Por que dois passes quase nunca são dois.** Pela tabela do item 34, 19 das 25 células não pedem
+lado nenhum. Numa célula central os dois passes alcançáveis do CLASSIC testam exatamente a mesma
+condição, o sub-papel, porque o único filtro que o segundo passe larga é o lado e ali não havia lado
+a largar. Ou seja, na maior parte da grade o CLASSIC tem **um** filtro distinto, não dois, e nunca
+chega a ignorar o sub-papel. É essa colapsagem, e não o número 2 em si, que faz uma célula central
+desistir da posição inteira em vez de afrouxar o estilo.
+
 **Pegada.** Não é caso de canto. Levantamento sobre os dados do original: **29,7% dos times**
 carregam menos de dois meias defensivos e **14,9%** menos de duas pontas. Nesses times, sob a leitura
 A, toda célula de volante (11-13) que não acha volante natural sobrando desiste do meio-campo e desce
@@ -766,7 +773,9 @@ A 5.4 descreve a busca relaxada e para por aí. Não diz o que fazer quando nenh
 da cadeia, em nenhum passe, produz um candidato. Isso acontece de verdade, e **só sob CLASSIC**: uma
 célula de ponta (18 ou 25) num elenco **sem nenhuma** ponta não casa com ninguém, porque ponta é
 sub-papel exclusivo de atacante e as outras posições da cadeia nunca o têm, e com dois passes nada
-ignora o sub-papel. São **15 dos 703 times** do original, 2,1%, e só a formação 10 tem célula de
+ignora o sub-papel. Nada ignora porque, das 25 células, 19 não pedem lado: nelas os dois
+passes do CLASSIC são o mesmo filtro aplicado duas vezes, e nas seis células de flanco o segundo
+passe larga só o lado. Em nenhuma das 25 o CLASSIC larga o sub-papel. São **15 dos 703 times** do original, 2,1%, e só a formação 10 tem célula de
 ponta, com 2% dos sorteios da IA. Os 14,9% do item 32 são "menos de duas pontas", que é outra coisa:
 com uma ponta só, quem cai aqui é a segunda célula. Sob MODERN o terceiro passe põe um atacante
 qualquer nas células 18 e 25 e o preenchimento final não dispara ali.
