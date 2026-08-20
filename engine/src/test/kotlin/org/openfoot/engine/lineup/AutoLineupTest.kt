@@ -815,12 +815,39 @@ class AutoLineupTest {
         )
     }
 
+    /**
+     * The bench template of section 5.4 opens with two keeper cells, 1 and 1,
+     * and the claim is that both of them seat a keeper.
+     *
+     * Counting keepers anywhere on the bench does not make that claim.
+     * deepSquad carries three keepers and fields one, and the centre back
+     * model cell that follows exhausts its own cascade and reaches a keeper
+     * anyway, so a template whose second entry was a centre back cell would
+     * still leave two keepers sitting somewhere on the bench. The places are
+     * therefore asserted by position: the first two seats, in order, and the
+     * two reserve keepers of the squad, in strength order, since the pool is
+     * sorted once and the stronger of the two is offered first.
+     */
     @Test
-    fun `the bench holds two keepers`() {
-        val matchday = autoLineup(deepSquad(), fourFourTwo, rules, Availability.FULL_SQUAD)
-        val benchKeepers = matchday.bench.count { it.naturalPosition == Position.GOALKEEPER }
+    fun `the first two bench places are the two reserve keepers`() {
+        val squad = deepSquad()
+        val matchday = autoLineup(squad, fourFourTwo, rules, Availability.FULL_SQUAD)
 
-        assertEquals(2, benchKeepers, "the template of section 5.4 asks for two")
+        assertEquals(
+            listOf(Position.GOALKEEPER, Position.GOALKEEPER),
+            matchday.bench.take(2).map { it.naturalPosition },
+            "the template opens with two keeper cells",
+        )
+        assertEquals(
+            listOf(48, 46),
+            matchday.bench.take(2).map { it.strength },
+            "the two keepers the eleven left behind, stronger first",
+        )
+        assertEquals(
+            2,
+            matchday.bench.count { it.naturalPosition == Position.GOALKEEPER },
+            "and no third keeper exists to sit anywhere else",
+        )
     }
 
     @Test
