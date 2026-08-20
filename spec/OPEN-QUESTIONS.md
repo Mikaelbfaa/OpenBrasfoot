@@ -517,9 +517,22 @@ Contando os minutos de um tempo de 45 a partir de zero, os descontos caem em 0, 
 `7 descontos x 2 de custo = 14 energia por tempo x 2 tempos = 28`, batendo com a spec. `6 x 2 = 12 x
 2 = 24`, que não bate.
 
+**O que o código faz, ao lado da derivação.** A derivação acima é sobre um tempo regulamentar de 45
+minutos. `drainsThisMinute` não conta sobre 45: conta sobre o tempo de verdade, do zero ao último
+minuto que o relógio da 3.1 sorteou. Como `matchClock` sorteia o acréscimo do segundo tempo em 1 a 5,
+o segundo tempo tem de 46 a 50 minutos, e num tempo de 50 minutos o deslocamento 49 também é múltiplo
+de 7. Isso dá um **oitavo** desconto. O primeiro tempo nunca faz o mesmo, porque o acréscimo dele é
+de 0 a 2 e ele para em 47 minutos.
+
+Ou seja, a partida mais longa que a 3.1 permite custa 30 de energia a um jogador de 24 anos, e não os
+28 que a 3.9 cita; 28 é o custo de uma partida de dois tempos regulamentares. As duas afirmações
+convivem, e a derivação continua sendo o que decide a pergunta deste item, que é de qual ponta contar,
+não quantos descontos cabem numa partida real. Fixado em `EnergyTest`, teste "the longest legal second
+half drains an eighth time".
+
 **Resolução (INFERIDO):** contar os minutos de cada tempo a partir de zero, reiniciando a contagem no
 início do segundo tempo. É a única leitura das duas que reproduz os ~28 de energia que a 3.9 cita
-para um jogador de 24 anos numa partida completa. Testado em `EnergyTest`.
+para um jogador de 24 anos numa partida de dois tempos regulamentares. Testado em `EnergyTest`.
 
 ### 32. Quantos passes de relaxamento a escalação automática de fato executa
 
