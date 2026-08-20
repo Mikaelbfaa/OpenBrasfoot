@@ -1,5 +1,6 @@
 package org.openfoot.engine.match
 
+import org.openfoot.engine.lineup.Formations
 import org.openfoot.model.Attr
 import org.openfoot.model.CompetitionKind
 import org.openfoot.model.Country
@@ -90,8 +91,8 @@ object Lineups {
     ) = side(slots.map { player(it, strength) }, marking, context)
 
     /** Slot list of formation 4, the four four two the AI picks most often. */
-    val FORMATION_4_4_2 = listOf(1, 22, 24, 11, 13, 14, 16, 2, 9, 3, 5)
+    val FORMATION_4_4_2 = Formations.byId(4).slots.map { it.value }
 
     /** Slot list of formation 10, the three four three that uses slot eighteen. */
-    val FORMATION_3_4_3 = listOf(1, 18, 25, 23, 11, 13, 4, 6, 8, 10, 17)
+    val FORMATION_3_4_3 = Formations.byId(10).slots.map { it.value }
 }
