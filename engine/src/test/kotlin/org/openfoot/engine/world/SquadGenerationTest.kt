@@ -3,6 +3,7 @@ package org.openfoot.engine.world
 import org.openfoot.dataset.DatasetOptions
 import org.openfoot.model.Attr
 import org.openfoot.model.PlayerId
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.SplitMix64Rng
 import org.openfoot.model.Slot

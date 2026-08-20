@@ -2,6 +2,7 @@ package org.openfoot.engine.world
 
 import org.openfoot.engine.match.MatchPlayer
 import org.openfoot.model.PlayerId
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.Side
 import org.openfoot.model.Slot

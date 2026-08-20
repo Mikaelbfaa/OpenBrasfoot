@@ -1,23 +1,9 @@
 package org.openfoot.engine.world
 
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.SpecRef
 import org.openfoot.model.Trait
-
-/**
- * How a player interprets his position, which the original calls his style.
- *
- * Derived once from position and characteristics and then fixed for life. It
- * decides which cells a player is eligible for, and it selects which row of the
- * attribute table of section 4.2 generates him, so two fullbacks with the same
- * strength can come out with quite different attributes.
- */
-@SpecRef("4.3")
-enum class PlayerStyle {
-    DEFENSIVE,
-    OFFENSIVE,
-    WINGER,
-}
 
 /**
  * Derives the style from position and the two characteristics.

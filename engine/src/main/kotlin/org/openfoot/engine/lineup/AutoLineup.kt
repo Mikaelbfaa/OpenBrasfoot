@@ -2,72 +2,12 @@ package org.openfoot.engine.lineup
 
 import org.openfoot.engine.match.MatchPlayer
 import org.openfoot.engine.world.Player
-import org.openfoot.engine.world.PlayerStyle
 import org.openfoot.engine.world.inSlot
 import org.openfoot.model.PlayerId
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
-import org.openfoot.model.Side
 import org.openfoot.model.Slot
 import org.openfoot.model.SpecRef
-
-/**
- * The side of the pitch a cell belongs to, or null for a cell in the middle.
- *
- * Section 3.2 names a side for exactly three pairs of cells: the fullbacks 2
- * and 9 are written "direito / esquerdo", and the wing backs 10 and 17 and the
- * wingers 18 and 25 are the two other pairs the same table sets apart from
- * their neighbours. The lower number of each pair is the right, following the
- * order the fullback row spells out. Every other cell is central and takes
- * either side without preference.
- *
- * A wrong side costs nothing at all in section 5.3. It is only ever a
- * preference in the lineup, which is why it is the first thing the search
- * below gives up on.
- */
-@SpecRef("3.2")
-internal val Slot.requiredSide: Side?
-    get() = when (value) {
-        2, 10, 18 -> Side.RIGHT
-        9, 17, 25 -> Side.LEFT
-        else -> null
-    }
-
-/**
- * The sub role a cell asks for, or null for a cell that asks for none.
- *
- * Read straight off the table of section 3.2 through the derivation of section
- * 4.3. The holding cells 11 to 13 want a defensive midfielder and the
- * attacking cells 14 to 16 want an offensive one; the wingers 18 and 25 want
- * the winger reading of a forward and the central cells 19 to 24 want the
- * centre forward reading; the wing backs 10 and 17, which section 3.2 calls
- * alas and which sit in the midfield range while demanding a fullback, want
- * the offensive reading of one.
- *
- * The keeper and the six centre back cells ask for the defensive reading. That
- * is free at their own position, where it is the only reading available, and
- * it matters during the cascade, where it steers a centre back cell towards a
- * defensive fullback or a holding midfielder rather than a winger.
- *
- * Cells 2 and 9 ask for no sub role. The table names them only by their side,
- * unlike every other pair of cells it lists, and the alternative reading does
- * not survive contact with the game: the derivation of section 4.3 makes any
- * fullback with pace or crossing offensive, so demanding the defensive reading
- * at 2 and 9 would stop most fullbacks in the game from being picked for the
- * cells they are named after.
- */
-@SpecRef("3.2")
-internal val Slot.requiredStyle: PlayerStyle?
-    get() = when (value) {
-        2, 9 -> null
-        1, in 3..8 -> PlayerStyle.DEFENSIVE
-        10, 17 -> PlayerStyle.OFFENSIVE
-        in 11..13 -> PlayerStyle.DEFENSIVE
-        in 14..16 -> PlayerStyle.OFFENSIVE
-        18, 25 -> PlayerStyle.WINGER
-        in 19..24 -> PlayerStyle.OFFENSIVE
-        else -> null
-    }
 
 /**
  * The order in which a cell gives up on the position it asked for.
@@ -299,6 +239,13 @@ private fun chooseFor(
  * Whether a player satisfies what the cell asks beyond the position, at the
  * given level of relaxation. The three levels and their order are section
  * 3.2: exact, then side ignored, then side and style ignored.
+ *
+ * The two tables read here, Slot.requiredSide and Slot.requiredStyle, sit on
+ * Slot in the model module next to Slot.requiredPosition. They are three
+ * columns of one table of section 3.2 and they are kept together so that a
+ * change to one row is reviewed against its siblings, and so that all three
+ * are covered by one test class rather than half of them living out here
+ * where the coverage was not.
  */
 @SpecRef("3.2")
 private fun fits(slot: Slot, player: Player, pass: Int): Boolean {

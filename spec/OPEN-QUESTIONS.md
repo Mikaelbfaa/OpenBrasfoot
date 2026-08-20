@@ -687,8 +687,11 @@ dez laterais do jogo justamente das células que levam o nome deles, e no CLASSI
 alcançáveis nunca chegariam a ignorar isso (item 32); o efeito seria zagueiro de lateral e lateral de
 zagueiro, quatro improvisos a x0,5 por time e por partida.
 
-**Resolução (INFERIDO):** `Slot.requiredSide` e `Slot.requiredStyle` em `AutoLineup.kt`, uma linha por
-faixa da tabela da 3.2.
+**Resolução (INFERIDO):** `Slot.requiredSide` e `Slot.requiredStyle` em `Slot.kt`, no módulo
+`:model`, uma linha por faixa da tabela da 3.2 e ao lado de `Slot.requiredPosition`, que é a
+terceira coluna da mesma tabela. As duas colunas moraram um tempo como extensões no `:engine`,
+longe da irmã, e foram exatamente as duas que ficaram sem teste; agora estão fixadas célula a
+célula em `SlotTest`, junto com a de posição, como detector de mudança.
 
 O lado está fixado em dois testes de `AutoLineupTest`, um por par de flanco, cada um montado para
 ficar vermelho tanto se os dois lados forem trocados quanto se a tabela deixar de exigir lado nenhum:
