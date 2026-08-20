@@ -1,0 +1,328 @@
+package org.openfoot.engine.lineup
+
+import org.openfoot.engine.match.MatchPlayer
+import org.openfoot.engine.world.Player
+import org.openfoot.model.Position
+import org.openfoot.model.RuleSet
+import org.openfoot.model.RuleSets
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+/**
+ * Section 5.4 sorts the pool once, by strength descending and energy
+ * descending, and then walks the cells of the formation in order taking the
+ * first player still available who fits. The consequence the spec calls out is
+ * that because the formation lists name the forwards before the defenders, the
+ * forwards pick from the top of the pool and the defenders get the leftovers.
+ * That is asserted directly below, because a lineup builder that sorted by
+ * need instead would look more sensible and would be wrong.
+ *
+ * The second thing asserted here is defect 7 of section 3.15. A cell searches
+ * its own position first, relaxing side and then style, and only then walks
+ * the position cascade. Classic never reaches the pass that ignores style, so
+ * a holding midfield cell with no defensive midfielder left gives up on
+ * midfielders entirely and cascades to a centre back. Modern reaches it and
+ * fields the midfielder. Both are asserted, because that pair is the whole
+ * reason the pass count is a rule set field.
+ */
+class AutoLineupTest {
+
+    private val fourFourTwo = Formations.byId(4)
+
+    /**
+     * Formation 4 orders its cells 1, 22, 24, 11, 13, 14, 16, 2, 9, 3, 5:
+     * the keeper, then two forward cells, then two holding midfield cells and
+     * two attacking ones, then the fullbacks, then the centre backs.
+     */
+    private fun fill(
+        squad: List<Player>,
+        availability: Availability = Availability.FULL_SQUAD,
+        rules: RuleSet = RuleSets.CLASSIC,
+    ) = fillEleven(squad, fourFourTwo, rules, availability)
+
+    private fun playerAt(slot: Int, eleven: List<MatchPlayer>) =
+        eleven.first { it.slot.value == slot }
+
+    /**
+     * Pool order, worked out from the squad below rather than from the
+     * implementation: 90, 80, 70 and 65 are midfielders, then the lone forward
+     * on 60, then the last midfielder on 55, and then the five on 50 in squad
+     * order, because nothing breaks a tie once energy is equal too.
+     */
+    private fun squadShortOfForwards() = Squads.of(
+        Squads.keeper(strength = 50),
+        Squads.forward(strength = 60),
+        Squads.midfielder(strength = 90),
+        Squads.midfielder(strength = 80),
+        Squads.midfielder(strength = 70),
+        Squads.midfielder(strength = 65),
+        Squads.midfielder(strength = 55),
+        Squads.fullback(strength = 50),
+        Squads.fullback(strength = 50),
+        Squads.centreback(strength = 50),
+        Squads.centreback(strength = 50),
+    )
+
+    @Test
+    fun `a squad short of forwards fills its forward cells with the best midfielders`() {
+        val eleven = fill(squadShortOfForwards())
+
+        assertEquals(60, playerAt(22, eleven).strength, "the one real forward takes the first cell")
+        assertEquals(
+            90,
+            playerAt(24, eleven).strength,
+            "the second forward cell cascades onto the strongest midfielder, because the " +
+                "forward cells come before the midfield cells in the formation list",
+        )
+        assertEquals(
+            Position.MIDFIELDER,
+            playerAt(24, eleven).naturalPosition,
+            "and he is a midfielder improvising, not a forward that was hiding",
+        )
+    }
+
+    /**
+     * The midfield cells of formation 4 are two holding cells, 11 and 13,
+     * before the two attacking cells, 14 and 16. Every midfielder in this
+     * squad is offensive, so no holding cell has a natural candidate.
+     *
+     * Under classic the search for cell 11 runs midfielder with side and
+     * style, then midfielder with style, and then stops: the pass that would
+     * ignore style is the one section 3.15 item 7 says the loop bound never
+     * reaches. So it cascades. Fullback fails too, both fullbacks being
+     * offensive; forward is empty by then, the lone forward having taken cell
+     * 22 and the strongest midfielder cell 24; centre back matches on the
+     * first pass, style defensive and no side demanded by a central cell. A
+     * centre back on 50 therefore plays as a holding midfielder while an 80
+     * sits.
+     *
+     * Under modern the third pass exists, so cell 11 takes the 80 and the
+     * centre backs stay at the back.
+     */
+    @Test
+    fun `classic gives up on the position before it gives up on the style`() {
+        val classic = fill(squadShortOfForwards(), rules = RuleSets.CLASSIC)
+        val modern = fill(squadShortOfForwards(), rules = RuleSets.MODERN)
+
+        assertEquals(
+            Position.CENTREBACK,
+            playerAt(11, classic).naturalPosition,
+            "classic cascades out of midfield rather than ignore the style it asked for",
+        )
+        assertEquals(50, playerAt(11, classic).strength, "and the centre backs in this squad are on 50")
+
+        assertEquals(
+            Position.MIDFIELDER,
+            playerAt(11, modern).naturalPosition,
+            "modern reaches the pass that ignores style and keeps a midfielder in midfield",
+        )
+        assertEquals(
+            80,
+            playerAt(11, modern).strength,
+            "the strongest midfielder left once cell 24 has taken the 90",
+        )
+    }
+
+    @Test
+    fun `a natural fullback keeps the fullback cell whatever his style`() {
+        val eleven = fill(squadShortOfForwards())
+
+        assertEquals(
+            Position.FULLBACK,
+            playerAt(2, eleven).naturalPosition,
+            "cells 2 and 9 name a side and no sub role, so an offensive fullback fits them",
+        )
+        assertEquals(Position.FULLBACK, playerAt(9, eleven).naturalPosition, "and the same on the left")
+    }
+
+    @Test
+    fun `a holding midfielder takes the holding cell ahead of a stronger playmaker`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.forward(strength = 70),
+            Squads.forward(strength = 70),
+            Squads.midfielder(strength = 90),
+            Squads.midfielder(strength = 85),
+            Squads.holdingMidfielder(strength = 60),
+            Squads.holdingMidfielder(strength = 55),
+            Squads.fullback(strength = 50),
+            Squads.fullback(strength = 50),
+            Squads.centreback(strength = 50),
+            Squads.centreback(strength = 50),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(60, playerAt(11, eleven).strength, "the stronger holding midfielder takes cell 11")
+        assertEquals(55, playerAt(13, eleven).strength, "and the other takes cell 13")
+        assertEquals(90, playerAt(14, eleven).strength, "the playmakers take the attacking cells")
+        assertEquals(85, playerAt(16, eleven).strength, "in strength order")
+    }
+
+    @Test
+    fun `a cell is filled by the strongest compatible player left`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.forward(strength = 70),
+            Squads.forward(strength = 90),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.fullback(strength = 50),
+            Squads.fullback(strength = 50),
+            Squads.centreback(strength = 50),
+            Squads.centreback(strength = 50),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(90, playerAt(22, eleven).strength, "the first forward cell takes the stronger")
+        assertEquals(70, playerAt(24, eleven).strength, "the second takes what is left")
+    }
+
+    @Test
+    fun `an unavailable player is never picked`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.forward(strength = 99),
+            Squads.forward(strength = 70),
+            Squads.forward(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.fullback(strength = 50),
+            Squads.fullback(strength = 50),
+            Squads.centreback(strength = 50),
+            Squads.centreback(strength = 50),
+        )
+        val injured = Availability { index, _ -> PlayerAvailability(canPlay = index != 1, energy = 100) }
+
+        val eleven = fill(squad, injured)
+
+        assertTrue(
+            eleven.none { it.strength == 99 },
+            "the strongest player is unavailable and must not appear",
+        )
+        assertEquals(11, eleven.size, "eleven are still fielded")
+    }
+
+    @Test
+    fun `energy breaks a tie in strength and nothing else does`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.forward(strength = 70),
+            Squads.forward(strength = 70),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.fullback(strength = 50),
+            Squads.fullback(strength = 50),
+            Squads.centreback(strength = 50),
+            Squads.centreback(strength = 50),
+        )
+        val tired = Availability { index, _ ->
+            PlayerAvailability(canPlay = true, energy = if (index == 1) 40 else 100)
+        }
+
+        val eleven = fill(squad, tired)
+
+        assertEquals(
+            2,
+            playerAt(22, eleven).id.value,
+            "the two forwards are equally strong, so the fresher one takes the first cell",
+        )
+    }
+
+    @Test
+    fun `eleven are fielded even when nobody fits anything`() {
+        val squad = List(11) { Squads.keeper(strength = 50) }
+
+        val eleven = fill(Squads.of(*squad.toTypedArray()))
+
+        assertEquals(11, eleven.size, "the original has no legality check and fields eleven regardless")
+        assertEquals(
+            11,
+            eleven.map { it.slot.value }.distinct().size,
+            "and never puts two of them in one cell",
+        )
+        assertEquals(
+            11,
+            eleven.map { it.id.value }.distinct().size,
+            "and never fields one player twice",
+        )
+    }
+
+    @Test
+    fun `every player fielded keeps his index in the squad as his identity`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 50),
+            Squads.forward(strength = 70),
+            Squads.forward(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.midfielder(strength = 60),
+            Squads.fullback(strength = 50),
+            Squads.fullback(strength = 50),
+            Squads.centreback(strength = 50),
+            Squads.centreback(strength = 50),
+        )
+
+        val eleven = fill(squad)
+
+        for (player in eleven) {
+            assertEquals(
+                player.strength,
+                squad[player.id.value].strength,
+                "identity ${player.id} should index back to the player it was made from",
+            )
+        }
+    }
+
+    /**
+     * A sixteen man squad with a natural player for every cell any formation
+     * asks for. This is the case where a defect in the cascade shows up as a
+     * cell left empty or a player fielded twice, and it covers all twelve
+     * formations rather than only the one the rest of this class uses.
+     */
+    @Test
+    fun `every formation fields eleven distinct players from a whole squad`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 60),
+            Squads.keeper(strength = 55),
+            Squads.fullback(strength = 60),
+            Squads.fullback(strength = 59),
+            Squads.fullback(strength = 58),
+            Squads.centreback(strength = 70),
+            Squads.centreback(strength = 69),
+            Squads.centreback(strength = 68),
+            Squads.midfielder(strength = 75),
+            Squads.midfielder(strength = 74),
+            Squads.holdingMidfielder(strength = 73),
+            Squads.holdingMidfielder(strength = 72),
+            Squads.midfielder(strength = 71),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+            Squads.forward(strength = 78),
+        )
+
+        for (formation in Formations.ALL) {
+            val eleven = fillEleven(squad, formation, RuleSets.CLASSIC)
+            assertEquals(11, eleven.size, "${formation.name} fields eleven")
+            assertEquals(
+                11,
+                eleven.map { it.id.value }.distinct().size,
+                "${formation.name} fields eleven different players",
+            )
+            assertEquals(
+                formation.slots.map { it.value },
+                eleven.map { it.slot.value },
+                "${formation.name} fills its cells in list order",
+            )
+        }
+    }
+}

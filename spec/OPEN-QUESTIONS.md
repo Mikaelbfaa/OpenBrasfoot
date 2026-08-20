@@ -520,3 +520,68 @@ Contando os minutos de um tempo de 45 a partir de zero, os descontos caem em 0, 
 **Resolução (INFERIDO):** contar os minutos de cada tempo a partir de zero, reiniciando a contagem no
 início do segundo tempo. É a única leitura das duas que reproduz os ~28 de energia que a 3.9 cita
 para um jogador de 24 anos numa partida completa. Testado em `EnergyTest`.
+
+### 32. Quantos passes de relaxamento a escalação automática de fato executa
+
+A 3.2 descreve a busca de cada slot como **3 passes** (exato -> ignora lado -> ignora lado+papel) e o
+item 7 da 3.15 diz que **um** passe de relaxamento é inalcançável por causa do limite do laço. A spec
+não diz qual dos três, nem quantos sobram.
+
+"Limite do laço" descreve a condição de parada, e um limite errado corta a **última** iteração, nunca
+uma do meio: cortar uma do meio seria defeito no corpo do laço, não no limite. Como os três passes são
+uma escalada ordenada, o inalcançável é o terceiro, o que ignora lado e estilo.
+
+A consequência é visível na escalação: uma célula que não acha ninguém da sua posição com o sub-papel
+pedido desiste da posição inteira e desce pela cascata, em vez de aceitar um jogador da posição certa
+com o sub-papel errado. É assim que um zagueiro vai jogar de volante enquanto um meia armador mais
+forte fica fora do time.
+
+**Resolução (INFERIDO):** `lineupRelaxationPasses` no `RuleSet`, 2 no CLASSIC e 3 no MODERN. O par de
+escalações que a diferença produz está fixado em `AutoLineupTest`, no teste "classic gives up on the
+position before it gives up on the style", e o delta novo entre os dois conjuntos de regras está
+declarado em `RuleSetsTest`.
+
+### 33. Qual posição a cascata tenta depois da posição que a célula pediu
+
+A 5.4 diz que o laço externo é o relaxamento de posição e escreve **uma** cadeia,
+GOL -> ZAG -> LAT -> MEI -> ATA, seguida de "etc.". A 3.2 fala em "cadeias de preferência por
+posição", no plural. As outras quatro cadeias não estão escritas em lugar nenhum.
+
+A cadeia que a spec escreve é exatamente "as cinco posições por distância" lida a partir do GOL, sobre
+a linha GOL, ZAG, LAT, MEI, ATA. Ler as outras quatro pela mesma regra, só que a partir de outro
+ponto de partida, é a única generalização que reproduz a cadeia dada em vez de contradizê-la.
+
+Duas pontas ficam soltas e foram decididas aqui. Em empate de distância, tenta-se primeiro a posição
+mais defensiva, porque um elenco carrega mais defensores do que atacantes (forma ideal da 5.7: GOL 2,
+LAT 3, ZAG 3, MEI 5, ATA 3). E o goleiro vai para o fim de toda cadeia de linha, em vez do lugar que
+a distância lhe daria, porque a 5.3 cobra de um não-goleiro no gol um colapso extra do agregado de
+goleiro **além** do x0,5 que todo improvisado paga: esvaziar o gol é a única improvisação que custa
+mais que as outras. Fora isso a ordem é só preferência, já que a 5.3 cobra o mesmo x0,5 de um lateral
+no meio e de um goleiro no ataque.
+
+**Resolução (INFERIDO):** `POSITION_CASCADE` em `AutoLineup.kt`, cinco cadeias de cinco posições. A
+cadeia do GOL é a da spec, letra por letra.
+
+### 34. Que lado e que sub-papel cada célula da grade exige
+
+O laço interno da 5.4 compara lado e estilo, mas a tabela da 3.2 não publica um lado nem um sub-papel
+por célula. Ela nomeia os pares 2,9 como "Laterais (direito / esquerdo)", 10,17 como "Alas", 18,25
+como "Pontas", 11-13 como "Volantes", 14-16 como "Meias ofensivos" e 19-24 como "Atacantes centrais".
+
+Lado: só os três pares de flanco têm lado, e o menor número de cada par é a direita, seguindo a ordem
+que a linha dos laterais soletra. Toda célula central aceita os dois lados.
+
+Sub-papel, pela derivação da 4.3: 11-13 pedem o volante, 14-16 o armador, 18 e 25 a ponta, 19-24 o
+centroavante, e 10 e 17, que a 3.2 chama de alas e que exigem posição lateral, pedem o lateral
+ofensivo. O gol e as seis células de zagueiro pedem o defensivo, que na própria posição é o único que
+existe e na cascata serve para puxar um lateral defensivo ou um volante em vez de uma ponta.
+
+As células 2 e 9 não pedem sub-papel nenhum. A tabela as descreve só pelo lado, ao contrário de todos
+os outros pares, e a leitura alternativa não sobrevive ao jogo: pela 4.3 qualquer lateral com
+Velocidade ou Cruzamento é ofensivo, então exigir o defensivo em 2 e 9 tiraria a maioria dos laterais
+do jogo justamente das células que levam o nome deles, e no CLASSIC os dois passes alcançáveis nunca
+chegariam a ignorar isso (item 32).
+
+**Resolução (INFERIDO):** `Slot.requiredSide` e `Slot.requiredStyle` em `AutoLineup.kt`, uma linha por
+faixa da tabela da 3.2. Fixado em `AutoLineupTest`, teste "a natural fullback keeps the fullback cell
+whatever his style".

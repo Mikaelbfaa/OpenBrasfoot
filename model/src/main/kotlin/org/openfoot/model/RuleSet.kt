@@ -106,6 +106,8 @@ data class RuleSet(
     @property:SpecRef("3.9") val energyDrainInterval: Int,
     @property:SpecRef("3.9") val energyCostByAge: List<Pair<Int, Int>>,
     @property:SpecRef("3.9") val keeperExemptHalf: Half,
+
+    @property:SpecRef("5.4") val lineupRelaxationPasses: Int,
 ) {
     /**
      * Midfield bonus for a marking setting. Indexed by ordinal so the table

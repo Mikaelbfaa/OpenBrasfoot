@@ -6,14 +6,40 @@ import kotlin.test.assertSame
 
 class RuleSetsTest {
 
+    /**
+     * Undoing every delta must give classic back exactly, so an undocumented
+     * one fails here rather than quietly changing what modern means. Each
+     * argument below names the defect of the original that modern repairs:
+     *
+     * attackSlots is item 2 of section 3.15, slot eighteen counting in no
+     * line, so a three four three has its attack averaged over two of its
+     * three forwards.
+     *
+     * shotHomeRule is item 1, home advantage applied with the sign inverted
+     * and the wide weight overwritten from the save weight, which makes the
+     * home side convert worse and throws away the defence against attack term
+     * in every match on non neutral ground.
+     *
+     * lineupRelaxationPasses is item 7, a loop bound that leaves the last of
+     * the three relaxation passes of section 3.2 unreachable, so the automatic
+     * lineup cascades to another position rather than field a player of the
+     * right position in the wrong sub role.
+     */
     @Test
     fun `modern differs from classic only by the documented deltas`() {
         val rebuilt = RuleSets.MODERN.copy(
             id = RuleSetId.CLASSIC,
             attackSlots = 19..25,
             shotHomeRule = ClassicShotHomeRule,
+            lineupRelaxationPasses = 2,
         )
         assertEquals(RuleSets.CLASSIC, rebuilt)
+    }
+
+    @Test
+    fun `classic cannot reach the last lineup relaxation pass and modern can`() {
+        assertEquals(2, RuleSets.CLASSIC.lineupRelaxationPasses)
+        assertEquals(3, RuleSets.MODERN.lineupRelaxationPasses)
     }
 
     @Test
