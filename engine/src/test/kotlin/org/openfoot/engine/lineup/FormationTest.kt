@@ -46,13 +46,6 @@ class FormationTest {
         }
     }
 
-    @Test
-    fun `every formation starts with the keeper`() {
-        for (formation in Formations.ALL) {
-            assertEquals(1, formation.slots.first().value, "${formation.name} starts with the keeper")
-        }
-    }
-
     /**
      * Section 5.1's table, re-read from the spec independently of
      * Formation.kt rather than copied out of it, so this comparison cannot
@@ -89,9 +82,13 @@ class FormationTest {
 
     /**
      * A pure reordering of a formation's own eleven cells leaves the eleven
-     * players fielded unchanged, so the golden vectors and every shape test
-     * above are blind to it. This pins the one ordering property that section
-     * 5.4's automatic lineup actually depends on: it fills slots in list
+     * players fielded unchanged, so every shape test above is blind to it.
+     * The exact table directly above is not: it compares cell lists in order
+     * and a reordering reddens it. What this test adds is a reason rather
+     * than a transcription. It states the one ordering property that section
+     * 5.4's automatic lineup actually depends on, and it holds for all twelve
+     * formations at once, so a formation added later is covered by it before
+     * anybody thinks to extend the table. Section 5.4 fills slots in list
      * order from a pool sorted strongest first, so a defence cell ahead of an
      * attack cell would seat a weaker player at the back before a stronger
      * one gets tried up front.
