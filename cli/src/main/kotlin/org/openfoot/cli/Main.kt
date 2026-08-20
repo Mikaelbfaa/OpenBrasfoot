@@ -9,6 +9,7 @@ import org.openfoot.engine.world.generateWorld
 import org.openfoot.importer.InstallationImporter
 import org.openfoot.model.CompetitionKind
 import org.openfoot.model.RuleSets
+import org.openfoot.model.SpecRef
 import org.openfoot.model.SplitMix64Rng
 import java.io.File
 import kotlin.system.exitProcess
@@ -154,7 +155,12 @@ private fun worldgen(args: List<String>) {
  * command line demonstration of two clubs playing each other, not a fixture
  * drawn from a season, so neither a real competition kind nor a real season
  * number applies; a friendly is the one kind that carries no assumption
- * about which competition or round produced the match.
+ * about which competition or round produced the match. Concretely, that
+ * choice of kind means two things a reader of the result should know: home
+ * advantage still applies, because CompetitionKind.isNeutralGround is only
+ * true for CLUB_WORLD_CUP and NATIONAL_TEAM, and no reputation handicap is
+ * applied, because competitionMultiplier in EffectiveStrength.kt has no
+ * branch for FRIENDLY and falls through to its else of 1.0.
  *
  * assembleMatch and simulateMatch each take their own Rng built straight from
  * the seed. Every fork either of them takes from that Rng depends only on the
@@ -207,9 +213,16 @@ private fun match(args: List<String>) {
 /**
  * The season a match played straight from the command line is credited to.
  *
- * Nothing here plays out a career, so no other season number would mean
- * anything more than this one does.
+ * Not an arbitrary placeholder: RuleSets.CLASSIC.compressionFirstSeason is 5,
+ * and differenceDivisor in StrengthDifference.kt only widens once season
+ * reaches that number, so a season below it, like this one, uses the base,
+ * uncompressed divisors of section 3.5. Nothing here plays out a career, so
+ * there is no real season to credit the match to, but season one is still a
+ * choice with a visible effect, not a neutral default: it is the setting
+ * that lets the two clubs' strength difference matter at its full, early
+ * career weight, rather than the flattened one a later season would apply.
  */
+@SpecRef("3.5")
 private const val MATCH_SEASON = 1
 
 private fun parseOptions(args: List<String>): Map<String, String> {

@@ -46,7 +46,14 @@ class MatchReportPrinterTest {
 
         assertTrue(text.contains("Flamengo_bra"), "home club named, was:\n$text")
         assertTrue(text.contains("Santos_bra"), "away club named, was:\n$text")
-        assertTrue(text.contains("1"), "home goals shown, was:\n$text")
+        assertTrue(
+            text.contains("1 x 0"),
+            "the fixture's score is one nil, and \"1 x 0\" is the exact separator only a correct " +
+                "score line writes between the two goal counts. A bare \"1\" would also pass with " +
+                "the score line wrong or missing, because it already appears unconditionally " +
+                "elsewhere in this fixture's output: home shots, home on target, away wide, away " +
+                "tackles and away misplaced passes are all 1. Was:\n$text",
+        )
     }
 
     @Test
@@ -70,9 +77,22 @@ class MatchReportPrinterTest {
 
     @Test
     fun `a goalless match still prints its shot counts`() {
-        val goalless = report().copy(log = report().log.filterNot { it is MatchEvent.Shot })
+        val base = report()
+        val goalless = base.copy(
+            log = base.log.filterNot { it is MatchEvent.Shot },
+            homeGoals = 0,
+            awayGoals = 0,
+        )
         val text = describe(goalless, "Flamengo_bra", "Santos_bra")
 
-        assertTrue(text.contains("0"), "a nought is printed rather than a line omitted, was:\n$text")
+        assertTrue(
+            text.contains("shots 0  on target 0  wide 0"),
+            "with every Shot event stripped and both goal counts zeroed, a side's shots, on " +
+                "target and wide must all read nought. \"shots 0  on target 0  wide 0\" is the " +
+                "exact run those three fields print only when every one of them is genuinely " +
+                "zero; a bare \"0\" would also pass with this line omitted entirely, because the " +
+                "base fixture already contains a 0 in the score and in away's on target count. " +
+                "Was:\n$text",
+        )
     }
 }

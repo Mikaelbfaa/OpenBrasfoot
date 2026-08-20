@@ -47,5 +47,22 @@ private fun sideLine(
     "  $ref  shots $shots  on target $onTarget  wide $wide  tackles $tackles  " +
         "misplaced passes $misplacedPasses"
 
+/**
+ * Turns MatchStats.homePossessionShare's zero to one fraction into a whole
+ * percentage for display.
+ *
+ * Not annotated with SpecRef. That annotation documents where a magic number
+ * in the simulation comes from, per its own docstring, and this is not a
+ * simulation quantity at all: the fraction it scales is already the number
+ * section 3.5 defines, and one hundred is only how a fraction becomes a
+ * percentage on a terminal. There is no spec section to cite for it.
+ */
 private const val PERCENT_SCALE = 100.0
+
+/**
+ * The two sides' displayed possession percentages are read off as home and
+ * one hundred minus home, so they always print as a pair that sums to a
+ * whole match, the same reasoning as PERCENT_SCALE above: a display constant
+ * with no simulation meaning of its own, so no spec section applies to it.
+ */
 private const val PERCENT_TOTAL = 100
