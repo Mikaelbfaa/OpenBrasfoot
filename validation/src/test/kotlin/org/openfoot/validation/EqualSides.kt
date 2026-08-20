@@ -8,6 +8,7 @@ import org.openfoot.model.Attr
 import org.openfoot.model.CompetitionKind
 import org.openfoot.model.Country
 import org.openfoot.model.Marking
+import org.openfoot.model.PlayerId
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
 import org.openfoot.model.RuleSets
@@ -62,11 +63,13 @@ object EqualSides {
             homeReputation = EQUAL_REPUTATION,
             awayReputation = EQUAL_REPUTATION,
         )
-        val lineup = formation.map { slot ->
+        val lineup = formation.mapIndexed { index, slot ->
             val cell = Slot(slot)
             MatchPlayer(
+                id = PlayerId(index),
                 slot = cell,
                 naturalPosition = cell.requiredPosition ?: Position.MIDFIELDER,
+                age = 25,
                 strength = strength,
                 abilities = IntArray(Attr.COUNT),
                 firstTrait = Trait.STAMINA,

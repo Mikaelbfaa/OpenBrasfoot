@@ -4,6 +4,7 @@ import org.openfoot.model.Attr
 import org.openfoot.model.CompetitionKind
 import org.openfoot.model.Country
 import org.openfoot.model.Marking
+import org.openfoot.model.PlayerId
 import org.openfoot.model.Position
 import org.openfoot.model.Slot
 import org.openfoot.model.Trait
@@ -46,6 +47,8 @@ object Lineups {
     fun player(
         slot: Int,
         strength: Int,
+        id: Int = slot,
+        age: Int = 25,
         position: Position? = null,
         firstTrait: Trait = NEUTRAL_TRAITS.first,
         secondTrait: Trait = NEUTRAL_TRAITS.second,
@@ -54,8 +57,10 @@ object Lineups {
     ): MatchPlayer {
         val cell = Slot(slot)
         return MatchPlayer(
+            id = PlayerId(id),
             slot = cell,
             naturalPosition = position ?: cell.requiredPosition ?: Position.MIDFIELDER,
+            age = age,
             strength = strength,
             abilities = abilities,
             firstTrait = firstTrait,

@@ -2,6 +2,7 @@ package org.openfoot.engine.match
 
 import org.openfoot.model.HomeAdvantage
 import org.openfoot.model.Marking
+import org.openfoot.model.PlayerId
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
 import org.openfoot.model.Slot
@@ -13,15 +14,17 @@ import org.openfoot.model.Trait
  * One lineup entry as the match engine sees it.
  *
  * Deliberately not the world model player, which does not exist yet. The
- * formulas of sections 3.4 and 3.6 read only these seven things, so an adapter
+ * formulas of sections 3.4 and 3.6 read only these nine things, so an adapter
  * will build this from a Player once worldgen lands and nothing here changes.
  *
  * Not a data class, because the abilities array would break value equality.
  */
 @SpecRef("3.4")
 class MatchPlayer(
+    val id: PlayerId,
     val slot: Slot,
     val naturalPosition: Position,
+    @property:SpecRef("3.9") val age: Int,
     val strength: Int,
     val abilities: IntArray,
     val firstTrait: Trait,
