@@ -30,9 +30,10 @@ data class SideStats(
 /**
  * Both sides' counters for one match.
  *
- * Immutable and rebuilt per tick. A match is under a hundred ticks, so the
- * copying costs nothing measurable, and it keeps the simulation a fold over the
- * minutes rather than a mutation of shared state.
+ * Derived once from a MatchReport's log rather than accumulated tick by tick,
+ * so there is exactly one place the crediting rules live and no pair of
+ * counters can drift apart from what the log says happened. See
+ * List<MatchEvent>.toStats.
  */
 @SpecRef("3.13")
 data class MatchStats(

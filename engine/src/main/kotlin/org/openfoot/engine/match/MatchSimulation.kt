@@ -105,7 +105,7 @@ fun simulateMatch(setup: MatchSetup, rng: Rng): MatchReport {
 
     return MatchReport(
         clock = clock,
-        log = log,
+        log = log.toList(),
         homeGoals = goalsByHome,
         awayGoals = goalsByAway,
         startingPossessor = startingPossessor,

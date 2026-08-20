@@ -17,15 +17,7 @@ import org.openfoot.model.Trait
  * formulas of sections 3.4 and 3.6 read only these nine things, so an adapter
  * will build this from a Player once worldgen lands and nothing here changes.
  *
- * Not a data class, because a data class's generated equals compares the
- * abilities array the same way Any.equals does, by reference, which is not
- * value equality either. equals and hashCode are hand written below instead,
- * comparing abilities with contentEquals, so that two players built from
- * identical inputs compare equal. That equality is what lets a shot's
- * shooter, now part of the log a match returns, be compared across two runs
- * of the same seed: two matches played from the same seed build separate
- * MatchPlayer instances for what is the same player, and only value equality
- * lets a whole match report compare equal to another played the same way.
+ * Not a data class, because the abilities array would break value equality.
  */
 @SpecRef("3.4")
 class MatchPlayer(
@@ -41,33 +33,6 @@ class MatchPlayer(
 ) {
     /** True when either of the player's two characteristics is the given one. */
     fun hasTrait(trait: Trait): Boolean = firstTrait == trait || secondTrait == trait
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is MatchPlayer) return false
-        return id == other.id &&
-            slot == other.slot &&
-            naturalPosition == other.naturalPosition &&
-            age == other.age &&
-            strength == other.strength &&
-            abilities.contentEquals(other.abilities) &&
-            firstTrait == other.firstTrait &&
-            secondTrait == other.secondTrait &&
-            representsSideCountry == other.representsSideCountry
-    }
-
-    override fun hashCode(): Int {
-        var result = id.hashCode()
-        result = 31 * result + slot.hashCode()
-        result = 31 * result + naturalPosition.hashCode()
-        result = 31 * result + age
-        result = 31 * result + strength
-        result = 31 * result + abilities.contentHashCode()
-        result = 31 * result + firstTrait.hashCode()
-        result = 31 * result + secondTrait.hashCode()
-        result = 31 * result + representsSideCountry.hashCode()
-        return result
-    }
 }
 
 /**

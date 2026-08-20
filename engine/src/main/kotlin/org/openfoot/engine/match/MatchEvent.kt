@@ -30,6 +30,13 @@ sealed interface MatchEvent {
      * The shooter is null when the side had nobody eligible to shoot, which
      * section 3.6c handles with its missing shooter rating rather than by
      * cancelling the attempt.
+     *
+     * A scored shot must be on target. toStats reads a side's goals as a
+     * subset of its shots on target, so an off target goal would let goals
+     * exceed on target in the derived statistics, which section 3.13's own
+     * figures never allow. events() never builds one, since GOAL always
+     * pairs onTarget true with scored true, but nothing else stops a hand
+     * built Shot from doing so.
      */
     @SpecRef("3.6")
     data class Shot(
@@ -38,7 +45,11 @@ sealed interface MatchEvent {
         val shooter: MatchPlayer?,
         val onTarget: Boolean,
         val scored: Boolean,
-    ) : MatchEvent
+    ) : MatchEvent {
+        init {
+            require(!scored || onTarget) { "a scored shot must be on target" }
+        }
+    }
 
     /** A tackle, credited to the side that did not have the ball. */
     @SpecRef("3.5")

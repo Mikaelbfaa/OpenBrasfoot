@@ -33,16 +33,38 @@ class MatchSimulationTest {
             rules = RuleSets.CLASSIC,
         )
 
+    /**
+     * fixture is built once and shared by both calls below, rather than one
+     * MatchSetup per call. MatchPlayer is deliberately reference equal, not
+     * value equal (see MatchSide.kt), so two independently built lineups
+     * would make first and second compare unequal on their shooters even
+     * when the match played out identically, and two independently built
+     * lineups would equally make them compare unequal to each other even
+     * when it did not: either way the assertion could not tell a genuine
+     * divergence from an artefact of building two setups. One shared fixture
+     * means every shooter the log can name is the same object on both runs,
+     * so the comparison is honest about what the simulation actually did.
+     */
     @Test
     fun `the same seed plays the same match`() {
-        val first = simulateMatch(setup(), SplitMix64Rng(7))
-        val second = simulateMatch(setup(), SplitMix64Rng(7))
+        val fixture = setup()
+        val first = simulateMatch(fixture, SplitMix64Rng(7))
+        val second = simulateMatch(fixture, SplitMix64Rng(7))
         assertEquals(first, second)
     }
 
+    /**
+     * Shares one fixture across all forty seeds for the same reason as
+     * above, in the other direction: with one setup per seed, results would
+     * always come out pairwise unequal by shooter reference alone, no matter
+     * what the forty seeds actually simulated, so toSet().size > 1 could
+     * never fail. One shared fixture makes an actual collision possible
+     * again, so the assertion is a genuine claim about the forty seeds.
+     */
     @Test
     fun `a different seed plays a different match`() {
-        val results = (1L..40L).map { simulateMatch(setup(), SplitMix64Rng(it)) }
+        val fixture = setup()
+        val results = (1L..40L).map { simulateMatch(fixture, SplitMix64Rng(it)) }
         assertTrue(results.toSet().size > 1, "forty seeds produced one identical match")
     }
 
@@ -54,13 +76,18 @@ class MatchSimulationTest {
      * about, pinned so a future change that starts threading the parent's
      * state through the loop is caught here instead of by a silent repeated
      * fixture later.
+     *
+     * fixture is shared for the same reason as the same seed case above: two
+     * independently built lineups would make first and second compare
+     * unequal by shooter reference even when the replay was exact.
      */
     @Test
     fun `passing the same Rng instance to two calls replays the identical match`() {
+        val fixture = setup()
         val sharedRng = SplitMix64Rng(11)
 
-        val first = simulateMatch(setup(), sharedRng)
-        val second = simulateMatch(setup(), sharedRng)
+        val first = simulateMatch(fixture, sharedRng)
+        val second = simulateMatch(fixture, sharedRng)
 
         assertEquals(first, second, "the same Rng instance must not make the second call diverge")
     }
@@ -70,13 +97,20 @@ class MatchSimulationTest {
      * matches from one generator, such as a round of fixtures, must fork a
      * fresh child per match rather than pass the parent instance twice, and
      * doing so does give different matches.
+     *
+     * fixture is shared for the same reason as the different seed case
+     * above: with one setup per call, first != second would hold by shooter
+     * reference alone regardless of whether forking a fresh child actually
+     * changed anything, so the assertion could never fail. Sharing it makes
+     * first != second a genuine claim about the fork.
      */
     @Test
     fun `forking a fresh child per match gives different matches`() {
+        val fixture = setup()
         val seasonRng = SplitMix64Rng(11)
 
-        val first = simulateMatch(setup(), seasonRng.fork(1L))
-        val second = simulateMatch(setup(), seasonRng.fork(2L))
+        val first = simulateMatch(fixture, seasonRng.fork(1L))
+        val second = simulateMatch(fixture, seasonRng.fork(2L))
 
         assertTrue(first != second, "forking per match should not reproduce the same fixture twice")
     }

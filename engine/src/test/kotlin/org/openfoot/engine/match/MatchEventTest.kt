@@ -3,6 +3,7 @@ package org.openfoot.engine.match
 import org.openfoot.model.TeamSide
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * The statistics of section 3.13 are read out of the log rather than counted
@@ -73,5 +74,13 @@ class MatchEventTest {
     @Test
     fun `an empty log gives empty statistics`() {
         assertEquals(MatchStats(), emptyList<MatchEvent>().toStats())
+    }
+
+    @Test
+    fun `a scored shot that is off target is rejected`() {
+        val error = runCatching {
+            MatchEvent.Shot(minute = 3, side = home, shooter = null, onTarget = false, scored = true)
+        }.exceptionOrNull()
+        assertTrue(error is IllegalArgumentException, "expected an argument error, got $error")
     }
 }
