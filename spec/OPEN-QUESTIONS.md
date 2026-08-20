@@ -758,3 +758,20 @@ catch all senta o atacante de força 86, enquanto a leitura mais simples teria p
 76. Fixado em `AutoLineupTest`, teste "the holding midfielder bench place falls to the catch all
 forward, not the natural midfielder", que também documenta no próprio texto o que a leitura rejeitada
 teria escalado ali.
+
+### 37. De qual fluxo cada lado sorteia sua marcação
+
+A seção 3.12 descreve o sorteio rand(1..100) da marcação de um time, mas não diz se esse sorteio vem
+do fluxo do próprio clube ou de um fluxo compartilhado pela partida inteira. A escalação automática da
+5.4 não consome nenhuma aleatoriedade, então a marcação é o único sorteio que `assembleMatch` precisa
+decidir onde colocar.
+
+**Resolução (INFERIDO):** cada lado sorteia sua marcação do mesmo fluxo forkado a partir do próprio
+clube que já decide sua formação, `rng.fork(clubKey(entry.ref))`, a mesma derivação que `generateWorld`
+usa para o fluxo do elenco. Isso torna o sorteio de marcação, como o de formação, indiferente a qual
+lado do confronto o clube ocupa. `MatchAssemblyTest` não afirma essa propriedade para a marcação, só
+para a escalação, porque a escolha é arbitrária: nada na spec impede uma leitura alternativa em que a
+marcação venha de um fluxo da partida em vez do fluxo do clube, e as duas leituras são
+observacionalmente idênticas para uma única partida com uma única semente. A diferença só apareceria
+comparando duas partidas do mesmo clube em posições diferentes do confronto, o que a spec nunca
+descreve.
