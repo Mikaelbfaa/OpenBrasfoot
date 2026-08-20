@@ -75,8 +75,12 @@ class MatchSide(
 }
 
 /**
- * The two sides plus everything a tick needs that does not change during the
- * match.
+ * The two sides as they stand this minute, plus the season and the rules.
+ *
+ * This used to be the part of a match that could not change. It is now the
+ * part that can: a sending off or a substitution rebuilds it with a different
+ * lineup, which is what lets every aggregate and every duel below read the
+ * current eleven without knowing that anything moved.
  */
 @SpecRef("3.5")
 class MatchSetup(

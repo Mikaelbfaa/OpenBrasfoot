@@ -82,33 +82,52 @@ fun simulateMatch(setup: MatchSetup, rng: Rng): MatchReport {
         if (setupRng.randRange(0, 1) == 0) TeamSide.HOME else TeamSide.AWAY
     val clock = matchClock(setupRng)
 
-    val log = ArrayList<MatchEvent>()
-    var possessor = startingPossessor
-    var goalsByHome = 0
-    var goalsByAway = 0
-
+    var state = initialState(setup, startingPossessor)
     for (minute in 0 until clock.totalMinutes) {
-        val minuteRng = matchRng.fork(minute.toLong())
-
-        val outcome = playTick(
-            setup = setup,
-            possessor = possessor,
-            goalsScoredByPossessor = if (possessor == TeamSide.HOME) goalsByHome else goalsByAway,
-            rng = minuteRng.fork(PLAY_STREAM),
-        )
-        log.addAll(outcome.events(minute))
-        if (outcome.event == TickEvent.GOAL) {
-            if (possessor == TeamSide.HOME) goalsByHome++ else goalsByAway++
-        }
-        possessor = possessor.opponent
+        state = playMinute(state, minute, clock, matchRng.fork(minute.toLong()))
     }
 
     return MatchReport(
         clock = clock,
-        log = log.toList(),
-        homeGoals = goalsByHome,
-        awayGoals = goalsByAway,
+        log = state.log,
+        homeGoals = state.homeGoals,
+        awayGoals = state.awayGoals,
         startingPossessor = startingPossessor,
+    )
+}
+
+/**
+ * One minute of a match.
+ *
+ * Section 3.5 alternates possession after every single tick regardless of what
+ * happened in it, so the alternation is unconditional and lives here rather
+ * than inside the tick, which reports the duel winner instead.
+ *
+ * Internal rather than private so a test can hand it a state from the middle
+ * of a match and assert one minute of it without playing the eighty before.
+ */
+@SpecRef("3.5")
+internal fun playMinute(
+    state: MatchState,
+    minute: Int,
+    clock: MatchClock,
+    rng: Rng,
+): MatchState {
+    val possessor = state.possessor
+
+    val outcome = playTick(
+        setup = state.setup,
+        possessor = possessor,
+        goalsScoredByPossessor = state.goalsBy(possessor),
+        rng = rng.fork(PLAY_STREAM),
+    )
+
+    val scored = outcome.event == TickEvent.GOAL
+    return state.copy(
+        log = state.log + outcome.events(minute),
+        possessor = possessor.opponent,
+        homeGoals = state.homeGoals + if (scored && possessor == TeamSide.HOME) 1 else 0,
+        awayGoals = state.awayGoals + if (scored && possessor == TeamSide.AWAY) 1 else 0,
     )
 }
 
