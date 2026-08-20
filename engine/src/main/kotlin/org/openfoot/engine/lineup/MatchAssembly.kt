@@ -1,6 +1,7 @@
 package org.openfoot.engine.lineup
 
 import org.openfoot.dataset.CountryEntry
+import org.openfoot.dataset.WorldDataset
 import org.openfoot.engine.match.MatchPlayer
 import org.openfoot.engine.match.MatchSetup
 import org.openfoot.engine.match.MatchSide
@@ -74,24 +75,30 @@ data class AssembledMatch(
  * so silently defaulting it would misrate every player of that club rather
  * than fail loudly at the one place the mistake can still be caught.
  *
- * Individual abilities are not read from any dataset here: assembleMatch takes
- * no WorldDataset and no DatasetOptions, only the country table StrengthContext
- * needs, so StrengthContext.useIndividualAbilities is always false, the same
- * value a fresh DatasetOptions defaults to. A caller that generated its world
- * with the option on has to fold that back in itself; nothing here does it.
+ * Takes the whole WorldDataset rather than only its country table, because
+ * StrengthContext.useIndividualAbilities has to come from somewhere too:
+ * effectiveStrength reads that flag to decide whether a player is rated by his
+ * seven attributes or by his single strength, and dataset.options.
+ * individualAbilities is the one place that value lives. A narrower
+ * countries-only signature has no way to read it at all, which would leave
+ * every match simulated as though the option were off regardless of what an
+ * installation's options.bcf actually says, silently, since nothing about a
+ * mis-rated match says so on its own. There is deliberately no default for
+ * this parameter: a default is exactly how a caller forgets to pass the real
+ * dataset and reintroduces the same silent bug.
  */
 @SpecRef("5.4")
 fun assembleMatch(
     home: GeneratedClub,
     away: GeneratedClub,
-    countries: List<CountryEntry>,
+    dataset: WorldDataset,
     kind: CompetitionKind,
     season: Int,
     rules: RuleSet,
     rng: Rng,
 ): AssembledMatch {
-    val homeSide = assembleSide(home, away, countries, kind, isHomeSide = true, rules, rng)
-    val awaySide = assembleSide(away, home, countries, kind, isHomeSide = false, rules, rng)
+    val homeSide = assembleSide(home, away, dataset, kind, isHomeSide = true, rules, rng)
+    val awaySide = assembleSide(away, home, dataset, kind, isHomeSide = false, rules, rng)
 
     val setup = MatchSetup(
         home = homeSide.side,
@@ -116,13 +123,13 @@ private class AssembledSide(val side: MatchSide, val bench: List<MatchPlayer>)
 private fun assembleSide(
     club: GeneratedClub,
     opponent: GeneratedClub,
-    countries: List<CountryEntry>,
+    dataset: WorldDataset,
     kind: CompetitionKind,
     isHomeSide: Boolean,
     rules: RuleSet,
     rng: Rng,
 ): AssembledSide {
-    val country = clubCountry(club, countries)
+    val country = clubCountry(club, dataset)
 
     val sideRng = rng.fork(clubKey(club.entry.ref))
     val formation = drawFormation(sideRng)
@@ -130,7 +137,7 @@ private fun assembleSide(
 
     val context = StrengthContext(
         kind = kind,
-        useIndividualAbilities = false,
+        useIndividualAbilities = dataset.options.individualAbilities,
         sideReputation = club.entry.reputation,
         sideCountry = country.index,
         sideContinent = country.continent,
@@ -151,8 +158,8 @@ private fun assembleSide(
  * fields in section 3.3, and a match rated from a default continent would be
  * a match rated wrong rather than one that failed to build.
  */
-private fun clubCountry(club: GeneratedClub, countries: List<CountryEntry>): CountryEntry =
-    requireNotNull(countries.firstOrNull { it.index == club.entry.country }) {
+private fun clubCountry(club: GeneratedClub, dataset: WorldDataset): CountryEntry =
+    requireNotNull(dataset.country(club.entry.country)) {
         "club ${club.entry.ref} sits in country ${club.entry.country}, which the dataset does not " +
             "describe, and StrengthContext needs that country's continent"
     }

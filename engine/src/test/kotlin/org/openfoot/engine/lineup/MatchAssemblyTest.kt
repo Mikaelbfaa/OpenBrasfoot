@@ -1,5 +1,6 @@
 package org.openfoot.engine.lineup
 
+import org.openfoot.dataset.WorldDataset
 import org.openfoot.engine.world.ScriptedInts
 import org.openfoot.engine.world.WorldFixtures
 import org.openfoot.engine.world.generateWorld
@@ -13,6 +14,7 @@ import org.openfoot.model.Trait
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
@@ -62,7 +64,7 @@ class MatchAssemblyTest {
         return assembleMatch(
             home = home,
             away = away,
-            countries = data.countries,
+            dataset = data,
             kind = CompetitionKind.NATIONAL_LEAGUE,
             season = 1,
             rules = RuleSets.CLASSIC,
@@ -118,6 +120,56 @@ class MatchAssemblyTest {
             once.setup.home.lineup.map { it.slot.value to it.id.value },
             twice.setup.home.lineup.map { it.slot.value to it.id.value },
             "the eleven and their cells",
+        )
+    }
+
+    /**
+     * A dataset's options.individualAbilities has to reach StrengthContext, or
+     * every match would be simulated as though the option were always off,
+     * regardless of what an installation actually has it set to. Both
+     * assembles pick the same club, the same formation and the same lineup,
+     * because neither depends on the option, so the same pitch cell is
+     * compared under the two settings.
+     *
+     * Section 3.3's per slot weights sum to one (SlotWeights.kt), so a player
+     * whose seven attributes all equalled his strength would rate the same
+     * either way and this test would prove nothing. The precondition check
+     * below confirms the picked player is not that case before the real
+     * assertion runs.
+     */
+    @Test
+    fun `individual abilities reach StrengthContext only when the dataset turns them on`() {
+        val abilitiesOn = dataset().let { it.copy(options = it.options.copy(individualAbilities = true)) }
+        val abilitiesOff = abilitiesOn.copy(options = abilitiesOn.options.copy(individualAbilities = false))
+
+        val world = generateWorld(abilitiesOn, seed = 7L)
+        val casa = world.club("casa_bra")!!
+        val fora = world.club("fora_esp")!!
+
+        fun matchRating(dataset: WorldDataset): Double {
+            val match = assembleMatch(
+                home = casa,
+                away = fora,
+                dataset = dataset,
+                kind = CompetitionKind.NATIONAL_LEAGUE,
+                season = 1,
+                rules = RuleSets.CLASSIC,
+                rng = SplitMix64Rng(7L),
+            )
+            val keeper = match.setup.home.lineup.first()
+            check(keeper.abilities.any { it != keeper.strength }) {
+                "this test proves nothing unless the picked player's seven attributes differ from " +
+                    "his overall strength: abilities ${keeper.abilities.toList()} vs strength " +
+                    "${keeper.strength}"
+            }
+            return match.setup.home.ratingOf(keeper)
+        }
+
+        assertNotEquals(
+            matchRating(abilitiesOn),
+            matchRating(abilitiesOff),
+            "the dataset's individualAbilities option must reach StrengthContext, or a player is " +
+                "rated by his overall strength no matter what an installation's options.bcf says",
         )
     }
 }
