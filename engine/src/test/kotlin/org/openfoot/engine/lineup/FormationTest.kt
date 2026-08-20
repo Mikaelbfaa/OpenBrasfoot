@@ -129,6 +129,63 @@ class FormationTest {
         )
     }
 
+    /**
+     * Section 3.2's rand(1..100) table, band by band, re-read from the spec
+     * rather than copied out of Formation.kt so that this comparison cannot
+     * simply agree with itself. The spec writes it as one line: 1-2 gives
+     * formation 1, 3-4 formation 2, 5-7 formation 3, 8-38 formation 4, 39-49
+     * formation 5, 50-60 formation 6, 61-65 formation 7, 66-72 formation 8,
+     * 73-90 formation 9, 91-92 formation 10 and 93-100 formation 11.
+     *
+     * The two tests below it assert only that formation 12 is never drawn and
+     * that formation 4 has the widest band, so every other band could be
+     * remapped without a test noticing. That matters beyond the draw itself:
+     * item 32's headline figure weights each formation by the width of its
+     * band, so a wrong band silently moves a published number.
+     *
+     * This test's job is to be a change detector, the same one the exact
+     * formation table above has: the shape tests prove the catalogue is
+     * consistent, and this proves the transcription still matches the spec.
+     * The draw is one based and the engine's rand is nought based, so a draw
+     * of n comes from a scripted rand of n minus one.
+     */
+    @Test
+    fun `every band of the section 3 point 2 draw table maps to the formation the spec gives it`() {
+        val bands = listOf(
+            1..2 to 1,
+            3..4 to 2,
+            5..7 to 3,
+            8..38 to 4,
+            39..49 to 5,
+            50..60 to 6,
+            61..65 to 7,
+            66..72 to 8,
+            73..90 to 9,
+            91..92 to 10,
+            93..100 to 11,
+        )
+
+        assertEquals(
+            (1..100).toList(),
+            bands.flatMap { (band, _) -> band.toList() },
+            "the bands must tile one to a hundred exactly once, in order",
+        )
+
+        for ((band, id) in bands) {
+            for (draw in band) {
+                val drawn = drawFormation(ScriptedInts(draw - 1))
+                assertEquals(id, drawn.id, "draw $draw should give formation $id, gave ${drawn.name}")
+            }
+        }
+
+        val widths = bands.associate { (band, id) -> id to (band.last - band.first + 1) }
+        assertEquals(
+            mapOf(1 to 2, 2 to 2, 3 to 3, 4 to 31, 5 to 11, 6 to 11, 7 to 5, 8 to 7, 9 to 18, 10 to 2, 11 to 8),
+            widths,
+            "these widths are the weights item 32 uses to average over formations",
+        )
+    }
+
     @Test
     fun `the ai never draws the twelfth formation`() {
         for (draw in 0 until 100) {
