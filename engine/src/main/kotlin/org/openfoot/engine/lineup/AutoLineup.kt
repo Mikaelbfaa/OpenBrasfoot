@@ -92,8 +92,10 @@ internal val Slot.requiredStyle: PlayerStyle?
  * last man the AI improvises with. What little argument there is comes from
  * section 3.3, whose weight table gives the goalkeeping attribute a share only
  * in cell 1, so with the individual ability option turned on a keeper in an
- * outfield cell loses his best attribute outright. With that option off, which
- * is the default, the choice is arbitrary.
+ * outfield cell loses his best attribute outright. With that option off the
+ * choice is arbitrary. The preference is not idle: item 32 of OPEN-QUESTIONS
+ * carries a measured lineup where a centre back cell reaches the end of this
+ * chain and the reserve keeper plays there.
  *
  * Nothing here changes how well a player performs. Section 5.3 charges the
  * same flat half to a fullback in midfield as to a keeper up front, so a chain

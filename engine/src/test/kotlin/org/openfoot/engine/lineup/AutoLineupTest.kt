@@ -433,6 +433,70 @@ class AutoLineupTest {
     }
 
     /**
+     * The most expensive thing the classic pass count does, and the case I
+     * argued could not happen before it was run. The squad is section 5.7 ideal
+     * shape and nothing about it is contrived: two keepers, three offensive
+     * fullbacks, three centre backs, five offensive midfielders, three
+     * forwards.
+     *
+     * The two holding cells find no defensive midfielder and cascade onto two
+     * of the three centre backs. The fullback cells take the fullbacks. Cell 3
+     * takes the last centre back. Cell 5 is then a centre back cell with no
+     * centre back left, and it refuses the spare fullback, the spare
+     * midfielders and the spare forward on sub role, every one of them being
+     * offensive, until the chain reaches the keeper and the reserve keeper is
+     * defensive.
+     *
+     * This is the chain and not the catch all: the catch all would have taken
+     * the strongest man left, the 76 midfielder, rather than a 48 keeper. Under
+     * modern the third pass keeps the midfielders in midfield and no keeper
+     * leaves the goal.
+     */
+    @Test
+    fun `a defence cell falls to the reserve keeper when everyone left is offensive`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 62),
+            Squads.keeper(strength = 48),
+            Squads.fullback(strength = 66),
+            Squads.fullback(strength = 64),
+            Squads.fullback(strength = 63),
+            Squads.centreback(strength = 68),
+            Squads.centreback(strength = 67),
+            Squads.centreback(strength = 65),
+            Squads.midfielder(strength = 80),
+            Squads.midfielder(strength = 78),
+            Squads.midfielder(strength = 76),
+            Squads.midfielder(strength = 75),
+            Squads.midfielder(strength = 74),
+            Squads.forward(strength = 82),
+            Squads.forward(strength = 79),
+            Squads.forward(strength = 77),
+        )
+
+        val classic = fill(squad, rules = RuleSets.CLASSIC)
+        val modern = fill(squad, rules = RuleSets.MODERN)
+
+        assertEquals(
+            listOf(62, 82, 79, 68, 67, 80, 78, 66, 64, 65, 48),
+            classic.map { it.strength },
+            "cells 1, 22, 24, 11, 13, 14, 16, 2, 9, 3 and 5 in that order",
+        )
+        assertEquals(
+            Position.GOALKEEPER,
+            playerAt(5, classic).naturalPosition,
+            "the second centre back cell reaches the end of its chain and takes the reserve keeper",
+        )
+        assertTrue(
+            classic.none { it.strength == 76 },
+            "and it is the chain, not the catch all, which would have taken the 76 midfielder",
+        )
+        assertTrue(
+            modern.none { it.naturalPosition == Position.GOALKEEPER && it.slot.value != 1 },
+            "modern fields no keeper outside the goal",
+        )
+    }
+
+    /**
      * A sixteen man squad with a natural player for every cell any formation
      * asks for. This is the case where a defect in the cascade shows up as a
      * cell left empty or a player fielded twice, and it covers all twelve

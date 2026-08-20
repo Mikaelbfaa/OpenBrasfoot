@@ -21,9 +21,13 @@ import org.openfoot.model.Trait
  * crossing, midfielder offensive because of passing and playmaking, forward
  * offensive because finishing and heading are neither the defensive pair nor
  * the winger triple. The two tackling and marking factories exist because the
- * defensive reading of a fullback and of a midfielder is what the holding and
- * the centre back cells ask for, and no other pair of characteristics
- * produces it.
+ * holding cells and the centre back cells ask for the defensive reading of a
+ * midfielder and of a fullback, which none of the factories above produces.
+ * Tackling and marking is not the only pair that would: by section 4.3 a
+ * midfielder comes out defensive for any pair that carries tackling or marking
+ * and none of passing, finishing, dribbling or playmaking, and a fullback for
+ * those pairs and for pairs that carry nothing from either list, through the
+ * closing branch. This pair is used because it is the plainest of them.
  */
 object Squads {
 

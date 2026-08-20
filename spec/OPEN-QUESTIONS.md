@@ -553,16 +553,37 @@ Três argumentos pesam a favor de A:
 
 **Pegada.** Não é caso de canto. Levantamento sobre os dados do original: **29,7% dos times**
 carregam menos de dois meias defensivos e **14,9%** menos de duas pontas. Nesses times, sob a leitura
-A, cada célula de volante (11-13) desiste do meio-campo e desce a cascata, e como as células de
-defesa vêm **depois** das de meio em toda formação, ela encontra um zagueiro inteiro disponível e o
-escala de volante, empurrando a defesa para improvisos em cadeia. Sob MODERN o mesmo time põe o meia
+A, toda célula de volante (11-13) que não acha volante natural sobrando desiste do meio-campo e desce
+a cascata - num time com um volante só, é a segunda célula; sem nenhum, são todas. Como as células de
+defesa vêm **depois** das de meio em toda formação, ela encontra a defesa inteira disponível e escala
+um zagueiro de volante, empurrando a defesa para improvisos em cadeia. Sob MODERN o mesmo time põe o meia
 ofensivo no volante e mantém a defesa inteira. Um 4-4-2 é afetado em quase um terço dos elencos.
 
-Um detalhe levantado na revisão não se confirma: o **goleiro reserva** não chega à célula 11. Todo
-zagueiro é defensivo pela 4.3, e no momento em que a célula 11 é preenchida nenhuma célula de defesa
-foi tocada, então a cascata acha zagueiro muito antes de chegar ao goleiro, que está no fim de toda
-cadeia de linha (item 33). O goleiro reserva só entra em campo pelo item 35, ou num elenco sem
-zagueiro nenhum.
+**O goleiro reserva vai a campo por essa cascata, numa célula de defesa.** É a consequência mais cara
+e foi medida, rodando o motor, depois de eu ter argumentado que ela não podia acontecer. Elenco na
+forma ideal da 5.7 (2 goleiros de 62 e 48, 3 laterais ofensivos, 3 zagueiros, 5 meias ofensivos, 3
+atacantes), formação 4, CLASSIC:
+
+| Célula | 1 | 22 | 24 | 11 | 13 | 14 | 16 | 2 | 9 | 3 | 5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Escalado | GOL 62 | ATA 82 | ATA 79 | ZAG 68 | ZAG 67 | MEI 80 | MEI 78 | LAT 66 | LAT 64 | ZAG 65 | **GOL 48** |
+
+As duas células de volante comem dois zagueiros, as de lateral comem dois laterais, a célula 3 leva o
+último zagueiro, e a célula 5 fica sem zagueiro nenhum: recusa por sub-papel o lateral, os meias e o
+atacante que sobraram, todos ofensivos, e chega ao fim da cadeia, onde está o goleiro reserva, que é
+defensivo. **Não é o preenchimento final do item 35**: aquele levaria o mais forte que sobrou, o meia
+de 76, e não um goleiro de 48. Sob MODERN o mesmo elenco não põe goleiro nenhum na linha. A formação
+5, que tem três células de volante, faz o mesmo com um volante natural no elenco, e aí o goleiro cai
+na célula 8.
+
+O erro do meu argumento anterior era olhar só a célula 11, onde de fato sempre há zagueiro
+disponível, e esquecer que são as próprias células de volante que esvaziam a defesa antes de as
+células de defesa serem preenchidas.
+
+Isto exige que os volantes esgotem os zagueiros de sobra, então é mais estreito que os 29,7%: zero
+volantes num 4-4-2 com três zagueiros, cerca de **7,5% dos times**, ou um volante no 4-4-2 def.
+Fixado em `AutoLineupTest`, teste "a defence cell falls to the reserve keeper when everyone left is
+offensive".
 
 Vale registrar que essa pegada **enfraquece um argumento usado no item 34**, o de que "um defeito
 desse tamanho estaria na 3.15". Está: é o próprio item 7. O item 34 se sustenta pela medição, não por
@@ -592,8 +613,10 @@ Elas discordam a partir do meio-campo: A dá MEI, LAT, ATA, ZAG, GOL e B dá MEI
 no ataque A dá ATA, MEI, LAT, ZAG, GOL contra ATA, ZAG, LAT, MEI, GOL de B.
 
 Escolhi A por causa do ataque. Sob B, uma célula de atacante central sem atacante sobrando tentaria
-zagueiro antes de meia; o zagueiro é recusado pelo sub-papel, porque a célula pede centroavante,
-então o time acabaria com um **lateral** de centroavante e os meias no banco. A 5.4 é explícita sobre
+zagueiro antes de meia, e as duas saídas são ruins: no CLASSIC o zagueiro é recusado pelo sub-papel,
+porque a célula pede centroavante, e o time acaba com um **lateral** de centroavante; no MODERN o
+terceiro passe ignora o sub-papel e é o **zagueiro** que joga de centroavante. Nos dois casos os
+meias ficam no banco. A 5.4 é explícita sobre
 o que a ordenação produz, o ataque escolhe primeiro e a defesa fica com as sobras, e o improviso que
 o jogo mostra no ataque é o meia adiantado, não o lateral. A regra A também tem significado próprio:
 improvise com a posição mais próxima.
@@ -608,9 +631,10 @@ Duas pontas soltas, decididas aqui:
   empataria: na cadeia do ZAG (GOL e LAT a distância 1) e na do LAT (GOL e ATA a distância 2). O
   pouco que a sustenta está na 3.3: a tabela de pesos só dá participação ao atributo Gol na célula 1,
   então com a opção de habilidade individual **ligada** um goleiro em célula de linha perde de vez o
-  seu melhor atributo. Com a opção desligada, que é o padrão, a escolha é arbitrária. Note que a
-  célula 1 é a primeira de toda formação, então um goleiro em célula de linha nunca é o goleiro que
-  faltou no gol: é sempre o reserva.
+  seu melhor atributo. Com a opção desligada a escolha é arbitrária. Note que a célula 1 é a
+  primeira de toda formação, então um goleiro em célula de linha nunca é o goleiro que faltou no
+  gol: é sempre o reserva. E a preferência não é ociosa: o exemplo medido do item 32 é uma célula de
+  zagueiro que chega ao fim desta cadeia e escala o reserva.
 
 Fora a ordem, a cascata não muda o desempenho de ninguém: a 5.3 cobra o mesmo x0,5 de um lateral no
 meio e de um goleiro no ataque.
@@ -651,10 +675,13 @@ whatever his style".
 ### 35. O que acontece com uma célula que esgota a cascata inteira
 
 A 5.4 descreve a busca relaxada e para por aí. Não diz o que fazer quando nenhuma das cinco posições
-da cadeia, em nenhum passe, produz um candidato. Isso acontece de verdade: uma célula de ponta (18 ou
-25) num elenco sem nenhum atacante de sub-papel ponta não casa com ninguém, porque ponta é sub-papel
-exclusivo de atacante e as outras posições da cadeia nunca o têm. Pelo item 32, 14,9% dos times do
-original estão nessa situação.
+da cadeia, em nenhum passe, produz um candidato. Isso acontece de verdade, e **só sob CLASSIC**: uma
+célula de ponta (18 ou 25) num elenco **sem nenhuma** ponta não casa com ninguém, porque ponta é
+sub-papel exclusivo de atacante e as outras posições da cadeia nunca o têm, e com dois passes nada
+ignora o sub-papel. São **15 dos 703 times** do original, 2,1%, e só a formação 10 tem célula de
+ponta, com 2% dos sorteios da IA. Os 14,9% do item 32 são "menos de duas pontas", que é outra coisa:
+com uma ponta só, quem cai aqui é a segunda célula. Sob MODERN o terceiro passe põe um atacante
+qualquer nas células 18 e 25 e o preenchimento final não dispara ali.
 
 A frase "não faz nenhuma checagem de legalidade posicional" da 5.4 **não serve de apoio**: ela
 descreve a tela manual de escalação, não o preenchedor da IA.
