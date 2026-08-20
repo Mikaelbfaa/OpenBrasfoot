@@ -107,7 +107,7 @@ fun fillEleven(
     squad: List<Player>,
     formation: Formation,
     rules: RuleSet,
-    availability: Availability = Availability.FULL_SQUAD,
+    availability: Availability,
 ): List<MatchPlayer> {
     val pool = sortedPool(squad, availability)
     val taken = BooleanArray(squad.size)
@@ -170,13 +170,22 @@ data class MatchdaySquad(
  * minus one for a substitute who has not come on, never the template cell that
  * chose him. The template cell is only ever a question asked of the pool, not
  * an answer recorded on the player.
+ *
+ * Availability has no default here, and neither does it on fillEleven. Today
+ * every caller hands in Availability.FULL_SQUAD, because season state, where
+ * injuries and suspensions live, does not exist yet. A default would make that
+ * fact invisible: the day the real dataset does exist, every call site that
+ * inherited the default would go on fielding injured and suspended men and
+ * nothing about the lineup it produced would say so. Requiring the argument
+ * makes each caller state which squad it means, and turns that day into a
+ * compile error instead of a silent one.
  */
 @SpecRef("5.4")
 fun autoLineup(
     squad: List<Player>,
     formation: Formation,
     rules: RuleSet,
-    availability: Availability = Availability.FULL_SQUAD,
+    availability: Availability,
 ): MatchdaySquad {
     val onPitch = fillEleven(squad, formation, rules, availability)
 

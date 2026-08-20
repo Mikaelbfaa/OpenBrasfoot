@@ -223,7 +223,7 @@ class AutoLineupTest {
             Squads.fullback(strength = 62, side = Side.LEFT),
         )
 
-        val eleven = fillEleven(squad, Formations.byId(10), rules)
+        val eleven = fillEleven(squad, Formations.byId(10), rules, Availability.FULL_SQUAD)
 
         assertEquals(70, playerAt(18, eleven).strength, "cell 18 is the right winger cell")
         assertEquals(75, playerAt(25, eleven).strength, "cell 25 is the left one")
@@ -272,7 +272,7 @@ class AutoLineupTest {
             Squads.fullback(strength = 62, side = Side.LEFT),
         )
 
-        val eleven = fillEleven(squad, Formations.byId(10), rules)
+        val eleven = fillEleven(squad, Formations.byId(10), rules, Availability.FULL_SQUAD)
 
         assertEquals(
             Position.MIDFIELDER,
@@ -317,7 +317,7 @@ class AutoLineupTest {
             Squads.fullback(strength = 55, side = Side.RIGHT),
         )
 
-        val eleven = fillEleven(squad, Formations.byId(9), rules)
+        val eleven = fillEleven(squad, Formations.byId(9), rules, Availability.FULL_SQUAD)
 
         assertEquals(
             55,
@@ -767,7 +767,7 @@ class AutoLineupTest {
         )
 
         for (formation in Formations.ALL) {
-            val eleven = fillEleven(squad, formation, RuleSets.CLASSIC)
+            val eleven = fillEleven(squad, formation, RuleSets.CLASSIC, Availability.FULL_SQUAD)
             assertEquals(11, eleven.size, "${formation.name} fields eleven")
             assertEquals(
                 11,
@@ -799,7 +799,7 @@ class AutoLineupTest {
 
     @Test
     fun `the bench is eleven deep when the squad allows`() {
-        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules, Availability.FULL_SQUAD)
 
         assertEquals(11, matchday.onPitch.size, "eleven on the pitch")
         assertEquals(11, matchday.bench.size, "eleven on the bench")
@@ -807,7 +807,7 @@ class AutoLineupTest {
 
     @Test
     fun `an unused substitute carries the unused substitute cell`() {
-        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules, Availability.FULL_SQUAD)
 
         assertTrue(
             matchday.bench.all { it.slot == Slot.UNUSED_SUBSTITUTE },
@@ -817,7 +817,7 @@ class AutoLineupTest {
 
     @Test
     fun `the bench holds two keepers`() {
-        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules, Availability.FULL_SQUAD)
         val benchKeepers = matchday.bench.count { it.naturalPosition == Position.GOALKEEPER }
 
         assertEquals(2, benchKeepers, "the template of section 5.4 asks for two")
@@ -827,7 +827,7 @@ class AutoLineupTest {
     fun `a squad too small to fill the bench benches fewer rather than failing`() {
         val thirteen = deepSquad().take(13)
 
-        val matchday = autoLineup(thirteen, fourFourTwo, rules)
+        val matchday = autoLineup(thirteen, fourFourTwo, rules, Availability.FULL_SQUAD)
 
         assertEquals(11, matchday.onPitch.size, "eleven still take the field")
         assertEquals(2, matchday.bench.size, "and the two left over sit down")
@@ -835,7 +835,7 @@ class AutoLineupTest {
 
     @Test
     fun `nobody is on the pitch and on the bench at once`() {
-        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules, Availability.FULL_SQUAD)
         val pitchIds = matchday.onPitch.map { it.id }.toSet()
 
         assertTrue(
@@ -846,7 +846,7 @@ class AutoLineupTest {
 
     @Test
     fun `every identity across the pitch and the bench is distinct`() {
-        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules, Availability.FULL_SQUAD)
         val all = (matchday.onPitch + matchday.bench).map { it.id }
 
         assertEquals(
@@ -880,7 +880,7 @@ class AutoLineupTest {
      */
     @Test
     fun `the holding midfielder bench place falls to the catch all forward, not the natural midfielder`() {
-        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules, Availability.FULL_SQUAD)
 
         val holdingMidfielderPlace = matchday.bench[5]
 

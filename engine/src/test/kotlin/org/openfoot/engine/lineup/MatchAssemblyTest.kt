@@ -68,6 +68,7 @@ class MatchAssemblyTest {
             kind = CompetitionKind.NATIONAL_LEAGUE,
             season = 1,
             rules = RuleSets.CLASSIC,
+            availability = Availability.FULL_SQUAD,
             rng = SplitMix64Rng(seed),
         )
     }
@@ -154,6 +155,7 @@ class MatchAssemblyTest {
                 kind = CompetitionKind.NATIONAL_LEAGUE,
                 season = 1,
                 rules = RuleSets.CLASSIC,
+                availability = Availability.FULL_SQUAD,
                 rng = SplitMix64Rng(7L),
             )
             val keeper = match.setup.home.lineup.first()

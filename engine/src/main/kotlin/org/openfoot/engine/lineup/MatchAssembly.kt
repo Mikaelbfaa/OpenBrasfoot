@@ -86,6 +86,15 @@ data class AssembledMatch(
  * mis-rated match says so on its own. There is deliberately no default for
  * this parameter: a default is exactly how a caller forgets to pass the real
  * dataset and reintroduces the same silent bug.
+ *
+ * Availability is required for the same reason, and it is the parameter where
+ * the bug is still ahead of us rather than behind. Section 5.4 step 1 filters
+ * the pool by who can play, so an assembled match is only as correct as what
+ * it was told about injuries and suspensions. That state does not exist in
+ * v0.1, so every caller passes Availability.FULL_SQUAD and says so at the call
+ * site. Letting it default would put the choice out of sight in this file, and
+ * the day season state lands every call site would keep fielding injured and
+ * suspended players while reading exactly as it does now.
  */
 @SpecRef("5.4")
 fun assembleMatch(
@@ -95,10 +104,11 @@ fun assembleMatch(
     kind: CompetitionKind,
     season: Int,
     rules: RuleSet,
+    availability: Availability,
     rng: Rng,
 ): AssembledMatch {
-    val homeSide = assembleSide(home, away, dataset, kind, isHomeSide = true, rules, rng)
-    val awaySide = assembleSide(away, home, dataset, kind, isHomeSide = false, rules, rng)
+    val homeSide = assembleSide(home, away, dataset, kind, isHomeSide = true, rules, availability, rng)
+    val awaySide = assembleSide(away, home, dataset, kind, isHomeSide = false, rules, availability, rng)
 
     val setup = MatchSetup(
         home = homeSide.side,
@@ -119,6 +129,11 @@ private class AssembledSide(val side: MatchSide, val bench: List<MatchPlayer>)
  * StrengthContext.homeReputation and .awayReputation both name the pairing,
  * not just the side being built, and section 3.3's national cup and state
  * handicap reads both.
+ *
+ * Both sides are asked the same availability. That is right for a caller
+ * holding one season state, which is what knows about every club's injuries at
+ * once, and it is why availability is one parameter of assembleMatch rather
+ * than one per side.
  */
 private fun assembleSide(
     club: GeneratedClub,
@@ -127,6 +142,7 @@ private fun assembleSide(
     kind: CompetitionKind,
     isHomeSide: Boolean,
     rules: RuleSet,
+    availability: Availability,
     rng: Rng,
 ): AssembledSide {
     val country = clubCountry(club, dataset)
@@ -146,7 +162,7 @@ private fun assembleSide(
         awayReputation = if (isHomeSide) opponent.entry.reputation else club.entry.reputation,
     )
 
-    val matchdaySquad = autoLineup(club.squad, formation, rules)
+    val matchdaySquad = autoLineup(club.squad, formation, rules, availability)
     val side = MatchSide(lineup = matchdaySquad.onPitch, marking = marking, context = context)
     return AssembledSide(side, matchdaySquad.bench)
 }

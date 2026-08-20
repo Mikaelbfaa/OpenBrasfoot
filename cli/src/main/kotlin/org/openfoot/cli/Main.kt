@@ -2,6 +2,7 @@ package org.openfoot.cli
 
 import kotlinx.serialization.json.Json
 import org.openfoot.dataset.WorldDataset
+import org.openfoot.engine.lineup.Availability
 import org.openfoot.engine.lineup.assembleMatch
 import org.openfoot.engine.match.simulateMatch
 import org.openfoot.engine.world.World
@@ -162,6 +163,14 @@ private fun worldgen(args: List<String>) {
  * applied, because competitionMultiplier in EffectiveStrength.kt has no
  * branch for FRIENDLY and falls through to its else of 1.0.
  *
+ * Every player of both clubs is available. This command generates a world and
+ * plays one match in it, so there is no season behind the match to have
+ * injured or suspended anybody, and Availability.FULL_SQUAD is the truth about
+ * this fixture rather than a placeholder. It is written out at the call site
+ * because assembleMatch refuses to default it, so that the day a career mode
+ * has real availability to pass, this line is a visible thing to change rather
+ * than an invisible one to forget.
+ *
  * assembleMatch and simulateMatch each take their own Rng built straight from
  * the seed. Every fork either of them takes from that Rng depends only on the
  * seed and the tag it forks with, never on how many draws the other one has
@@ -198,6 +207,7 @@ private fun match(args: List<String>) {
         kind = CompetitionKind.FRIENDLY,
         season = MATCH_SEASON,
         rules = RuleSets.CLASSIC,
+        availability = Availability.FULL_SQUAD,
         rng = SplitMix64Rng(seed),
     )
     val report = simulateMatch(
