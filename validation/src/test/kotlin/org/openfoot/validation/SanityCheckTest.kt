@@ -1,6 +1,6 @@
 package org.openfoot.validation
 
-import org.openfoot.engine.match.MatchResult
+import org.openfoot.engine.match.MatchReport
 import org.openfoot.engine.match.MatchSetup
 import org.openfoot.engine.match.simulateMatch
 import org.openfoot.model.SpecRef
@@ -247,7 +247,7 @@ class SanityCheckTest {
          * section 3.16's figures.
          */
         @SpecRef("3.16")
-        val MATCHES: List<MatchResult> by lazy { play(EqualSides.setup()) }
+        val MATCHES: List<MatchReport> by lazy { play(EqualSides.setup()) }
 
         /**
          * The same sample size, played with the lineup whose defensive and
@@ -255,17 +255,17 @@ class SanityCheckTest {
          * defenders and three forwards.
          */
         @SpecRef("3.4")
-        val LINES_AT_DIVISOR: List<MatchResult> by lazy { play(EqualSides.linesAtDivisorSetup()) }
+        val LINES_AT_DIVISOR: List<MatchReport> by lazy { play(EqualSides.linesAtDivisorSetup()) }
 
         /**
          * One sample. The setup is immutable and carries no state, so building
          * it once and playing every seed against it gives the same matches as
          * rebuilding it per seed.
          */
-        fun play(setup: MatchSetup): List<MatchResult> =
+        fun play(setup: MatchSetup): List<MatchReport> =
             (1L..SAMPLE).map { simulateMatch(setup, SplitMix64Rng(it)) }
 
-        fun List<MatchResult>.mean(of: (MatchResult) -> Int): Double =
+        fun List<MatchReport>.mean(of: (MatchReport) -> Int): Double =
             sumOf { of(it).toDouble() } / size
     }
 }

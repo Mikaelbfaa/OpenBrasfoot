@@ -20,7 +20,7 @@ import kotlin.test.assertEquals
  */
 class MatchGoldenVectorTest {
 
-    private fun playAt(seed: Long): MatchResult {
+    private fun playAt(seed: Long): MatchReport {
         val home = Lineups.sideOfSlots(
             slots = Lineups.FORMATION_4_4_2,
             strength = 50,

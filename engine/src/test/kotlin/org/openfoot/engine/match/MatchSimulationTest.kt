@@ -207,57 +207,63 @@ class MatchSimulationTest {
      * TACKLE credited to the possessor instead of to the side that did not have
      * the ball would pass every other test in this file, because they all use
      * two equal strength sides where either crediting produces plausible
-     * numbers. Calling record directly, with a hand built TickOutcome, is what
-     * catches it. Both possessors are checked so a bug that is symmetric in
-     * TeamSide, such as always crediting home, cannot hide behind one case.
+     * numbers. Ported from the record fold this project used to keep beside
+     * the log onto events() plus toStats(), the pair that replaced it: this is
+     * the only test in the suite that pins TickOutcome.events()'s own mapping
+     * from a possessor to the side a tackle lands on, as distinct from
+     * MatchEventTest, which starts from hand built MatchEvent values and never
+     * touches events() at all. Both possessors are checked so a bug that is
+     * symmetric in TeamSide, such as always crediting home, cannot hide behind
+     * one case.
      */
     @Test
-    fun `record credits a tackle to the side that did not have the ball`() {
-        val awayHadTheBall = MatchStats().record(TickOutcome(TeamSide.HOME, TeamSide.HOME, TickEvent.TACKLE))
+    fun `events credits a tackle to the side that did not have the ball`() {
+        val awayHadTheBall = TickOutcome(TeamSide.HOME, TeamSide.HOME, TickEvent.TACKLE).events(0).toStats()
         assertEquals(0, awayHadTheBall.home.tackles, "the possessor must not be credited with the tackle")
         assertEquals(1, awayHadTheBall.away.tackles, "the non possessor should be credited with the tackle")
 
-        val homeHadTheBall = MatchStats().record(TickOutcome(TeamSide.AWAY, TeamSide.AWAY, TickEvent.TACKLE))
+        val homeHadTheBall = TickOutcome(TeamSide.AWAY, TeamSide.AWAY, TickEvent.TACKLE).events(0).toStats()
         assertEquals(1, homeHadTheBall.home.tackles, "the non possessor should be credited with the tackle")
         assertEquals(0, homeHadTheBall.away.tackles, "the possessor must not be credited with the tackle")
     }
 
     /**
-     * Finding 2a in full: every one of the five TickEvent values, folded for
-     * both possessors, checked against exactly the side the docstring on
-     * record names. GOAL, SAVE, WIDE and MISPLACED_PASS all belong to the
+     * Finding 2a in full, ported the same way: every one of the five
+     * TickEvent values, run through events() and toStats() for both
+     * possessors, checked against exactly the side TickOutcome.events()'s own
+     * docstring names. GOAL, SAVE, WIDE and MISPLACED_PASS all belong to the
      * possessor; TACKLE alone belongs to the side that did not have the ball.
      * Each case also checks that the other side's matching counter stayed at
      * zero, so a bug that credits both sides at once cannot hide either.
      */
     @Test
-    fun `record credits every event to exactly the side its docstring names`() {
+    fun `events credits every event to exactly the side its docstring names`() {
         for (possessor in listOf(TeamSide.HOME, TeamSide.AWAY)) {
             val defender = possessor.opponent
 
-            val afterGoal = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.GOAL))
+            val afterGoal = TickOutcome(possessor, possessor, TickEvent.GOAL).events(0).toStats()
             assertEquals(1, afterGoal.of(possessor).goals, "GOAL: possessor $possessor")
             assertEquals(1, afterGoal.of(possessor).shots, "GOAL: possessor $possessor")
             assertEquals(1, afterGoal.of(possessor).onTarget, "GOAL: possessor $possessor")
             assertEquals(0, afterGoal.of(defender).goals, "GOAL must not touch the defender: possessor $possessor")
             assertEquals(0, afterGoal.of(defender).shots, "GOAL must not touch the defender: possessor $possessor")
 
-            val afterSave = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.SAVE))
+            val afterSave = TickOutcome(possessor, possessor, TickEvent.SAVE).events(0).toStats()
             assertEquals(1, afterSave.of(possessor).shots, "SAVE: possessor $possessor")
             assertEquals(1, afterSave.of(possessor).onTarget, "SAVE: possessor $possessor")
             assertEquals(0, afterSave.of(possessor).goals, "SAVE must not score: possessor $possessor")
             assertEquals(0, afterSave.of(defender).shots, "SAVE must not touch the defender: possessor $possessor")
 
-            val afterWide = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.WIDE))
+            val afterWide = TickOutcome(possessor, possessor, TickEvent.WIDE).events(0).toStats()
             assertEquals(1, afterWide.of(possessor).shots, "WIDE: possessor $possessor")
             assertEquals(1, afterWide.of(possessor).wide, "WIDE: possessor $possessor")
             assertEquals(0, afterWide.of(defender).shots, "WIDE must not touch the defender: possessor $possessor")
 
-            val afterTackle = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.TACKLE))
+            val afterTackle = TickOutcome(possessor, possessor, TickEvent.TACKLE).events(0).toStats()
             assertEquals(0, afterTackle.of(possessor).tackles, "TACKLE must not credit the possessor: $possessor")
             assertEquals(1, afterTackle.of(defender).tackles, "TACKLE: defender of $possessor")
 
-            val afterMisplaced = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.MISPLACED_PASS))
+            val afterMisplaced = TickOutcome(possessor, possessor, TickEvent.MISPLACED_PASS).events(0).toStats()
             assertEquals(1, afterMisplaced.of(possessor).misplacedPasses, "MISPLACED_PASS: possessor $possessor")
             assertEquals(
                 0,
@@ -304,6 +310,21 @@ class MatchSimulationTest {
             "the anti blowout ladder should have stopped home scoring on every one of its $homeTicks " +
                 "ticks, but it finished with ${result.stats.home.goals} goals",
         )
+    }
+
+    @Test
+    fun `every minute logs exactly one possession duel`() {
+        val report = simulateMatch(setup(), SplitMix64Rng(99L))
+        val duels = report.log.count { it is MatchEvent.PossessionWon }
+        assertEquals(report.clock.totalMinutes, duels, "one duel per minute")
+    }
+
+    @Test
+    fun `the goals in the log are the goals in the score`() {
+        val report = simulateMatch(setup(), SplitMix64Rng(99L))
+        val scored = report.log.filterIsInstance<MatchEvent.Shot>().filter { it.scored }
+        assertEquals(report.homeGoals, scored.count { it.side == TeamSide.HOME }, "home")
+        assertEquals(report.awayGoals, scored.count { it.side == TeamSide.AWAY }, "away")
     }
 }
 
