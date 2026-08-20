@@ -500,3 +500,23 @@ montagem. Nenhuma faixa foi alargada para acomodar a 3.16.
 
 Isto é **observável**: ler a média de chutes de uma temporada IA contra IA no jogo original, junto
 com a formação escalada, resolve.
+
+### 31. A partir de qual minuto do tempo se conta o desgaste de 7 em 7 minutos da 3.9
+
+A 3.9 diz que o desgaste acontece "a cada 7 minutos" e dá "~7 descontos por tempo", mas não diz se a
+contagem começa no primeiro minuto do tempo ou no sétimo. A seção também afirma que um jogador de 24
+anos "perde ~28 de energia por partida completa".
+
+Um jogador de 24 anos cai na faixa `<=25 -> 2`, então perde 2 por desconto. 28 de energia implica 14
+descontos na partida inteira, ou seja 7 por tempo, não 6.
+
+Contando os minutos de um tempo de 45 a partir de zero, os descontos caem em 0, 7, 14, 21, 28, 35 e
+42, o que dá exatamente 7 descontos. Contando a partir de um, os descontos cairiam em 7, 14, 21, 28,
+35 e 42, o que dá 6.
+
+`7 descontos x 2 de custo = 14 energia por tempo x 2 tempos = 28`, batendo com a spec. `6 x 2 = 12 x
+2 = 24`, que não bate.
+
+**Resolução (INFERIDO):** contar os minutos de cada tempo a partir de zero, reiniciando a contagem no
+início do segundo tempo. É a única leitura das duas que reproduz os ~28 de energia que a 3.9 cita
+para um jogador de 24 anos numa partida completa. Testado em `EnergyTest`.

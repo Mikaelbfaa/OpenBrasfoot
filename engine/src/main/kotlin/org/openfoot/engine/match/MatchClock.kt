@@ -1,15 +1,9 @@
 package org.openfoot.engine.match
 
+import org.openfoot.model.Half
 import org.openfoot.model.Rng
 import org.openfoot.model.SpecRef
 import org.openfoot.model.randRange
-
-/** Which half a minute falls in. */
-@SpecRef("3.1")
-enum class Half {
-    FIRST,
-    SECOND,
-}
 
 /**
  * How long one match runs.

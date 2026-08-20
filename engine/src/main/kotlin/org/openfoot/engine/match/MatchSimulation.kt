@@ -103,6 +103,12 @@ fun simulateMatch(setup: MatchSetup, rng: Rng): MatchReport {
  * happened in it, so the alternation is unconditional and lives here rather
  * than inside the tick, which reports the duel winner instead.
  *
+ * The energy drain runs before the tick, matching the ordering section 3.8
+ * will use for its own per minute rolls. Energy influences no probability the
+ * tick reads, so draining first or after the tick cannot change this minute's
+ * outcome; the ordering only matters for whichever draws later once section
+ * 3.8 lands beside it.
+ *
  * Internal rather than private so a test can hand it a state from the middle
  * of a match and assert one minute of it without playing the eighty before.
  */
@@ -113,21 +119,22 @@ internal fun playMinute(
     clock: MatchClock,
     rng: Rng,
 ): MatchState {
-    val possessor = state.possessor
+    val drained = state.drainEnergy(minute, clock)
+    val possessor = drained.possessor
 
     val outcome = playTick(
-        setup = state.setup,
+        setup = drained.setup,
         possessor = possessor,
-        goalsScoredByPossessor = state.goalsBy(possessor),
+        goalsScoredByPossessor = drained.goalsBy(possessor),
         rng = rng.fork(PLAY_STREAM),
     )
 
     val scored = outcome.event == TickEvent.GOAL
-    return state.copy(
-        log = state.log + outcome.events(minute),
+    return drained.copy(
+        log = drained.log + outcome.events(minute),
         possessor = possessor.opponent,
-        homeGoals = state.homeGoals + if (scored && possessor == TeamSide.HOME) 1 else 0,
-        awayGoals = state.awayGoals + if (scored && possessor == TeamSide.AWAY) 1 else 0,
+        homeGoals = drained.homeGoals + if (scored && possessor == TeamSide.HOME) 1 else 0,
+        awayGoals = drained.awayGoals + if (scored && possessor == TeamSide.AWAY) 1 else 0,
     )
 }
 

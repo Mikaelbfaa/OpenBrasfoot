@@ -140,6 +140,16 @@ object RuleSets {
         shooterFinishingBonus = 4,
         shooterHeadingBonus = 2,
         shooterHeadingDefenderBonus = 2,
+
+        energyDrainInterval = 7,
+        energyCostByAge = listOf(
+            20 to 1,
+            25 to 2,
+            31 to 3,
+            36 to 4,
+            Int.MAX_VALUE to 5,
+        ),
+        keeperExemptHalf = Half.FIRST,
     )
 
     /**
