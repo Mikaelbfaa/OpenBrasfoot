@@ -758,14 +758,25 @@ versão anterior deste item o citava como prova do lado, e era falso. Até os do
 existirem nenhum teste do repositório distinguia a tabela de lado, porque todo jogador de fixture era
 destro e `Side.LEFT` não aparecia na suíte inteira.
 
-O sub-papel está fixado em seis linhas, uma por faixa da tabela. As células 1 e 3-8, as 11-13, as
-14-16 e a escolha de não exigir nada em 2 e 9 já estavam cobertas pelos testes de cascata e pelo
-"a natural fullback keeps the fullback cell whatever his style". As outras três linhas não estavam, e
-cada uma ganhou um teste montado para ficar vermelho se ela for afrouxada: "a winger cell in a squad
-with no winger falls to the catch all" (18 e 25 exigem ponta), "a wing back cell demands the
-offensive reading of a fullback" (10 e 17 exigem o lateral ofensivo) e "a centre forward cell refuses
-a stronger winger" (19-24 exigem o centroavante). Antes deles as três linhas podiam ser trocadas por
-`null`, ou a linha das pontas por ofensivo, sem nenhum teste reclamar.
+O sub-papel está fixado em sete linhas, uma por faixa da tabela, e elas não estão todas cobertas do
+mesmo jeito.
+
+Três já eram cobertas por comportamento antes desta revisão: 1 e 3-8 e 11-13, pelos testes de
+cascata, e a escolha de não exigir nada em 2 e 9, pelo "a natural fullback keeps the fullback cell
+whatever his style". Trocar qualquer uma das três por `null` deixa vermelhos vários testes de
+`AutoLineupTest`.
+
+Três não tinham cobertura nenhuma e ganharam cada uma um teste montado para ficar vermelho se ela for
+afrouxada: "a winger cell in a squad with no winger falls to the catch all" (18 e 25 exigem ponta),
+"a wing back cell demands the offensive reading of a fullback" (10 e 17 exigem o lateral ofensivo) e
+"a centre forward cell refuses a stronger winger" (19-24 exigem o centroavante). Antes deles as três
+podiam ser trocadas por `null`, ou a linha das pontas por ofensivo, sem nenhum teste reclamar.
+
+A sétima, 14-16, é caso à parte e vale registrar por honestidade: trocá-la por `null` deixa o
+`:engine:test` inteiro verde ainda hoje. Quem a pega é só o detector de mudança de `SlotTest`,
+"every pitch cell asks for the sub role its row of section 3 point 2 names". A cobertura existe, mas
+vem da tabela fixada célula a célula, e não dos testes de escalação; uma versão anterior deste
+parágrafo a atribuía aos testes de cascata, e isso era falso.
 
 ### 35. O que acontece com uma célula que esgota a cascata inteira
 

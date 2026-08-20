@@ -153,11 +153,12 @@ class AutoLineupTest {
      * would seat the stronger man in cell 2 and the weaker in cell 9 in both
      * cases, so the pair of assertions below tells all three tables apart.
      *
-     * This squad and the one in the test below it are the only fixtures in
-     * this class with a left sided player at all. Everywhere else every
-     * fixture player is right sided, which means cell 9 cannot match anybody
-     * on the exact pass and always reaches its man through the pass that
-     * ignores the side.
+     * A fixture with a left sided player in it is the exception in this class
+     * rather than the rule. Most squads here are right sided throughout, and
+     * in those cell 9 cannot match anybody on the exact pass and always
+     * reaches its man through the pass that ignores the side. The side
+     * parameter of every Squads factory defaults to the right for that
+     * reason, and a test that means to say something about a flank passes it.
      */
     @Test
     fun `the fullback cells take the fullback of their own flank, not the stronger one`() {
