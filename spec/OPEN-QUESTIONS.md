@@ -628,17 +628,28 @@ leitura:
 - **B.** Posição própria primeiro, depois a **ordem escrita** GOL, ZAG, LAT, MEI, ATA pulando a que
   já saiu. Do GOL dá a mesma coisa.
 
-Elas discordam a partir do meio-campo: A dá MEI, LAT, ATA, ZAG, GOL e B dá MEI, ZAG, LAT, ATA, GOL; e
-no ataque A dá ATA, MEI, LAT, ZAG, GOL contra ATA, ZAG, LAT, MEI, GOL de B.
+Elas discordam a partir do meio-campo. A dá MEI, LAT, ATA, ZAG, GOL e B, lida à letra, dá MEI, GOL,
+ZAG, LAT, ATA; no ataque A dá ATA, MEI, LAT, ZAG, GOL contra ATA, GOL, ZAG, LAT, MEI de B. B começa
+pelo GOL nas duas porque a ordem escrita começa pelo GOL, e a regra B é literalmente essa ordem com a
+posição já usada removida.
 
-Escolhi A por causa do ataque. Sob B, uma célula de atacante central sem atacante sobrando tentaria
-zagueiro antes de meia, e as duas saídas são ruins: no CLASSIC o zagueiro é recusado pelo sub-papel,
-porque a célula pede centroavante, e o time acaba com um **lateral** de centroavante; no MODERN o
-terceiro passe ignora o sub-papel e é o **zagueiro** que joga de centroavante. Nos dois casos os
-meias ficam no banco. A 5.4 é explícita sobre
+Uma versão anterior deste item enunciou B como MEI, ZAG, LAT, ATA, GOL e ATA, ZAG, LAT, MEI, GOL,
+isto é, com o goleiro empurrado para o fim. Isso era a definição de B contradizendo a si mesma: pôr o
+goleiro por último é a ponta solta declarada mais abaixo, uma preferência que este projeto adotou
+**dentro de A**, e não faz parte de B. B não tem nada a dizer sobre o goleiro além do que a ordem
+escrita já diz, e a ordem escrita o põe em primeiro.
+
+Escolhi A por causa do ataque, e com as cadeias corretas o argumento fica mais forte, não mais fraco.
+Sob B, uma célula de atacante central sem atacante sobrando tenta o **goleiro** antes do zagueiro, e
+as duas saídas são ruins: no CLASSIC o goleiro é recusado pelo sub-papel, porque a célula pede
+centroavante e o goleiro é defensivo, e o zagueiro é recusado pelo mesmo motivo, então o time acaba
+com um **lateral** de centroavante; no MODERN o terceiro passe ignora o sub-papel já na primeira
+posição da cascata, e é o **goleiro reserva** que joga de centroavante. Nos dois casos os meias ficam
+no banco, e no MODERN a saída é pior do que o zagueiro que a versão anterior deste item descrevia. A
+5.4 é explícita sobre
 o que a ordenação produz, o ataque escolhe primeiro e a defesa fica com as sobras, e o improviso que
-o jogo mostra no ataque é o meia adiantado, não o lateral. A regra A também tem significado próprio:
-improvise com a posição mais próxima.
+o jogo mostra no ataque é o meia adiantado, não o lateral nem o goleiro. A regra A também tem
+significado próprio: improvise com a posição mais próxima.
 
 Duas pontas soltas, decididas aqui:
 
