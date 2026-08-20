@@ -37,6 +37,15 @@ sealed interface MatchEvent {
      * figures never allow. events() never builds one, since GOAL always
      * pairs onTarget true with scored true, but nothing else stops a hand
      * built Shot from doing so.
+     *
+     * The shooter is a MatchPlayer reference, and MatchPlayer is not a data
+     * class, so two of them are equal only when they are the same object. A
+     * substitution builds a new MatchPlayer for the same man standing in a
+     * different cell, so once substitutions exist one man can appear in this
+     * log under more than one object. Anything rolling a per player figure out
+     * of the log, a top scorer or a shot count, must group by shooter.id,
+     * which is his index in the squad and stable for the whole match, and
+     * never by the object.
      */
     @SpecRef("3.6")
     data class Shot(
