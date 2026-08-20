@@ -40,12 +40,42 @@ class MatchReportPrinterTest {
         )
     }
 
+    /**
+     * A line split on runs of whitespace, so an assertion can pin which words
+     * a line carries and in what order without pinning the column the report
+     * lines them up in.
+     */
+    private fun fields(line: String): List<String> = line.trim().split(Regex("\\s+"))
+
+    /**
+     * The two header lines are pinned as whole lines rather than by asking
+     * whether the club names appear somewhere in the output. Both refs are
+     * printed a second time further down, one on each side's statistics line,
+     * so contains(ref) stays true with the header deleted outright: before
+     * this test asserted lines, removing both header lines left the whole of
+     * the cli test suite green.
+     */
     @Test
-    fun `the score line names both clubs and the score`() {
+    fun `the header lines name the home club and then the away club`() {
+        val text = describe(report(), homeRef = "Flamengo_bra", awayRef = "Santos_bra")
+        val lines = text.lines()
+
+        assertEquals(
+            listOf("home", "Flamengo_bra"),
+            fields(lines[0]),
+            "the first line labels the home club and names it, was:\n$text",
+        )
+        assertEquals(
+            listOf("away", "Santos_bra"),
+            fields(lines[1]),
+            "and the second does the same for the away club, was:\n$text",
+        )
+    }
+
+    @Test
+    fun `the score line carries the score`() {
         val text = describe(report(), homeRef = "Flamengo_bra", awayRef = "Santos_bra")
 
-        assertTrue(text.contains("Flamengo_bra"), "home club named, was:\n$text")
-        assertTrue(text.contains("Santos_bra"), "away club named, was:\n$text")
         assertTrue(
             text.contains("1 x 0"),
             "the fixture's score is one nil, and \"1 x 0\" is the exact separator only a correct " +
@@ -86,13 +116,19 @@ class MatchReportPrinterTest {
         val text = describe(goalless, "Flamengo_bra", "Santos_bra")
 
         assertTrue(
-            text.contains("shots 0  on target 0  wide 0"),
-            "with every Shot event stripped and both goal counts zeroed, a side's shots, on " +
-                "target and wide must all read nought. \"shots 0  on target 0  wide 0\" is the " +
-                "exact run those three fields print only when every one of them is genuinely " +
-                "zero; a bare \"0\" would also pass with this line omitted entirely, because the " +
-                "base fixture already contains a 0 in the score and in away's on target count. " +
+            text.contains("  Flamengo_bra  shots 0  on target 0  wide 0"),
+            "with every Shot event stripped and both goal counts zeroed, the home side's shots, " +
+                "on target and wide must all read nought. The club name belongs in the expected " +
+                "run because the run on its own is ambiguous: it is printed once per side, so a " +
+                "regression that dropped or corrupted one side's line would still be matched by " +
+                "the other side's zeroes. A bare \"0\" would be weaker still, because the base " +
+                "fixture already contains a 0 in the score and in away's on target count. " +
                 "Was:\n$text",
+        )
+        assertTrue(
+            text.contains("  Santos_bra  shots 0  on target 0  wide 0"),
+            "and the away side reads nought in the same three fields on its own line, which is " +
+                "the half of this assertion the other half cannot stand in for. Was:\n$text",
         )
     }
 }
