@@ -571,8 +571,9 @@ atacantes), formação 4, CLASSIC:
 As duas células de volante comem dois zagueiros, as de lateral comem dois laterais, a célula 3 leva o
 último zagueiro, e a célula 5 fica sem zagueiro nenhum: recusa por sub-papel o lateral, os meias e o
 atacante que sobraram, todos ofensivos, e chega ao fim da cadeia, onde está o goleiro reserva, que é
-defensivo. **Não é o preenchimento final do item 35**: aquele levaria o mais forte que sobrou, o meia
-de 76, e não um goleiro de 48. Sob MODERN o mesmo elenco não põe goleiro nenhum na linha. A formação
+defensivo. **Não é o preenchimento final do item 35**: quando a célula 5 é preenchida sobraram o
+atacante de 77, os meias de 76, 75 e 74, o lateral de 63 e o goleiro de 48, então o preenchimento
+final teria escalado o atacante de 77, o mais forte deles, e não o jogador mais fraco do elenco. Sob MODERN o mesmo elenco não põe goleiro nenhum na linha. A formação
 5, que tem três células de volante, faz o mesmo com um volante natural no elenco, e aí o goleiro cai
 na célula 8.
 
@@ -580,8 +581,26 @@ O erro do meu argumento anterior era olhar só a célula 11, onde de fato sempre
 disponível, e esquecer que são as próprias células de volante que esvaziam a defesa antes de as
 células de defesa serem preenchidas.
 
-Isto exige que os volantes esgotem os zagueiros de sobra, então é mais estreito que os 29,7%: zero
-volantes num 4-4-2 com três zagueiros, cerca de **7,5% dos times**, ou um volante no 4-4-2 def.
+**Com que frequência isso acontece.** Medido, não estimado, porque a resposta útil depende da
+formação e a IA sorteia doze. Método: importar a instalação local do original (703 clubes, 14672
+jogadores), gerar o mundo, e para cada clube montar a escalação em cada uma das onze formações que a
+IA sorteia, pesando cada formação pela largura da sua faixa na tabela de sorteio da 3.2. Repetido com
+as sementes 1, 2 e 3, porque a força sai da criação do mundo e a força é o que ordena o pool.
+
+Resultado, estável nas três sementes: **1,85% das escalações da IA põem um goleiro em célula de
+linha** sob CLASSIC, e **0,00%** sob MODERN, em todas as formações. Como são dois lados por partida,
+cerca de 3,7% das partidas têm pelo menos um time assim.
+
+O número por formação, em times de 703, mostra onde o defeito mora: 5-4-1 e 4-4-2 def 35, 3-4-3 cerca
+de 40, 3-5-2 34, e **4-4-2 apenas 3** (0,4%). São as formações com mais células de sub-papel
+defensivo (três de zagueiro, ou três de volante) que esgotam os zagueiros antes das células de
+defesa. O 4-4-2 do exemplo acima é, portanto, o caso raro da formação comum, e não o caso típico.
+
+Duas frequências de apoio, ambas conferidas no mesmo levantamento e ambas **sem condicionar a
+formação**: 53 dos 703 times (7,5%) não têm nenhum volante natural, e 156 (22,2%) têm exatamente um.
+O número de 7,5% mede isso, e não o caso condicionado que uma versão anterior deste item lhe atribuiu
+por engano.
+
 Fixado em `AutoLineupTest`, teste "a defence cell falls to the reserve keeper when everyone left is
 offensive".
 

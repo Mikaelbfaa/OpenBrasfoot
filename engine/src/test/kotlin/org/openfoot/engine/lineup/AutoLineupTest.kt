@@ -447,8 +447,10 @@ class AutoLineupTest {
      * offensive, until the chain reaches the keeper and the reserve keeper is
      * defensive.
      *
-     * This is the chain and not the catch all: the catch all would have taken
-     * the strongest man left, the 76 midfielder, rather than a 48 keeper. Under
+     * This is the chain and not the catch all. When cell 5 is reached the
+     * unused men are the 77 forward, the 76, 75 and 74 midfielders, the 63
+     * fullback and the 48 keeper, so the catch all would have seated the 77,
+     * the strongest of them, rather than the weakest man in the squad. Under
      * modern the third pass keeps the midfielders in midfield and no keeper
      * leaves the goal.
      */
@@ -487,8 +489,8 @@ class AutoLineupTest {
             "the second centre back cell reaches the end of its chain and takes the reserve keeper",
         )
         assertTrue(
-            classic.none { it.strength == 76 },
-            "and it is the chain, not the catch all, which would have taken the 76 midfielder",
+            classic.none { it.strength == 77 },
+            "and it is the chain, not the catch all, which would have seated the 77 forward here",
         )
         assertTrue(
             modern.none { it.naturalPosition == Position.GOALKEEPER && it.slot.value != 1 },
