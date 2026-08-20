@@ -581,8 +581,9 @@ O erro do meu argumento anterior era olhar só a célula 11, onde de fato sempre
 disponível, e esquecer que são as próprias células de volante que esvaziam a defesa antes de as
 células de defesa serem preenchidas.
 
-**Com que frequência isso acontece.** Medido, não estimado, porque a resposta útil depende da
-formação e a IA sorteia doze. Método: importar a instalação local do original (703 clubes, 14672
+**Com que frequência isso acontece.** Contado sobre os dados do original rodando o nosso motor, não
+estimado no lápis, porque a resposta útil depende da formação e a IA sorteia doze. Leia o parágrafo
+"O que estes números são" mais abaixo antes de citar qualquer número desta seção. Método: importar a instalação local do original (703 clubes, 14672
 jogadores), gerar o mundo, e para cada clube montar a escalação em cada uma das onze formações que a
 IA sorteia, pesando cada formação pela largura da sua faixa na tabela de sorteio da 3.2. Repetido com
 as sementes 1, 2 e 3, porque a força sai da criação do mundo e a força é o que ordena o pool.
@@ -603,6 +604,26 @@ por engano.
 
 Fixado em `AutoLineupTest`, teste "a defence cell falls to the reserve keeper when everyone left is
 offensive".
+
+**O que estes números são, e o que não são.** 1,85% e 0,00% não são fatos sobre o jogo original. São
+**previsões da leitura A**, calculadas pelo nosso motor sobre os dados do original: o levantamento
+mediu este projeto escalando os elencos importados, não o original escalando os dele. Se a leitura A
+estiver errada, os dois números caem junto com ela.
+
+Eles também não são MEDIDO no sentido do CONTRIBUTING. Aquela classe exige citar o teste que prova, e
+o utilitário que produziu estes números era descartável e já foi removido; nenhum teste do
+repositório os reproduz, e o `./gradlew check` ficaria verde se eles fossem outros. O que está fixado
+por teste é o mecanismo, não a frequência: `AutoLineupTest` prova que uma célula de defesa chega ao
+fim da cadeia e escala o goleiro reserva, e prova que sob MODERN isso não acontece. A frequência com
+que isso acontece nos 703 times é INFERIDO quantificado, e é assim que deve ser lida e citada.
+
+Isto é **observável**: uma temporada de liga com 20 clubes tem 380 partidas e portanto 760
+escalações de IA. A leitura A prevê 1,85% delas com goleiro em célula de linha, ou seja **cerca de 14
+avistamentos por temporada**; a leitura B prevê **zero**, e não por pouco: sob B o passe inalcançável
+é a última posição de cada cascata, que nas cadeias de linha é justamente o goleiro, então nenhuma
+célula de linha pode alcançá-lo. Assistir a uma temporada de IA contra IA no original e anotar
+qualquer goleiro reserva escalado fora do gol decide entre A e B sem descompilar nada. É o item mais
+provável de servir de base para trabalho futuro e o de experimento mais barato.
 
 Vale registrar que essa pegada **enfraquece um argumento usado no item 34**, o de que "um defeito
 desse tamanho estaria na 3.15". Está: é o próprio item 7. O item 34 se sustenta pela medição, não por
