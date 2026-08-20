@@ -2,6 +2,7 @@ package org.openfoot.engine.match
 
 import org.openfoot.model.RuleSets
 import org.openfoot.model.SplitMix64Rng
+import org.openfoot.model.TeamSide
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -38,6 +39,9 @@ class MatchGoldenVectorTest {
     fun `seed one replays exactly`() {
         val result = playAt(1L)
         assertEquals(93, result.clock.totalMinutes, "total minutes")
+        assertEquals(47, result.clock.firstHalfMinutes, "first half minutes")
+        assertEquals(46, result.clock.secondHalfMinutes, "second half minutes")
+        assertEquals(TeamSide.AWAY, result.startingPossessor, "starting possessor")
         assertEquals(1, result.homeGoals, "home goals")
         assertEquals(2, result.awayGoals, "away goals")
         assertEquals(
@@ -74,6 +78,9 @@ class MatchGoldenVectorTest {
     fun `seed twenty thousand and twenty three replays exactly`() {
         val result = playAt(20_023L)
         assertEquals(92, result.clock.totalMinutes, "total minutes")
+        assertEquals(45, result.clock.firstHalfMinutes, "first half minutes")
+        assertEquals(47, result.clock.secondHalfMinutes, "second half minutes")
+        assertEquals(TeamSide.AWAY, result.startingPossessor, "starting possessor")
         assertEquals(1, result.homeGoals, "home goals")
         assertEquals(1, result.awayGoals, "away goals")
         assertEquals(
@@ -110,6 +117,9 @@ class MatchGoldenVectorTest {
     fun `seed minus seven replays exactly`() {
         val result = playAt(-7L)
         assertEquals(93, result.clock.totalMinutes, "total minutes")
+        assertEquals(45, result.clock.firstHalfMinutes, "first half minutes")
+        assertEquals(48, result.clock.secondHalfMinutes, "second half minutes")
+        assertEquals(TeamSide.AWAY, result.startingPossessor, "starting possessor")
         assertEquals(2, result.homeGoals, "home goals")
         assertEquals(2, result.awayGoals, "away goals")
         assertEquals(
