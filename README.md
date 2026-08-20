@@ -20,6 +20,10 @@ Motor de partida:
 - O laço de tiques e o estado de partida, com as estatísticas da seção 3.13 e um placar
 - A aferição estatística da seção 3.16, que confere a partida inteira contra o comportamento descrito
 - `RuleSet`, com os conjuntos `CLASSIC` e `MODERN`, onde os defeitos do original viram dado e não `if`
+- Escalação automática e o catálogo de formações da seção 5.1, que monta as duas onzes de um clube
+  gerado
+- Energia em partida, drenada de quem está em campo a cada intervalo da seção 3.9
+- O log de eventos da partida, de onde as estatísticas e o placar são lidos, não acumulados à parte
 
 Criação de mundo:
 
@@ -67,10 +71,14 @@ arquivos ficam onde estão.
 ./gradlew :cli:installDist
 ./cli/build/install/openfoot-cli/bin/openfoot-cli import --install /caminho/do/Brasfoot --out base.json
 ./cli/build/install/openfoot-cli/bin/openfoot-cli worldgen --dataset base.json --seed 42
+./cli/build/install/openfoot-cli/bin/openfoot-cli match --dataset base.json --seed 42 --home abcrn_bra --away afogadospe_bra
 ```
 
 A mesma base com a mesma semente imprime exatamente a mesma coisa, em qualquer máquina. Duas
-execuções podem ser comparadas com `diff`.
+execuções podem ser comparadas com `diff`. O mesmo vale para `match`: a mesma base, a mesma semente e
+os mesmos dois clubes imprimem exatamente a mesma partida sempre, então uma partida gravada é uma
+base, uma semente e duas referências de clube, nada mais. As referências usadas no exemplo acima
+saem da própria base gerada pelo `import`; troque pelas que aparecerem na sua.
 
 Vale ler as notas que o `import` imprime. A instalação distribuída só configura liga para o Brasil e
 para a Espanha, então a maioria dos clubes sai sem divisão, e isso os deixa mais fracos do que o

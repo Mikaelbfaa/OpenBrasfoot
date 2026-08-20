@@ -2,9 +2,14 @@ package org.openfoot.cli
 
 import kotlinx.serialization.json.Json
 import org.openfoot.dataset.WorldDataset
+import org.openfoot.engine.lineup.assembleMatch
+import org.openfoot.engine.match.simulateMatch
 import org.openfoot.engine.world.World
 import org.openfoot.engine.world.generateWorld
 import org.openfoot.importer.InstallationImporter
+import org.openfoot.model.CompetitionKind
+import org.openfoot.model.RuleSets
+import org.openfoot.model.SplitMix64Rng
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -15,6 +20,7 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         "worldgen" -> worldgen(args.drop(1))
+        "match" -> match(args.drop(1))
         "import" -> importInstallation(args.drop(1))
         "help", "--help" -> println(USAGE)
         null -> {
@@ -33,11 +39,15 @@ fun main(args: Array<String>) {
 private val USAGE = """
     usage: openfoot-cli import   --install <path> --out <path>
            openfoot-cli worldgen --dataset <path> --seed <number>
+           openfoot-cli match    --dataset <path> --seed <number> --home <ref> --away <ref>
 
       import   reads your own installation of the original game and writes a
                dataset. Nothing is copied but numbers, and the files stay put.
       worldgen builds a world from a dataset and prints what came out. The same
                dataset and the same seed always print the same thing.
+      match    generates a world from a dataset and a seed, then plays one
+               match between the two named clubs and prints a report. The
+               same dataset, seed and clubs always print the same match.
 """.trimIndent()
 
 /**
@@ -129,6 +139,78 @@ private fun worldgen(args: List<String>) {
 
     print(summarise(generateWorld(dataset, seed)))
 }
+
+/**
+ * Reads a dataset, generates a world, assembles a match between two of its
+ * clubs and plays it.
+ *
+ * Everything that can go wrong here is the user handing over a path, a
+ * number or a club reference, so each failure says which one and stops.
+ * A club reference that does not resolve in the generated world is the
+ * likeliest mistake, a typo in a ref, so its own message names the ref it
+ * could not find rather than only saying "home" or "away".
+ *
+ * The match is played as a friendly of the world's first season. This is a
+ * command line demonstration of two clubs playing each other, not a fixture
+ * drawn from a season, so neither a real competition kind nor a real season
+ * number applies; a friendly is the one kind that carries no assumption
+ * about which competition or round produced the match.
+ *
+ * assembleMatch and simulateMatch each take their own Rng built straight from
+ * the seed. Every fork either of them takes from that Rng depends only on the
+ * seed and the tag it forks with, never on how many draws the other one has
+ * made, so the two do not interfere with each other and the same seed always
+ * assembles and plays the same match.
+ */
+private fun match(args: List<String>) {
+    val options = parseOptions(args)
+    val path = options["--dataset"] ?: fail("match needs --dataset <path>")
+    val seedText = options["--seed"] ?: fail("match needs --seed <number>")
+    val homeRef = options["--home"] ?: fail("match needs --home <ref>")
+    val awayRef = options["--away"] ?: fail("match needs --away <ref>")
+    val seed = seedText.toLongOrNull() ?: fail("seed '$seedText' is not a number")
+
+    val file = File(path)
+    if (!file.isFile) {
+        fail("no dataset file at $path")
+    }
+
+    val dataset = try {
+        Json.decodeFromString<WorldDataset>(file.readText())
+    } catch (failure: Exception) {
+        fail("dataset at $path is not usable: ${failure.message}")
+    }
+
+    val world = generateWorld(dataset, seed)
+    val home = world.club(homeRef) ?: fail("no club '$homeRef' in this world")
+    val away = world.club(awayRef) ?: fail("no club '$awayRef' in this world")
+
+    val assembled = assembleMatch(
+        home = home,
+        away = away,
+        dataset = dataset,
+        kind = CompetitionKind.FRIENDLY,
+        season = MATCH_SEASON,
+        rules = RuleSets.CLASSIC,
+        rng = SplitMix64Rng(seed),
+    )
+    val report = simulateMatch(
+        setup = assembled.setup,
+        rng = SplitMix64Rng(seed),
+        homeBench = assembled.homeBench,
+        awayBench = assembled.awayBench,
+    )
+
+    print(describe(report, homeRef, awayRef))
+}
+
+/**
+ * The season a match played straight from the command line is credited to.
+ *
+ * Nothing here plays out a career, so no other season number would mean
+ * anything more than this one does.
+ */
+private const val MATCH_SEASON = 1
 
 private fun parseOptions(args: List<String>): Map<String, String> {
     val options = LinkedHashMap<String, String>()

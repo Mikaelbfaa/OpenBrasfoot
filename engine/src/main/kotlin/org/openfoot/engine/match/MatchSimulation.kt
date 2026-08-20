@@ -72,9 +72,20 @@ data class MatchReport(
  * sided setup in the meantime is not nonsensical: the anti exploit rules of
  * sections 3.6b and 3.6c legitimately read MatchSetup.hasHumanSide regardless
  * of how the match was reached, so this function does not reject the case.
+ *
+ * The two bench parameters default to empty because nothing in this branch
+ * reads a bench: no substitution exists yet to bring a player on from one.
+ * They are threaded through to initialState now, rather than left for the
+ * branch that adds substitutions, so that landing them changes this one call
+ * site instead of every caller of simulateMatch that already exists by then.
  */
 @SpecRef("3.1")
-fun simulateMatch(setup: MatchSetup, rng: Rng): MatchReport {
+fun simulateMatch(
+    setup: MatchSetup,
+    rng: Rng,
+    homeBench: List<MatchPlayer> = emptyList(),
+    awayBench: List<MatchPlayer> = emptyList(),
+): MatchReport {
     val matchRng = rng.fork(SeedDomain.MATCH)
     val setupRng = matchRng.fork(SETUP_STREAM)
 
@@ -82,7 +93,7 @@ fun simulateMatch(setup: MatchSetup, rng: Rng): MatchReport {
         if (setupRng.randRange(0, 1) == 0) TeamSide.HOME else TeamSide.AWAY
     val clock = matchClock(setupRng)
 
-    var state = initialState(setup, startingPossessor)
+    var state = initialState(setup, startingPossessor, homeBench, awayBench)
     for (minute in 0 until clock.totalMinutes) {
         state = playMinute(state, minute, clock, matchRng.fork(minute.toLong()))
     }
