@@ -1,6 +1,8 @@
 package org.openfoot.engine.world
 
 import org.openfoot.engine.match.MatchPlayer
+import org.openfoot.model.PlayerId
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.Side
 import org.openfoot.model.Slot
@@ -51,15 +53,25 @@ data class Player(
 /**
  * Puts a generated player into a pitch cell so the match engine can rate him.
  *
- * The match engine reads only seven things about a player, so everything else
- * generation produced stays behind. A player's own side is not one of them: the
+ * The match engine reads only what is passed here, so everything else
+ * generation produced stays behind. A player's own side is not passed: the
  * cell decides what he is asked to do, and section 3.3 penalises him for being
  * in the wrong one whatever his natural position.
+ *
+ * The identity is handed in rather than derived, because it is an index into
+ * the squad this player was picked from and a player does not know which squad
+ * that is.
  */
 @SpecRef("3.4")
-fun Player.inSlot(slot: Slot, representsSideCountry: Boolean = false): MatchPlayer = MatchPlayer(
+fun Player.inSlot(
+    slot: Slot,
+    id: PlayerId,
+    representsSideCountry: Boolean = false,
+): MatchPlayer = MatchPlayer(
+    id = id,
     slot = slot,
     naturalPosition = position,
+    age = age,
     strength = strength,
     abilities = abilities.toIntArray(),
     firstTrait = firstTrait,

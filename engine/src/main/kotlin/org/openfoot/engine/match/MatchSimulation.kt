@@ -9,19 +9,31 @@ import org.openfoot.model.randRange
 /**
  * One played match.
  *
- * The clock is carried because the length varies and a reader of the statistics
- * needs to know what they are out of. The starting possessor is carried because
- * possession alternates from it deterministically, so it is the only extra fact
- * needed to say whose tick any minute was.
+ * The log is the record and the statistics are read out of it, so a reader who
+ * wants to know what happened and a reader who wants to know how often are
+ * looking at the same facts.
+ *
+ * The clock is carried because the length varies and a reader of the
+ * statistics needs to know what they are out of. The starting possessor is
+ * carried because possession alternates from it deterministically, so it is
+ * the only extra fact needed to say whose tick any minute was.
  */
 @SpecRef("3.1")
-data class MatchResult(
+data class MatchReport(
     val clock: MatchClock,
-    val stats: MatchStats,
+    val log: List<MatchEvent>,
     val homeGoals: Int,
     val awayGoals: Int,
     val startingPossessor: TeamSide,
-)
+) {
+    /**
+     * Computed once here rather than on every read, because a caller that
+     * prints a scoreboard asks for it repeatedly and the log is walked in
+     * full each time.
+     */
+    @SpecRef("3.13")
+    val stats: MatchStats = log.toStats()
+}
 
 /**
  * Plays a whole match.
@@ -60,9 +72,20 @@ data class MatchResult(
  * sided setup in the meantime is not nonsensical: the anti exploit rules of
  * sections 3.6b and 3.6c legitimately read MatchSetup.hasHumanSide regardless
  * of how the match was reached, so this function does not reject the case.
+ *
+ * The two bench parameters default to empty because nothing in this branch
+ * reads a bench: no substitution exists yet to bring a player on from one.
+ * They are threaded through to initialState now, rather than left for the
+ * branch that adds substitutions, so that landing them changes this one call
+ * site instead of every caller of simulateMatch that already exists by then.
  */
 @SpecRef("3.1")
-fun simulateMatch(setup: MatchSetup, rng: Rng): MatchResult {
+fun simulateMatch(
+    setup: MatchSetup,
+    rng: Rng,
+    homeBench: List<MatchPlayer> = emptyList(),
+    awayBench: List<MatchPlayer> = emptyList(),
+): MatchReport {
     val matchRng = rng.fork(SeedDomain.MATCH)
     val setupRng = matchRng.fork(SETUP_STREAM)
 
@@ -70,77 +93,92 @@ fun simulateMatch(setup: MatchSetup, rng: Rng): MatchResult {
         if (setupRng.randRange(0, 1) == 0) TeamSide.HOME else TeamSide.AWAY
     val clock = matchClock(setupRng)
 
-    var stats = MatchStats()
-    var possessor = startingPossessor
-
+    var state = initialState(setup, startingPossessor, homeBench, awayBench)
     for (minute in 0 until clock.totalMinutes) {
-        val minuteRng = matchRng.fork(minute.toLong())
-
-        val outcome = playTick(
-            setup = setup,
-            possessor = possessor,
-            goalsScoredByPossessor = stats.of(possessor).goals,
-            rng = minuteRng.fork(PLAY_STREAM),
-        )
-        stats = stats.record(outcome)
-        possessor = possessor.opponent
+        state = playMinute(state, minute, clock, matchRng.fork(minute.toLong()))
     }
 
-    return MatchResult(
+    return MatchReport(
         clock = clock,
-        stats = stats,
-        homeGoals = stats.home.goals,
-        awayGoals = stats.away.goals,
+        log = state.log,
+        homeGoals = state.homeGoals,
+        awayGoals = state.awayGoals,
         startingPossessor = startingPossessor,
     )
 }
 
 /**
- * Folds one tick into the running counters.
+ * One minute of a match.
  *
- * A tackle belongs to the side that did not have the ball. Everything else
- * belongs to the side that did. The duel winner is counted separately from all
- * of it, because that is the number the original displays as possession.
+ * Section 3.5 alternates possession after every single tick regardless of what
+ * happened in it, so the alternation is unconditional and lives here rather
+ * than inside the tick, which reports the duel winner instead.
  *
- * Internal rather than private so a test can call it directly with hand built
- * TickOutcome values and pin the crediting rules above without needing a whole
- * match to exercise every event and both possessors.
+ * The energy drain runs before the tick, matching the ordering section 3.8
+ * will use for its own per minute rolls. Energy influences no probability the
+ * tick reads, so draining first or after the tick cannot change this minute's
+ * outcome; the ordering only matters for whichever draws later once section
+ * 3.8 lands beside it.
+ *
+ * Internal rather than private so a test can hand it a state from the middle
+ * of a match and assert one minute of it without playing the eighty before.
+ */
+@SpecRef("3.5")
+internal fun playMinute(
+    state: MatchState,
+    minute: Int,
+    clock: MatchClock,
+    rng: Rng,
+): MatchState {
+    val drained = state.drainEnergy(minute, clock)
+    val possessor = drained.possessor
+
+    val outcome = playTick(
+        setup = drained.setup,
+        possessor = possessor,
+        goalsScoredByPossessor = drained.goalsBy(possessor),
+        rng = rng.fork(PLAY_STREAM),
+    )
+
+    val scored = outcome.event == TickEvent.GOAL
+    return drained.copy(
+        log = drained.log + outcome.events(minute),
+        possessor = possessor.opponent,
+        homeGoals = drained.homeGoals + if (scored && possessor == TeamSide.HOME) 1 else 0,
+        awayGoals = drained.awayGoals + if (scored && possessor == TeamSide.AWAY) 1 else 0,
+    )
+}
+
+/**
+ * Turns one tick into the events it produced.
+ *
+ * The duel winner is always logged, whatever else happened, because it is the
+ * number the original displays as possession and it is decided every tick. A
+ * tackle belongs to the side that did not have the ball; everything else
+ * belongs to the side that did.
+ *
+ * Internal rather than private so a test can hand it built TickOutcome values
+ * and pin the crediting rules without needing a whole match to reach every
+ * combination of event and possessor.
  */
 @SpecRef("3.13")
-internal fun MatchStats.record(outcome: TickOutcome): MatchStats {
-    val possessor = outcome.possessor
-    val defender = possessor.opponent
+internal fun TickOutcome.events(minute: Int): List<MatchEvent> {
+    val duel = MatchEvent.PossessionWon(minute, possessionWinner)
+    val rest = when (event) {
+        TickEvent.GOAL ->
+            MatchEvent.Shot(minute, possessor, shooter, onTarget = true, scored = true)
 
-    var home = this.home
-    var away = this.away
+        TickEvent.SAVE ->
+            MatchEvent.Shot(minute, possessor, shooter, onTarget = true, scored = false)
 
-    fun update(side: TeamSide, change: (SideStats) -> SideStats) {
-        if (side == TeamSide.HOME) home = change(home) else away = change(away)
+        TickEvent.WIDE ->
+            MatchEvent.Shot(minute, possessor, shooter, onTarget = false, scored = false)
+
+        TickEvent.TACKLE -> MatchEvent.Tackle(minute, possessor.opponent)
+
+        TickEvent.MISPLACED_PASS -> MatchEvent.MisplacedPass(minute, possessor)
     }
-
-    update(outcome.possessionWinner) { it.copy(possessionsWon = it.possessionsWon + 1) }
-
-    when (outcome.event) {
-        TickEvent.GOAL -> update(possessor) {
-            it.copy(goals = it.goals + 1, shots = it.shots + 1, onTarget = it.onTarget + 1)
-        }
-
-        TickEvent.SAVE -> update(possessor) {
-            it.copy(shots = it.shots + 1, onTarget = it.onTarget + 1)
-        }
-
-        TickEvent.WIDE -> update(possessor) {
-            it.copy(shots = it.shots + 1, wide = it.wide + 1)
-        }
-
-        TickEvent.TACKLE -> update(defender) { it.copy(tackles = it.tackles + 1) }
-
-        TickEvent.MISPLACED_PASS -> update(possessor) {
-            it.copy(misplacedPasses = it.misplacedPasses + 1)
-        }
-    }
-
-    return MatchStats(home, away)
+    return listOf(duel, rest)
 }
 
 /**

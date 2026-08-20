@@ -2,6 +2,7 @@ package org.openfoot.engine.match
 
 import org.openfoot.model.HomeAdvantage
 import org.openfoot.model.Marking
+import org.openfoot.model.PlayerId
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
 import org.openfoot.model.Slot
@@ -13,15 +14,17 @@ import org.openfoot.model.Trait
  * One lineup entry as the match engine sees it.
  *
  * Deliberately not the world model player, which does not exist yet. The
- * formulas of sections 3.4 and 3.6 read only these seven things, so an adapter
+ * formulas of sections 3.4 and 3.6 read only these nine things, so an adapter
  * will build this from a Player once worldgen lands and nothing here changes.
  *
  * Not a data class, because the abilities array would break value equality.
  */
 @SpecRef("3.4")
 class MatchPlayer(
+    val id: PlayerId,
     val slot: Slot,
     val naturalPosition: Position,
+    @property:SpecRef("3.9") val age: Int,
     val strength: Int,
     val abilities: IntArray,
     val firstTrait: Trait,
@@ -72,8 +75,12 @@ class MatchSide(
 }
 
 /**
- * The two sides plus everything a tick needs that does not change during the
- * match.
+ * The two sides as they stand this minute, plus the season and the rules.
+ *
+ * This used to be the part of a match that could not change. It is now the
+ * part that can: a sending off or a substitution rebuilds it with a different
+ * lineup, which is what lets every aggregate and every duel below read the
+ * current eleven without knowing that anything moved.
  */
 @SpecRef("3.5")
 class MatchSetup(

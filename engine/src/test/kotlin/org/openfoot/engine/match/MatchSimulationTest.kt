@@ -33,16 +33,38 @@ class MatchSimulationTest {
             rules = RuleSets.CLASSIC,
         )
 
+    /**
+     * fixture is built once and shared by both calls below, rather than one
+     * MatchSetup per call. MatchPlayer is deliberately reference equal, not
+     * value equal (see MatchSide.kt), so two independently built lineups
+     * would make first and second compare unequal on their shooters even
+     * when the match played out identically, and two independently built
+     * lineups would equally make them compare unequal to each other even
+     * when it did not: either way the assertion could not tell a genuine
+     * divergence from an artefact of building two setups. One shared fixture
+     * means every shooter the log can name is the same object on both runs,
+     * so the comparison is honest about what the simulation actually did.
+     */
     @Test
     fun `the same seed plays the same match`() {
-        val first = simulateMatch(setup(), SplitMix64Rng(7))
-        val second = simulateMatch(setup(), SplitMix64Rng(7))
+        val fixture = setup()
+        val first = simulateMatch(fixture, SplitMix64Rng(7))
+        val second = simulateMatch(fixture, SplitMix64Rng(7))
         assertEquals(first, second)
     }
 
+    /**
+     * Shares one fixture across all forty seeds for the same reason as
+     * above, in the other direction: with one setup per seed, results would
+     * always come out pairwise unequal by shooter reference alone, no matter
+     * what the forty seeds actually simulated, so toSet().size > 1 could
+     * never fail. One shared fixture makes an actual collision possible
+     * again, so the assertion is a genuine claim about the forty seeds.
+     */
     @Test
     fun `a different seed plays a different match`() {
-        val results = (1L..40L).map { simulateMatch(setup(), SplitMix64Rng(it)) }
+        val fixture = setup()
+        val results = (1L..40L).map { simulateMatch(fixture, SplitMix64Rng(it)) }
         assertTrue(results.toSet().size > 1, "forty seeds produced one identical match")
     }
 
@@ -54,13 +76,18 @@ class MatchSimulationTest {
      * about, pinned so a future change that starts threading the parent's
      * state through the loop is caught here instead of by a silent repeated
      * fixture later.
+     *
+     * fixture is shared for the same reason as the same seed case above: two
+     * independently built lineups would make first and second compare
+     * unequal by shooter reference even when the replay was exact.
      */
     @Test
     fun `passing the same Rng instance to two calls replays the identical match`() {
+        val fixture = setup()
         val sharedRng = SplitMix64Rng(11)
 
-        val first = simulateMatch(setup(), sharedRng)
-        val second = simulateMatch(setup(), sharedRng)
+        val first = simulateMatch(fixture, sharedRng)
+        val second = simulateMatch(fixture, sharedRng)
 
         assertEquals(first, second, "the same Rng instance must not make the second call diverge")
     }
@@ -70,13 +97,20 @@ class MatchSimulationTest {
      * matches from one generator, such as a round of fixtures, must fork a
      * fresh child per match rather than pass the parent instance twice, and
      * doing so does give different matches.
+     *
+     * fixture is shared for the same reason as the different seed case
+     * above: with one setup per call, first != second would hold by shooter
+     * reference alone regardless of whether forking a fresh child actually
+     * changed anything, so the assertion could never fail. Sharing it makes
+     * first != second a genuine claim about the fork.
      */
     @Test
     fun `forking a fresh child per match gives different matches`() {
+        val fixture = setup()
         val seasonRng = SplitMix64Rng(11)
 
-        val first = simulateMatch(setup(), seasonRng.fork(1L))
-        val second = simulateMatch(setup(), seasonRng.fork(2L))
+        val first = simulateMatch(fixture, seasonRng.fork(1L))
+        val second = simulateMatch(fixture, seasonRng.fork(2L))
 
         assertTrue(first != second, "forking per match should not reproduce the same fixture twice")
     }
@@ -207,57 +241,63 @@ class MatchSimulationTest {
      * TACKLE credited to the possessor instead of to the side that did not have
      * the ball would pass every other test in this file, because they all use
      * two equal strength sides where either crediting produces plausible
-     * numbers. Calling record directly, with a hand built TickOutcome, is what
-     * catches it. Both possessors are checked so a bug that is symmetric in
-     * TeamSide, such as always crediting home, cannot hide behind one case.
+     * numbers. Ported from the record fold this project used to keep beside
+     * the log onto events() plus toStats(), the pair that replaced it: this is
+     * the only test in the suite that pins TickOutcome.events()'s own mapping
+     * from a possessor to the side a tackle lands on, as distinct from
+     * MatchEventTest, which starts from hand built MatchEvent values and never
+     * touches events() at all. Both possessors are checked so a bug that is
+     * symmetric in TeamSide, such as always crediting home, cannot hide behind
+     * one case.
      */
     @Test
-    fun `record credits a tackle to the side that did not have the ball`() {
-        val awayHadTheBall = MatchStats().record(TickOutcome(TeamSide.HOME, TeamSide.HOME, TickEvent.TACKLE))
+    fun `events credits a tackle to the side that did not have the ball`() {
+        val awayHadTheBall = TickOutcome(TeamSide.HOME, TeamSide.HOME, TickEvent.TACKLE).events(0).toStats()
         assertEquals(0, awayHadTheBall.home.tackles, "the possessor must not be credited with the tackle")
         assertEquals(1, awayHadTheBall.away.tackles, "the non possessor should be credited with the tackle")
 
-        val homeHadTheBall = MatchStats().record(TickOutcome(TeamSide.AWAY, TeamSide.AWAY, TickEvent.TACKLE))
+        val homeHadTheBall = TickOutcome(TeamSide.AWAY, TeamSide.AWAY, TickEvent.TACKLE).events(0).toStats()
         assertEquals(1, homeHadTheBall.home.tackles, "the non possessor should be credited with the tackle")
         assertEquals(0, homeHadTheBall.away.tackles, "the possessor must not be credited with the tackle")
     }
 
     /**
-     * Finding 2a in full: every one of the five TickEvent values, folded for
-     * both possessors, checked against exactly the side the docstring on
-     * record names. GOAL, SAVE, WIDE and MISPLACED_PASS all belong to the
+     * Finding 2a in full, ported the same way: every one of the five
+     * TickEvent values, run through events() and toStats() for both
+     * possessors, checked against exactly the side TickOutcome.events()'s own
+     * docstring names. GOAL, SAVE, WIDE and MISPLACED_PASS all belong to the
      * possessor; TACKLE alone belongs to the side that did not have the ball.
      * Each case also checks that the other side's matching counter stayed at
      * zero, so a bug that credits both sides at once cannot hide either.
      */
     @Test
-    fun `record credits every event to exactly the side its docstring names`() {
+    fun `events credits every event to exactly the side its docstring names`() {
         for (possessor in listOf(TeamSide.HOME, TeamSide.AWAY)) {
             val defender = possessor.opponent
 
-            val afterGoal = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.GOAL))
+            val afterGoal = TickOutcome(possessor, possessor, TickEvent.GOAL).events(0).toStats()
             assertEquals(1, afterGoal.of(possessor).goals, "GOAL: possessor $possessor")
             assertEquals(1, afterGoal.of(possessor).shots, "GOAL: possessor $possessor")
             assertEquals(1, afterGoal.of(possessor).onTarget, "GOAL: possessor $possessor")
             assertEquals(0, afterGoal.of(defender).goals, "GOAL must not touch the defender: possessor $possessor")
             assertEquals(0, afterGoal.of(defender).shots, "GOAL must not touch the defender: possessor $possessor")
 
-            val afterSave = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.SAVE))
+            val afterSave = TickOutcome(possessor, possessor, TickEvent.SAVE).events(0).toStats()
             assertEquals(1, afterSave.of(possessor).shots, "SAVE: possessor $possessor")
             assertEquals(1, afterSave.of(possessor).onTarget, "SAVE: possessor $possessor")
             assertEquals(0, afterSave.of(possessor).goals, "SAVE must not score: possessor $possessor")
             assertEquals(0, afterSave.of(defender).shots, "SAVE must not touch the defender: possessor $possessor")
 
-            val afterWide = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.WIDE))
+            val afterWide = TickOutcome(possessor, possessor, TickEvent.WIDE).events(0).toStats()
             assertEquals(1, afterWide.of(possessor).shots, "WIDE: possessor $possessor")
             assertEquals(1, afterWide.of(possessor).wide, "WIDE: possessor $possessor")
             assertEquals(0, afterWide.of(defender).shots, "WIDE must not touch the defender: possessor $possessor")
 
-            val afterTackle = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.TACKLE))
+            val afterTackle = TickOutcome(possessor, possessor, TickEvent.TACKLE).events(0).toStats()
             assertEquals(0, afterTackle.of(possessor).tackles, "TACKLE must not credit the possessor: $possessor")
             assertEquals(1, afterTackle.of(defender).tackles, "TACKLE: defender of $possessor")
 
-            val afterMisplaced = MatchStats().record(TickOutcome(possessor, possessor, TickEvent.MISPLACED_PASS))
+            val afterMisplaced = TickOutcome(possessor, possessor, TickEvent.MISPLACED_PASS).events(0).toStats()
             assertEquals(1, afterMisplaced.of(possessor).misplacedPasses, "MISPLACED_PASS: possessor $possessor")
             assertEquals(
                 0,
@@ -304,6 +344,21 @@ class MatchSimulationTest {
             "the anti blowout ladder should have stopped home scoring on every one of its $homeTicks " +
                 "ticks, but it finished with ${result.stats.home.goals} goals",
         )
+    }
+
+    @Test
+    fun `every minute logs exactly one possession duel`() {
+        val report = simulateMatch(setup(), SplitMix64Rng(99L))
+        val duels = report.log.count { it is MatchEvent.PossessionWon }
+        assertEquals(report.clock.totalMinutes, duels, "one duel per minute")
+    }
+
+    @Test
+    fun `the goals in the log are the goals in the score`() {
+        val report = simulateMatch(setup(), SplitMix64Rng(99L))
+        val scored = report.log.filterIsInstance<MatchEvent.Shot>().filter { it.scored }
+        assertEquals(report.homeGoals, scored.count { it.side == TeamSide.HOME }, "home")
+        assertEquals(report.awayGoals, scored.count { it.side == TeamSide.AWAY }, "away")
     }
 }
 

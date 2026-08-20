@@ -500,3 +500,372 @@ montagem. Nenhuma faixa foi alargada para acomodar a 3.16.
 
 Isto é **observável**: ler a média de chutes de uma temporada IA contra IA no jogo original, junto
 com a formação escalada, resolve.
+
+### 31. A partir de qual minuto do tempo se conta o desgaste de 7 em 7 minutos da 3.9
+
+A 3.9 diz que o desgaste acontece "a cada 7 minutos" e dá "~7 descontos por tempo", mas não diz se a
+contagem começa no primeiro minuto do tempo ou no sétimo. A seção também afirma que um jogador de 24
+anos "perde ~28 de energia por partida completa".
+
+Um jogador de 24 anos cai na faixa `<=25 -> 2`, então perde 2 por desconto. 28 de energia implica 14
+descontos na partida inteira, ou seja 7 por tempo, não 6.
+
+Contando os minutos de um tempo de 45 a partir de zero, os descontos caem em 0, 7, 14, 21, 28, 35 e
+42, o que dá exatamente 7 descontos. Contando a partir de um, os descontos cairiam em 7, 14, 21, 28,
+35 e 42, o que dá 6.
+
+`7 descontos x 2 de custo = 14 energia por tempo x 2 tempos = 28`, batendo com a spec. `6 x 2 = 12 x
+2 = 24`, que não bate.
+
+**O que o código faz, ao lado da derivação.** A derivação acima é sobre um tempo regulamentar de 45
+minutos. `drainsThisMinute` não conta sobre 45: conta sobre o tempo de verdade, do zero ao último
+minuto que o relógio da 3.1 sorteou. Como `matchClock` sorteia o acréscimo do segundo tempo em 1 a 5,
+o segundo tempo tem de 46 a 50 minutos, e num tempo de 50 minutos o deslocamento 49 também é múltiplo
+de 7. Isso dá um **oitavo** desconto. O primeiro tempo nunca faz o mesmo, porque o acréscimo dele é
+de 0 a 2 e ele para em 47 minutos.
+
+Ou seja, a partida mais longa que a 3.1 permite custa 30 de energia a um jogador de 24 anos, e não os
+28 que a 3.9 cita; 28 é o custo de uma partida de dois tempos regulamentares. As duas afirmações
+convivem, e a derivação continua sendo o que decide a pergunta deste item, que é de qual ponta contar,
+não quantos descontos cabem numa partida real. Fixado em `EnergyTest`, teste "the longest legal second
+half drains an eighth time".
+
+**Resolução (INFERIDO):** contar os minutos de cada tempo a partir de zero, reiniciando a contagem no
+início do segundo tempo. É a única leitura das duas que reproduz os ~28 de energia que a 3.9 cita
+para um jogador de 24 anos numa partida de dois tempos regulamentares. Testado em `EnergyTest`.
+
+### 32. Quantos passes de relaxamento a escalação automática de fato executa
+
+A 3.2 descreve a busca de cada slot como **3 passes** (exato -> ignora lado -> ignora lado+papel) e o
+item 7 da 3.15 diz que **um** passe de relaxamento é inalcançável por causa do limite do laço. A spec
+não diz qual, nem quantos sobram.
+
+Duas leituras competem, e elas não diferem em detalhe: uma cria uma divergência entre CLASSIC e
+MODERN, a outra não cria nenhuma.
+
+**Leitura A, adotada.** O inalcançável é o terceiro dos passes de lado e estilo, o que ignora
+lado+papel. "Limite do laço" descreve a condição de parada, e um limite errado corta a **última**
+iteração; cortar uma do meio seria defeito no corpo do laço, não no limite.
+
+**Leitura B.** A 5.4 chama o laço **externo** de "relaxamento de posição", então "um passe de
+relaxamento" pode ser a última posição de cada cascata, e não um dos três passes internos. Nesse caso
+os três passes rodam sempre, o defeito é outro, e **não existe divergência de contagem** entre
+CLASSIC e MODERN neste ponto.
+
+Três argumentos pesam a favor de A:
+
+1. A 3.2 usa a palavra "passes" **só** para o trio lado/estilo. O laço externo ela chama de "cadeias
+   de preferência por posição", nunca de passe.
+2. O item 5 da mesma 3.15 escreve "ramo" quando quer dizer ramo: "Há ainda um ramo inalcançável
+   (> 10 amarelos)". O vocabulário da lista distingue os dois, então "passe" no item 7 parece
+   deliberado.
+3. A 5.3 afirma que lado errado **não tem penalidade nenhuma** e é "só preferência na escalação
+   automática". Isso seria falso se o passe exato nunca rodasse, porque o lado deixaria de ser
+   preferência e viraria letra morta. Logo o corte não é no primeiro passe, e entre os outros dois
+   vale o argumento do limite.
+
+**Por que dois passes quase nunca são dois.** Pela tabela do item 34, 19 das 25 células não pedem
+lado nenhum. Numa célula central os dois passes alcançáveis do CLASSIC testam exatamente a mesma
+condição, o sub-papel, porque o único filtro que o segundo passe larga é o lado e ali não havia lado
+a largar. Ou seja, na maior parte da grade o CLASSIC tem **um** filtro distinto, não dois, e nunca
+chega a ignorar o sub-papel. É essa colapsagem, e não o número 2 em si, que faz uma célula central
+desistir da posição inteira em vez de afrouxar o estilo.
+
+**Pegada.** Não é caso de canto. Levantamento sobre os dados do original: **29,7% dos times**
+carregam menos de dois meias defensivos e **14,9%** menos de duas pontas. Nesses times, sob a leitura
+A, toda célula de volante (11-13) que não acha volante natural sobrando desiste do meio-campo e desce
+a cascata - num time com um volante só, é a segunda célula; sem nenhum, são todas. Como as células de
+defesa vêm **depois** das de meio em toda formação, ela encontra a defesa inteira disponível e escala
+um zagueiro de volante, empurrando a defesa para improvisos em cadeia. Sob MODERN o mesmo time põe o meia
+ofensivo no volante e mantém a defesa inteira. Um 4-4-2 é afetado em quase um terço dos elencos.
+
+**O goleiro reserva vai a campo por essa cascata, numa célula de defesa.** É a consequência mais cara
+e foi medida, rodando o motor, depois de eu ter argumentado que ela não podia acontecer. Elenco na
+forma ideal da 5.7 (2 goleiros de 62 e 48, 3 laterais ofensivos, 3 zagueiros, 5 meias ofensivos, 3
+atacantes), formação 4, CLASSIC:
+
+| Célula | 1 | 22 | 24 | 11 | 13 | 14 | 16 | 2 | 9 | 3 | 5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Escalado | GOL 62 | ATA 82 | ATA 79 | ZAG 68 | ZAG 67 | MEI 80 | MEI 78 | LAT 66 | LAT 64 | ZAG 65 | **GOL 48** |
+
+As duas células de volante comem dois zagueiros, as de lateral comem dois laterais, a célula 3 leva o
+último zagueiro, e a célula 5 fica sem zagueiro nenhum: recusa por sub-papel o lateral, os meias e o
+atacante que sobraram, todos ofensivos, e chega ao fim da cadeia, onde está o goleiro reserva, que é
+defensivo. **Não é o preenchimento final do item 35**: quando a célula 5 é preenchida sobraram o
+atacante de 77, os meias de 76, 75 e 74, o lateral de 63 e o goleiro de 48, então o preenchimento
+final teria escalado o atacante de 77, o mais forte deles, e não o jogador mais fraco do elenco. Sob MODERN o mesmo elenco não põe goleiro nenhum na linha. A formação
+5, que tem três células de volante, faz o mesmo com um volante natural no elenco, e aí o goleiro cai
+na célula 8.
+
+O erro do meu argumento anterior era olhar só a célula 11, onde de fato sempre há zagueiro
+disponível, e esquecer que são as próprias células de volante que esvaziam a defesa antes de as
+células de defesa serem preenchidas.
+
+**Com que frequência isso acontece.** Contado sobre os dados do original rodando o nosso motor, não
+estimado no lápis, porque a resposta útil depende da formação e a IA sorteia doze. Leia o parágrafo
+"O que estes números são" mais abaixo antes de citar qualquer número desta seção. Método: importar a instalação local do original (703 clubes, 14672
+jogadores), gerar o mundo, e para cada clube montar a escalação em cada uma das onze formações que a
+IA sorteia, pesando cada formação pela largura da sua faixa na tabela de sorteio da 3.2. Repetido com
+as sementes 1, 2 e 3, porque a força sai da criação do mundo e a força é o que ordena o pool.
+
+Resultado, estável nas três sementes: **1,85% das escalações da IA põem um goleiro em célula de
+linha** sob CLASSIC, e **0,00%** sob MODERN, em todas as formações. Como são dois lados por partida,
+cerca de 3,7% das partidas têm pelo menos um time assim.
+
+O número por formação, em times de 703, mostra onde o defeito mora: 5-4-1 e 4-4-2 def 35, 3-4-3 cerca
+de 40, 3-5-2 34, e **4-4-2 apenas 3** (0,4%). São as formações com mais células de sub-papel
+defensivo (três de zagueiro, ou três de volante) que esgotam os zagueiros antes das células de
+defesa. O 4-4-2 do exemplo acima é, portanto, o caso raro da formação comum, e não o caso típico.
+
+Duas frequências de apoio, ambas conferidas no mesmo levantamento e ambas **sem condicionar a
+formação**: 53 dos 703 times (7,5%) não têm nenhum volante natural, e 156 (22,2%) têm exatamente um.
+O número de 7,5% mede isso, e não o caso condicionado que uma versão anterior deste item lhe atribuiu
+por engano.
+
+Fixado em `AutoLineupTest`, teste "a defence cell falls to the reserve keeper when everyone left is
+offensive".
+
+**O que estes números são, e o que não são.** 1,85% e 0,00% não são fatos sobre o jogo original. São
+**previsões da leitura A**, calculadas pelo nosso motor sobre os dados do original: o levantamento
+mediu este projeto escalando os elencos importados, não o original escalando os dele. Se a leitura A
+estiver errada, os dois números caem junto com ela.
+
+Eles também não são MEDIDO no sentido do CONTRIBUTING. Aquela classe exige citar o teste que prova, e
+o utilitário que produziu estes números era descartável e já foi removido; nenhum teste do
+repositório os reproduz, e o `./gradlew check` ficaria verde se eles fossem outros. O que está fixado
+por teste é o mecanismo, não a frequência: `AutoLineupTest` prova que uma célula de defesa chega ao
+fim da cadeia e escala o goleiro reserva, e prova que sob MODERN isso não acontece. A frequência com
+que isso acontece nos 703 times é INFERIDO quantificado, e é assim que deve ser lida e citada.
+
+Isto é **observável**: uma temporada de liga com 20 clubes tem 380 partidas e portanto 760
+escalações de IA. A leitura A prevê 1,85% delas com goleiro em célula de linha, ou seja **cerca de 14
+avistamentos por temporada**; a leitura B prevê **zero**, e não por pouco: sob B o passe inalcançável
+é a última posição de cada cascata, que nas cadeias de linha é justamente o goleiro, então nenhuma
+célula de linha pode alcançá-lo. Assistir a uma temporada de IA contra IA no original e anotar
+qualquer goleiro reserva escalado fora do gol decide entre A e B sem descompilar nada. É o item mais
+provável de servir de base para trabalho futuro e o de experimento mais barato.
+
+Vale registrar que essa pegada **enfraquece um argumento usado no item 34**, o de que "um defeito
+desse tamanho estaria na 3.15". Está: é o próprio item 7. O item 34 se sustenta pela medição, não por
+essa heurística.
+
+**Resolução (INFERIDO):** leitura A. `lineupRelaxationPasses` no `RuleSet`, 2 no CLASSIC e 3 no
+MODERN. O par de escalações que a diferença produz está fixado em `AutoLineupTest`, no teste "classic
+gives up on the position before it gives up on the style", e o delta novo entre os dois conjuntos de
+regras está declarado em `RuleSetsTest`. Se a leitura B for confirmada, os dois valores viram 3 e o
+teste inverte.
+
+### 33. Qual posição a cascata tenta depois da posição que a célula pediu
+
+A 5.4 diz que o laço externo é o relaxamento de posição e escreve **uma** cadeia,
+GOL -> ZAG -> LAT -> MEI -> ATA, seguida de "etc.". A 3.2 fala em "cadeias de preferência por
+posição", no plural. As outras quatro não estão escritas em lugar nenhum.
+
+Duas regras diferentes reproduzem a cadeia escrita **letra por letra**, então isto é escolha e não
+leitura:
+
+- **A, adotada.** Posição própria primeiro, depois as outras por **distância** sobre a linha GOL,
+  ZAG, LAT, MEI, ATA. Do GOL isso dá exatamente a cadeia da spec.
+- **B.** Posição própria primeiro, depois a **ordem escrita** GOL, ZAG, LAT, MEI, ATA pulando a que
+  já saiu. Do GOL dá a mesma coisa.
+
+Elas discordam a partir do meio-campo. A dá MEI, LAT, ATA, ZAG, GOL e B, lida à letra, dá MEI, GOL,
+ZAG, LAT, ATA; no ataque A dá ATA, MEI, LAT, ZAG, GOL contra ATA, GOL, ZAG, LAT, MEI de B. B começa
+pelo GOL nas duas porque a ordem escrita começa pelo GOL, e a regra B é literalmente essa ordem com a
+posição já usada removida.
+
+Uma versão anterior deste item enunciou B como MEI, ZAG, LAT, ATA, GOL e ATA, ZAG, LAT, MEI, GOL,
+isto é, com o goleiro empurrado para o fim. Isso era a definição de B contradizendo a si mesma: pôr o
+goleiro por último é a ponta solta declarada mais abaixo, uma preferência que este projeto adotou
+**dentro de A**, e não faz parte de B. B não tem nada a dizer sobre o goleiro além do que a ordem
+escrita já diz, e a ordem escrita o põe em primeiro.
+
+Escolhi A por causa do ataque, e com as cadeias corretas o argumento fica mais forte, não mais fraco.
+Sob B, uma célula de atacante central sem atacante sobrando tenta o **goleiro** antes do zagueiro, e
+as duas saídas são ruins: no CLASSIC o goleiro é recusado pelo sub-papel, porque a célula pede
+centroavante e o goleiro é defensivo, e o zagueiro é recusado pelo mesmo motivo, então o time acaba
+com um **lateral** de centroavante; no MODERN o terceiro passe ignora o sub-papel já na primeira
+posição da cascata, e é o **goleiro reserva** que joga de centroavante. Nos dois casos os meias ficam
+no banco, e no MODERN a saída é pior do que o zagueiro que a versão anterior deste item descrevia. A
+5.4 é explícita sobre
+o que a ordenação produz, o ataque escolhe primeiro e a defesa fica com as sobras, e o improviso que
+o jogo mostra no ataque é o meia adiantado, não o lateral nem o goleiro. A regra A também tem
+significado próprio: improvise com a posição mais próxima.
+
+Duas pontas soltas, decididas aqui:
+
+- **Empate de distância vai para o lado defensivo.** Um elenco carrega mais defensores que atacantes
+  (forma ideal da 5.7: GOL 2, LAT 3, ZAG 3, MEI 5, ATA 3), então a posição mais defensiva é a que tem
+  mais chance de ter alguém sobrando.
+- **O goleiro vai para o fim de toda cadeia de linha**, em vez do lugar que a distância lhe daria.
+  **Isto não tem apoio nenhum na spec** e é preferência declarada. Ela só morde onde o goleiro
+  empataria: na cadeia do ZAG (GOL e LAT a distância 1) e na do LAT (GOL e ATA a distância 2). O
+  pouco que a sustenta está na 3.3: a tabela de pesos só dá participação ao atributo Gol na célula 1,
+  então com a opção de habilidade individual **ligada** um goleiro em célula de linha perde de vez o
+  seu melhor atributo. Com a opção desligada a escolha é arbitrária. Note que a célula 1 é a
+  primeira de toda formação, então um goleiro em célula de linha nunca é o goleiro que faltou no
+  gol: é sempre o reserva. E a preferência não é ociosa: o exemplo medido do item 32 é uma célula de
+  zagueiro que chega ao fim desta cadeia e escala o reserva.
+
+Fora a ordem, a cascata não muda o desempenho de ninguém: a 5.3 cobra o mesmo x0,5 de um lateral no
+meio e de um goleiro no ataque.
+
+**Resolução (INFERIDO):** `POSITION_CASCADE` em `AutoLineup.kt`, cinco cadeias de cinco posições, a
+do GOL igual à da spec. Fixada em quatro testes de `AutoLineupTest`, um por cadeia, cada um montado
+para ficar vermelho se aquela cadeia for reordenada: "the keeper cell falls to a centre back, which
+is the chain the spec writes", "a centre back cell prefers a spare fullback to the reserve keeper",
+"a fullback cell prefers a spare centre back to a spare midfielder" e "a midfield cell tries a
+fullback before a forward, and the last cell takes whoever is left". A cadeia do ATA está fixada pelo
+teste "a squad short of forwards fills its forward cells with the best midfielders".
+
+### 34. Que lado e que sub-papel cada célula da grade exige
+
+O laço interno da 5.4 compara lado e estilo, mas a tabela da 3.2 não publica um lado nem um sub-papel
+por célula. Ela nomeia os pares 2,9 como "Laterais (direito / esquerdo)", 10,17 como "Alas", 18,25
+como "Pontas", 11-13 como "Volantes", 14-16 como "Meias ofensivos" e 19-24 como "Atacantes centrais".
+
+Lado: só os três pares de flanco têm lado, e o menor número de cada par é a direita, seguindo a ordem
+que a linha dos laterais soletra. Toda célula central aceita os dois lados.
+
+Sub-papel, pela derivação da 4.3: 11-13 pedem o volante, 14-16 o armador, 18 e 25 a ponta, 19-24 o
+centroavante, e 10 e 17, que a 3.2 chama de alas e que exigem posição lateral, pedem o lateral
+ofensivo. O gol e as seis células de zagueiro pedem o defensivo, que na própria posição é o único que
+existe e na cascata serve para puxar um lateral defensivo ou um volante em vez de uma ponta.
+
+As células 2 e 9 não pedem sub-papel nenhum. A tabela as descreve só pelo lado, ao contrário de todos
+os outros pares, e a leitura alternativa não sobrevive aos dados: nos 703 times do original,
+**1778 dos 2549 laterais são ofensivos**, quase 70%. Exigir o defensivo em 2 e 9 tiraria sete de cada
+dez laterais do jogo justamente das células que levam o nome deles, e no CLASSIC os dois passes
+alcançáveis nunca chegariam a ignorar isso (item 32); o efeito seria zagueiro de lateral e lateral de
+zagueiro, quatro improvisos a x0,5 por time e por partida.
+
+**Resolução (INFERIDO):** `Slot.requiredSide` e `Slot.requiredStyle` em `Slot.kt`, no módulo
+`:model`, uma linha por faixa da tabela da 3.2 e ao lado de `Slot.requiredPosition`, que é a
+terceira coluna da mesma tabela. As duas colunas moraram um tempo como extensões no `:engine`,
+longe da irmã, e foram exatamente as duas que ficaram sem teste; agora estão fixadas célula a
+célula em `SlotTest`, junto com a de posição, como detector de mudança.
+
+O lado está fixado em dois testes de `AutoLineupTest`, um por par de flanco, cada um montado para
+ficar vermelho tanto se os dois lados forem trocados quanto se a tabela deixar de exigir lado nenhum:
+"the fullback cells take the fullback of their own flank, not the stronger one", para as células 2 e
+9, e "the wing back and winger cells take the man of their own flank", para as células 10, 17, 18 e
+25. Os dois montam um elenco em que o jogador do flanco esquerdo é o mais forte do par, então
+qualquer das duas tabelas erradas o escalaria na célula da direita.
+
+O teste "a natural fullback keeps the fullback cell whatever his style" **não fixa lado nenhum**:
+ele afirma só que as células 2 e 9 não exigem sub-papel, que é uma linha da tabela de estilo. Uma
+versão anterior deste item o citava como prova do lado, e era falso. Até os dois testes acima
+existirem nenhum teste do repositório distinguia a tabela de lado, porque todo jogador de fixture era
+destro e `Side.LEFT` não aparecia na suíte inteira.
+
+O sub-papel está fixado em sete linhas, uma por faixa da tabela, e elas não estão todas cobertas do
+mesmo jeito.
+
+Três já eram cobertas por comportamento antes desta revisão: 1 e 3-8 e 11-13, pelos testes de
+cascata, e a escolha de não exigir nada em 2 e 9, pelo "a natural fullback keeps the fullback cell
+whatever his style". Trocar qualquer uma das três por `null` deixa vermelhos vários testes de
+`AutoLineupTest`.
+
+Três não tinham cobertura nenhuma e ganharam cada uma um teste montado para ficar vermelho se ela for
+afrouxada: "a winger cell in a squad with no winger falls to the catch all" (18 e 25 exigem ponta),
+"a wing back cell demands the offensive reading of a fullback" (10 e 17 exigem o lateral ofensivo) e
+"a centre forward cell refuses a stronger winger" (19-24 exigem o centroavante). Antes deles as três
+podiam ser trocadas por `null`, ou a linha das pontas por ofensivo, sem nenhum teste reclamar.
+
+A sétima, 14-16, é caso à parte e vale registrar por honestidade: trocá-la por `null` deixa o
+`:engine:test` inteiro verde ainda hoje. Quem a pega é só o detector de mudança de `SlotTest`,
+"every pitch cell asks for the sub role its row of section 3 point 2 names". A cobertura existe, mas
+vem da tabela fixada célula a célula, e não dos testes de escalação; uma versão anterior deste
+parágrafo a atribuía aos testes de cascata, e isso era falso.
+
+### 35. O que acontece com uma célula que esgota a cascata inteira
+
+A 5.4 descreve a busca relaxada e para por aí. Não diz o que fazer quando nenhuma das cinco posições
+da cadeia, em nenhum passe, produz um candidato. Isso acontece de verdade, e **só sob CLASSIC**: uma
+célula de ponta (18 ou 25) num elenco **sem nenhuma** ponta não casa com ninguém, porque ponta é
+sub-papel exclusivo de atacante e as outras posições da cadeia nunca o têm, e com dois passes nada
+ignora o sub-papel. Nada ignora porque, das 25 células, 19 não pedem lado: nelas os dois
+passes do CLASSIC são o mesmo filtro aplicado duas vezes, e nas seis células de flanco o segundo
+passe larga só o lado. Em nenhuma das 25 o CLASSIC larga o sub-papel. São **15 dos 703 times** do original, 2,1%, e só a formação 10 tem célula de
+ponta, com 2% dos sorteios da IA. Os 14,9% do item 32 são "menos de duas pontas", que é outra coisa:
+com uma ponta só, quem cai aqui é a segunda célula. Sob MODERN o terceiro passe põe um atacante
+qualquer nas células 18 e 25 e o preenchimento final não dispara ali.
+
+A frase "não faz nenhuma checagem de legalidade posicional" da 5.4 **não serve de apoio**: ela
+descreve a tela manual de escalação, não o preenchedor da IA.
+
+O que sustenta a decisão é a forma do resto do motor. O banco da 5.4 passo 4 é fixo em onze, os
+agregados da 3.4 percorrem a lista de escalados sem nenhuma noção de célula vazia, e a 3.16 não
+menciona time com menos de onze em campo. Uma IA que deixasse célula vazia produziria linhas
+desfalcadas o tempo todo, cairia nos casos degenerados de 0,01 da 3.4 e apareceria na aferição
+estatística. Não aparece.
+
+**Resolução (INFERIDO):** a célula que esgota a cascata leva o **primeiro jogador que sobrou no
+pool**, isto é, o mais forte disponível, sem nenhuma condição. O time entra com onze sempre que
+houver onze disponíveis, e com menos só quando o elenco não tem onze aptos. Fixado em
+`AutoLineupTest`, testes "eleven are fielded even when nobody fits anything" e "a midfield cell tries
+a fullback before a forward, and the last cell takes whoever is left", este último por afirmar
+exatamente qual jogador o preenchimento final escala.
+
+O gatilho descrito acima, a célula de ponta num elenco sem ponta, está fixado em "a winger cell in a
+squad with no winger falls to the catch all". Ele existe porque a exigência de ponta em 18 e 25 é
+carregada: enquanto essa linha da tabela do item 34 não tinha teste, trocá-la por ofensivo deixava a
+suíte verde e levava junto, em silêncio, o gatilho deste item.
+
+### 36. Como o banco fixo da 5.4 passo 4 escolhe quem senta em cada célula modelo
+
+A 5.4 dá o banco como uma lista fixa de células modelo, `1, 1, 2, 4, 4, 12, 15, 15, 20, 20, 23`, e diz
+o que cada uma significa (2 goleiros, 1 lateral, 2 zagueiros, 1 volante, 2 meias, 3 atacantes), mas não
+diz como uma célula modelo escolhe seu ocupante quando o elenco não tem exatamente o tipo pedido.
+
+**Resolução (INFERIDO):** cada célula do banco passa pela mesma busca relaxada da célula em campo,
+`chooseFor`: a cascata de posição do item 33, os passes de lado e estilo do item 34, e o mesmo catch
+all do item 35, que senta o jogador mais forte que sobrou quando a cascata inteira falha. O pool é o
+mesmo da escalação titular, ordenado uma vez por força e energia, e continua de onde a titular parou,
+nunca reordenado nem reiniciado. Uma célula do banco carrega `Slot.UNUSED_SUBSTITUTE` (o menos um da
+3.2), nunca o valor da célula modelo, que é só a pergunta feita ao pool e não uma resposta gravada no
+jogador.
+
+A alternativa seria uma leitura mais simples, que casasse a célula modelo só pela posição natural e
+deixasse a vaga vazia sem casar. Rejeitada por dois motivos: geraria um banco de tamanho variável por
+um motivo diferente do que a 3.16 já reconhece (elenco pequeno demais), e o catch all já é o
+comportamento que a própria 5.4 exige da escalação titular quando uma célula não acha ninguém, então
+usar uma regra diferente para o banco criaria uma segunda leitura sem necessidade.
+
+Consequência aceita: quando o elenco não tem o tipo de jogador que uma célula do banco pede e a
+cascata inteira falha, o catch all senta ali o jogador mais forte que sobrou, seja qual for sua
+posição, exatamente como faria com uma célula em campo. Isso só é observável com um elenco bem
+desequilibrado, porque o catch all só dispara depois de a cascata de cinco posições e os passes de
+lado/estilo se esgotarem.
+
+Quando o elenco é pequeno demais para completar as onze células do banco, o preenchimento para em vez
+de falhar: uma vez que todo jogador restante já foi usado, a própria busca relaxada não acha mais
+ninguém, catch all incluso, e as células seguintes do modelo ficam sem ocupante. Fixado em
+`AutoLineupTest`, teste "a squad too small to fill the bench benches fewer rather than failing".
+
+Nenhum teste do primeiro corte deste item discriminava as duas leituras: com `deepSquad` (elenco de
+24, três por posição) toda outra célula do banco acha seu tipo natural sob as duas leituras, e o caso
+de elenco pequeno demais esgota o pool inteiro, o que também é igual nas duas. A única célula onde as
+leituras divergem é a sexta do banco, a modelada em 12 (volante): quando ela é preenchida já não sobra
+goleiro, lateral nem zagueiro, e todo meia que resta é ofensivo, então a cascata inteira se esgota e o
+catch all senta o atacante de força 86, enquanto a leitura mais simples teria parado no meia de força
+76. Fixado em `AutoLineupTest`, teste "the holding midfielder bench place falls to the catch all
+forward, not the natural midfielder", que também documenta no próprio texto o que a leitura rejeitada
+teria escalado ali.
+
+### 37. De qual fluxo cada lado sorteia sua marcação
+
+A seção 3.12 descreve o sorteio rand(1..100) da marcação de um time, mas não diz se esse sorteio vem
+do fluxo do próprio clube ou de um fluxo compartilhado pela partida inteira. A escalação automática da
+5.4 não consome nenhuma aleatoriedade, então a marcação é o único sorteio que `assembleMatch` precisa
+decidir onde colocar.
+
+**Resolução (INFERIDO):** cada lado sorteia sua marcação do mesmo fluxo forkado a partir do próprio
+clube que já decide sua formação, `rng.fork(clubKey(entry.ref))`, a mesma derivação que `generateWorld`
+usa para o fluxo do elenco. Isso torna o sorteio de marcação, como o de formação, indiferente a qual
+lado do confronto o clube ocupa. `MatchAssemblyTest` não afirma essa propriedade para a marcação, só
+para a escalação, porque a escolha é arbitrária: nada na spec impede uma leitura alternativa em que a
+marcação venha de um fluxo da partida em vez do fluxo do clube, e as duas leituras são
+observacionalmente idênticas para uma única partida com uma única semente. A diferença só apareceria
+comparando duas partidas do mesmo clube em posições diferentes do confronto, o que a spec nunca
+descreve.

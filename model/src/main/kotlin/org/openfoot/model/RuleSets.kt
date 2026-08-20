@@ -140,10 +140,32 @@ object RuleSets {
         shooterFinishingBonus = 4,
         shooterHeadingBonus = 2,
         shooterHeadingDefenderBonus = 2,
+
+        energyDrainInterval = 7,
+        energyCostByAge = listOf(
+            20 to 1,
+            25 to 2,
+            31 to 3,
+            36 to 4,
+            Int.MAX_VALUE to 5,
+        ),
+        keeperExemptHalf = Half.FIRST,
+
+        lineupRelaxationPasses = 2,
+        benchTemplate = listOf(1, 1, 2, 4, 4, 12, 15, 15, 20, 20, 23),
     )
 
     /**
-     * Exactly two deltas, both defects that live in the aggregate and shot code.
+     * Exactly three deltas, each of them a defect of the original.
+     *
+     * The first two live in the aggregate and shot code: slot eighteen
+     * counting in no line, and home advantage applied with the wrong sign and
+     * overwriting the wide weight it was handed.
+     *
+     * The third lives in the automatic lineup. Section 3.2 describes three
+     * relaxation passes and section 3.15 item 7 says a loop bound leaves one
+     * of them unreachable, so classic runs two and modern runs all three. It
+     * changes which eleven the AI fields, not how a match is played.
      *
      * The fixed line divisors of five, five and three are deliberately not
      * changed here. That is a balance decision rather than a defect, and it
@@ -154,5 +176,6 @@ object RuleSets {
         id = RuleSetId.MODERN,
         attackSlots = 18..25,
         shotHomeRule = ModernShotHomeRule,
+        lineupRelaxationPasses = 3,
     )
 }

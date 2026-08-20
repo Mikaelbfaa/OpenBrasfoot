@@ -1,6 +1,6 @@
 package org.openfoot.validation
 
-import org.openfoot.engine.match.MatchResult
+import org.openfoot.engine.match.MatchReport
 import org.openfoot.engine.match.MatchSetup
 import org.openfoot.engine.match.simulateMatch
 import org.openfoot.model.SpecRef
@@ -108,9 +108,18 @@ class SanityCheckTest {
         }
     }
 
+    /**
+     * Replays against EQUAL_SIDES_SETUP, the same MatchSetup instance MATCHES
+     * was built from, rather than a fresh EqualSides.setup(). MatchPlayer is
+     * deliberately reference equal, not value equal (see MatchSide.kt), so
+     * two independently built lineups would make every match in again
+     * compare unequal to its counterpart in MATCHES by shooter reference
+     * alone, whatever the replay actually produced. Sharing the setup means
+     * the only way this assertion fails is a genuine divergence.
+     */
     @Test
     fun `the whole sample replays identically`() {
-        val again = play(EqualSides.setup())
+        val again = play(EQUAL_SIDES_SETUP)
         assertEquals(MATCHES.size, again.size)
         again.forEachIndexed { index, result ->
             assertEquals(MATCHES[index], result, "match $index")
@@ -242,12 +251,24 @@ class SanityCheckTest {
         val FULL_LINE_GOALS = 1.37..1.48
 
         /**
+         * The one MatchSetup instance MATCHES is played against, held so that
+         * the whole sample replays identically test can replay the same
+         * fixture rather than an independently built one. MatchPlayer
+         * compares by reference, not by value, so two separately built
+         * lineups would make every replayed match compare unequal to the
+         * original by shooter reference alone, regardless of what the replay
+         * actually produced.
+         */
+        @SpecRef("3.16")
+        val EQUAL_SIDES_SETUP: MatchSetup by lazy { EqualSides.setup() }
+
+        /**
          * The sample: twenty thousand matches played with the four four two
          * lineup, which every test above except the last checks against
          * section 3.16's figures.
          */
         @SpecRef("3.16")
-        val MATCHES: List<MatchResult> by lazy { play(EqualSides.setup()) }
+        val MATCHES: List<MatchReport> by lazy { play(EQUAL_SIDES_SETUP) }
 
         /**
          * The same sample size, played with the lineup whose defensive and
@@ -255,17 +276,17 @@ class SanityCheckTest {
          * defenders and three forwards.
          */
         @SpecRef("3.4")
-        val LINES_AT_DIVISOR: List<MatchResult> by lazy { play(EqualSides.linesAtDivisorSetup()) }
+        val LINES_AT_DIVISOR: List<MatchReport> by lazy { play(EqualSides.linesAtDivisorSetup()) }
 
         /**
          * One sample. The setup is immutable and carries no state, so building
          * it once and playing every seed against it gives the same matches as
          * rebuilding it per seed.
          */
-        fun play(setup: MatchSetup): List<MatchResult> =
+        fun play(setup: MatchSetup): List<MatchReport> =
             (1L..SAMPLE).map { simulateMatch(setup, SplitMix64Rng(it)) }
 
-        fun List<MatchResult>.mean(of: (MatchResult) -> Int): Double =
+        fun List<MatchReport>.mean(of: (MatchReport) -> Int): Double =
             sumOf { of(it).toDouble() } / size
     }
 }

@@ -2,6 +2,8 @@ package org.openfoot.engine.world
 
 import org.openfoot.dataset.DatasetOptions
 import org.openfoot.model.Attr
+import org.openfoot.model.PlayerId
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.SplitMix64Rng
 import org.openfoot.model.Slot
@@ -119,7 +121,7 @@ class SquadGenerationTest {
         val club = WorldFixtures.club(squad = listOf(WorldFixtures.player(position = Position.MIDFIELDER)))
         val player = generateSquad(club, WorldFixtures.dataset(listOf(club)), options, SplitMix64Rng(5)).single()
 
-        val entry = player.inSlot(Slot(11))
+        val entry = player.inSlot(Slot(11), PlayerId(0))
 
         assertEquals(Slot(11), entry.slot)
         assertEquals(player.strength, entry.strength)

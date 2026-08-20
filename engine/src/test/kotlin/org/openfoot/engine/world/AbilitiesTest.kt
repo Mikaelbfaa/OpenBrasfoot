@@ -1,6 +1,7 @@
 package org.openfoot.engine.world
 
 import org.openfoot.model.Attr
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import kotlin.test.Test
 import kotlin.test.assertEquals

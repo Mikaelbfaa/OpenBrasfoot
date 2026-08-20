@@ -1,6 +1,7 @@
 package org.openfoot.engine.match
 
 import org.openfoot.engine.world.ScriptedInts
+import org.openfoot.model.Half
 import org.openfoot.model.SplitMix64Rng
 import kotlin.test.Test
 import kotlin.test.assertEquals
