@@ -139,24 +139,54 @@ class TickTest {
      *
      * All four draws are derived by hand from RuleSets.CLASSIC and evenSetup's
      * fixture, which builds both sides on FORMATION_4_4_2 at strength 50 with
-     * individual abilities off, so every player's rating is 50 / 10 = 5.0 and
-     * both lines are equal before home advantage.
+     * individual abilities off, so every player's own rating is 50 / 10 = 5.0.
+     * A line's aggregate is not that rating, though: LineAggregates divides
+     * each line's total by a fixed divisor rather than by the number of
+     * players actually found there, and FORMATION_4_4_2 is short in every
+     * line, so the aggregates below are worked out per line rather than
+     * assumed equal to the player rating.
+     *
+     * FORMATION_4_4_2 is [1, 22, 24, 11, 13, 14, 16, 2, 9, 3, 5]. Walking it
+     * against CLASSIC's slot ranges: the midfield line (10..17) picks up
+     * slots 11, 13, 14, 16, four players, giving (4 * 5.0 + markingBonus) /
+     * midfieldDivisor(5.0); the fixture's marking is the side() default,
+     * Marking.LIGHT, whose bonus is markingMidfieldBonus[0] = 0.0, so midfield
+     * = 20.0 / 5.0 = 4.0. The attack line (19..25) picks up slots 22, 24, two
+     * players, giving (2 * 5.0) / attackDivisor(3.0) = 10.0 / 3.0 = 3.3333...
+     * The defence line (2..9) picks up slots 2, 9, 3, 5, four players, giving
+     * (4 * 5.0) / defenceDivisor(5.0) = 20.0 / 5.0 = 4.0. Both sides run the
+     * identical formation, strength and marking, so these three numbers are
+     * the same on both sides of the ball.
      *
      * Draw 1, the possession duel, HOME is possessor and isHome, and the
      * fixture is a friendly, which is not neutral ground, so home advantage
-     * applies. keep = 1.0 + (5.0 - 5.0) / 8.0 + homeDuelBonus(0.3) = 1.3, win =
-     * 1.0 + 0 = 1.0. Base weights are possessionBaseWeights(55.0, 45.0), so the
-     * total is 55 * 1.3 + 45 * 1.0 = 116.5 and the POSSESSOR boundary sits at
-     * 71.5 / 116.5 = 0.61373..., the same fraction DuelsTest pins for a home
-     * possessor at parity. A raw draw of 0.01 (draw = 1.165) is far under that
-     * boundary, so HOME keeps the ball.
+     * applies. Midfield is compared against midfield, and both sides' midfield
+     * is the same 4.0 worked out above, so whatever that common value is, the
+     * difference is 0 and it cancels: keep = 1.0 + (4.0 - 4.0) / 8.0 +
+     * homeDuelBonus(0.3) = 1.3, win = 1.0 + 0 = 1.0. Base weights are
+     * possessionBaseWeights(55.0, 45.0), so the total is 55 * 1.3 + 45 * 1.0 =
+     * 116.5 and the POSSESSOR boundary sits at 71.5 / 116.5 = 0.61373..., the
+     * same fraction DuelsTest pins for a home possessor at parity. A raw draw
+     * of 0.01 (draw = 1.165) is far under that boundary, so HOME keeps the
+     * ball.
      *
-     * Draw 2, the chance duel, same possessor and advantage. attack = 1.0 + 0 +
-     * homeDuelBonus(0.3) = 1.3, defend = 1.0 + 0 = 1.0. Base weights are
-     * chanceBaseWeights(50.0, 50.0), so the total is 50 * 1.3 + 50 * 1.0 = 115
-     * and the SHOT boundary sits at 65 / 115 = 0.56521..., again the fraction
-     * DuelsTest pins for a home possessor at parity. A raw draw of 0.01 (draw =
-     * 1.15) is far under that boundary, so the chance becomes a shot.
+     * Draw 2, the chance duel, same possessor and advantage, compares the
+     * possessor's attack (3.3333...) against the defender's defence (4.0),
+     * and unlike the midfield duel these are not equal. attack = 1.0 +
+     * (3.3333... - 4.0) / 8.0 + homeDuelBonus(0.3) = 1.0 - 0.08333... + 0.3 =
+     * 1.21666..., defend = 1.0 + (4.0 - 3.3333...) / 8.0 = 1.0 + 0.08333... =
+     * 1.08333.... Base weights are chanceBaseWeights(50.0, 50.0). The two
+     * multipliers still sum to a fixed 2.3 regardless of the actual attack and
+     * defence values, because the (a - d) / 8 and (d - a) / 8 terms are
+     * negatives of each other and cancel on summation, leaving
+     * 1.0 + 1.0 + homeDuelBonus(0.3) = 2.3 every time; that is why the total,
+     * 50 * 2.3 = 115, comes out the same as a naive equal-lines guess would
+     * give, and it is not a coincidence. The SHOT boundary, though, is not
+     * fixed the same way, because it depends on attack alone rather than on
+     * the sum: 50 * 1.21666... / 115 = 73 / 138 = 0.52899..., not the
+     * 0.56521... a naive equal-lines assumption would produce. A raw draw of
+     * 0.01 (draw = 1.15) is still far under 60.8333..., the SHOT weight
+     * itself, so the chance becomes a shot regardless.
      *
      * Draw 3, shooter selection, draws only from CLASSIC.shooterSlotWeights
      * with no multiplier (selectShooter's weightedPick call supplies none), and
