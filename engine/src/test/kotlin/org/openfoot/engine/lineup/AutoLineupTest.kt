@@ -284,6 +284,155 @@ class AutoLineupTest {
     }
 
     /**
+     * The one chain section 5.4 writes out, keeper then centre back then
+     * fullback, asserted at its first step. This squad has no keeper at all
+     * and a defensive fullback available, so a chain that tried fullback
+     * before centre back would seat him in goal instead.
+     */
+    @Test
+    fun `the keeper cell falls to a centre back, which is the chain the spec writes`() {
+        val squad = Squads.of(
+            Squads.centreback(strength = 70),
+            Squads.centreback(strength = 69),
+            Squads.centreback(strength = 68),
+            Squads.defensiveFullback(strength = 58),
+            Squads.fullback(strength = 57),
+            Squads.holdingMidfielder(strength = 73),
+            Squads.holdingMidfielder(strength = 72),
+            Squads.midfielder(strength = 75),
+            Squads.midfielder(strength = 74),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(
+            Position.CENTREBACK,
+            playerAt(1, eleven).naturalPosition,
+            "the keeper chain tries centre back before fullback",
+        )
+        assertEquals(70, playerAt(1, eleven).strength, "and takes the strongest of them")
+    }
+
+    /**
+     * Cell 5 is the second centre back cell of formation 4 and this squad has
+     * one centre back, so cell 5 cascades. The reserve keeper and a defensive
+     * fullback are both left and both satisfy what the cell asks, defensive
+     * and no side, so the answer is decided by nothing except the order of
+     * the centre back chain. Fullback comes before keeper there, and the
+     * keeper goes last in every outfield chain.
+     */
+    @Test
+    fun `a centre back cell prefers a spare fullback to the reserve keeper`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 60),
+            Squads.keeper(strength = 55),
+            Squads.fullback(strength = 58),
+            Squads.fullback(strength = 57),
+            Squads.defensiveFullback(strength = 56),
+            Squads.centreback(strength = 70),
+            Squads.holdingMidfielder(strength = 73),
+            Squads.holdingMidfielder(strength = 72),
+            Squads.midfielder(strength = 75),
+            Squads.midfielder(strength = 74),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(
+            Position.FULLBACK,
+            playerAt(5, eleven).naturalPosition,
+            "the centre back chain tries fullback before it empties the bench of keepers",
+        )
+        assertEquals(56, playerAt(5, eleven).strength, "the one fullback the fullback cells left")
+        assertTrue(
+            eleven.none { it.naturalPosition == Position.GOALKEEPER && it.slot.value != 1 },
+            "and no keeper is fielded outside the goal",
+        )
+    }
+
+    /**
+     * The mirror of the case above, one step further along a different chain.
+     * Cell 9 is the left fullback cell and this squad has one fullback, taken
+     * by cell 2. A spare centre back and a spare midfielder are both left and
+     * the cell asks for no sub role, so again only the order of the chain
+     * decides, and the fullback chain tries centre back before midfielder.
+     */
+    @Test
+    fun `a fullback cell prefers a spare centre back to a spare midfielder`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 60),
+            Squads.fullback(strength = 58),
+            Squads.centreback(strength = 70),
+            Squads.centreback(strength = 69),
+            Squads.centreback(strength = 68),
+            Squads.midfielder(strength = 75),
+            Squads.midfielder(strength = 74),
+            Squads.midfielder(strength = 71),
+            Squads.holdingMidfielder(strength = 73),
+            Squads.holdingMidfielder(strength = 72),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(
+            Position.CENTREBACK,
+            playerAt(9, eleven).naturalPosition,
+            "the fullback chain tries centre back before midfielder",
+        )
+        assertEquals(70, playerAt(9, eleven).strength, "the strongest centre back, the pool being sorted")
+    }
+
+    /**
+     * Cell 14 is an attacking midfield cell and this squad has no offensive
+     * midfielder, so it cascades with a spare fullback and a spare forward
+     * both available and both offensive. The midfield chain tries fullback
+     * first, fullback being the nearer position on the line the game arranges
+     * the five on.
+     *
+     * The same squad exercises the catch all at the other end. Cell 5 wants a
+     * defensive centre back, and by the time it is reached the defence and the
+     * midfield are empty and the only man left is an offensive forward, who
+     * fits nothing the cell asked for and plays there anyway.
+     */
+    @Test
+    fun `a midfield cell tries a fullback before a forward, and the last cell takes whoever is left`() {
+        val squad = Squads.of(
+            Squads.keeper(strength = 60),
+            Squads.fullback(strength = 58),
+            Squads.fullback(strength = 57),
+            Squads.fullback(strength = 56),
+            Squads.centreback(strength = 70),
+            Squads.centreback(strength = 69),
+            Squads.holdingMidfielder(strength = 73),
+            Squads.holdingMidfielder(strength = 72),
+            Squads.forward(strength = 80),
+            Squads.forward(strength = 79),
+            Squads.forward(strength = 78),
+        )
+
+        val eleven = fill(squad)
+
+        assertEquals(
+            Position.FULLBACK,
+            playerAt(14, eleven).naturalPosition,
+            "the midfield chain tries fullback before forward",
+        )
+        assertEquals(58, playerAt(14, eleven).strength, "the strongest fullback, none being used yet")
+        assertEquals(
+            Position.FORWARD,
+            playerAt(5, eleven).naturalPosition,
+            "the last cell finds nobody in any chain and takes the man left over",
+        )
+        assertEquals(78, playerAt(5, eleven).strength, "who is the third forward")
+    }
+
+    /**
      * A sixteen man squad with a natural player for every cell any formation
      * asks for. This is the case where a defect in the cascade shows up as a
      * cell left empty or a player fielded twice, and it covers all twelve

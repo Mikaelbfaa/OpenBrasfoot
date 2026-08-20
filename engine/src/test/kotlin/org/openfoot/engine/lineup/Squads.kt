@@ -20,8 +20,10 @@ import org.openfoot.model.Trait
  * keeper and centre back defensive, fullback offensive because of pace and
  * crossing, midfielder offensive because of passing and playmaking, forward
  * offensive because finishing and heading are neither the defensive pair nor
- * the winger triple. A defensive midfielder needs the tackling factory below,
- * which is why it exists at all.
+ * the winger triple. The two tackling and marking factories exist because the
+ * defensive reading of a fullback and of a midfielder is what the holding and
+ * the centre back cells ask for, and no other pair of characteristics
+ * produces it.
  */
 object Squads {
 
@@ -32,6 +34,9 @@ object Squads {
     fun centreback(strength: Int) = player(Position.CENTREBACK, strength, Trait.MARKING, Trait.TACKLING)
 
     fun fullback(strength: Int) = player(Position.FULLBACK, strength, Trait.PACE, Trait.CROSSING)
+
+    fun defensiveFullback(strength: Int) =
+        player(Position.FULLBACK, strength, Trait.TACKLING, Trait.MARKING)
 
     fun midfielder(strength: Int) = player(Position.MIDFIELDER, strength, Trait.PASSING, Trait.PLAYMAKING)
 

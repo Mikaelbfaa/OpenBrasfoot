@@ -72,22 +72,32 @@ internal val Slot.requiredStyle: PlayerStyle?
 /**
  * The order in which a cell gives up on the position it asked for.
  *
- * Section 5.4 writes out one of these chains, the one for the keeper cell:
- * keeper, then centre back, then fullback, then midfielder, then forward. That
- * is the five positions in order of distance along the line the game arranges
- * them on, so the other four chains are the same rule read from a different
- * starting point, nearest position first.
+ * Section 5.4 writes out one of these five chains, the one for the keeper
+ * cell: keeper, then centre back, then fullback, then midfielder, then
+ * forward. The other four are not written anywhere, and two different rules
+ * reproduce the written one exactly, so this is a choice rather than a
+ * reading. Nearest first along the line the five positions sit on is the one
+ * implemented; the other candidate is the written order itself, walked from
+ * the top with the position the cell asked for lifted to the front. They
+ * disagree from midfield, where nearest first tries fullback and forward
+ * before centre back and the other tries centre back first. Item 33 of
+ * OPEN-QUESTIONS carries both and the reasoning.
  *
- * Two details the spec leaves open are settled here. Positions equally far
- * away are tried from the defensive end first, because squads carry more
- * defenders than forwards. And the keeper goes last in every outfield chain
- * rather than in his place on the line, because section 5.3 charges a non
- * keeper in goal an extra collapse of the keeper aggregate on top of the flat
- * halving every out of position player pays, so emptying the goal is the one
- * improvisation that costs more than the others.
+ * Positions equally far away are tried from the defensive end first, because
+ * squads carry more defenders than forwards.
  *
- * Distance is all that separates these, since section 5.3 charges the same
- * flat half to a fullback in midfield as to a keeper up front.
+ * The keeper goes last in every outfield chain instead of where distance would
+ * put him. That has no support in the spec and is a preference: it only ever
+ * bites when the squad has a spare keeper, and it says a reserve keeper is the
+ * last man the AI improvises with. What little argument there is comes from
+ * section 3.3, whose weight table gives the goalkeeping attribute a share only
+ * in cell 1, so with the individual ability option turned on a keeper in an
+ * outfield cell loses his best attribute outright. With that option off, which
+ * is the default, the choice is arbitrary.
+ *
+ * Nothing here changes how well a player performs. Section 5.3 charges the
+ * same flat half to a fullback in midfield as to a keeper up front, so a chain
+ * decides who plays and never how well.
  */
 @SpecRef("5.4")
 internal val POSITION_CASCADE: Map<Position, List<Position>> = mapOf(
@@ -140,10 +150,12 @@ internal val POSITION_CASCADE: Map<Position, List<Position>> = mapOf(
  * insists a reimplementation reproduce.
  *
  * A cell that finds nobody at all takes the strongest player left regardless.
- * The original runs no legality check anywhere in its lineup handling and
- * fields eleven whatever the squad looks like, so a squad of eleven keepers
- * produces eleven players on the pitch rather than an exception. Fewer than
- * eleven come back only when fewer than eleven can play.
+ * Section 5.4 does not say what happens when a chain runs out, and this is the
+ * reading recorded as item 35 of OPEN-QUESTIONS: the bench of section 5.4 step
+ * 4 is a fixed eleven and the aggregates of section 3.4 have no notion of an
+ * empty pitch cell, so a side that fielded ten would be visible everywhere and
+ * is described nowhere. Fewer than eleven come back only when fewer than
+ * eleven can play.
  *
  * The identity handed to each player is his index in the squad passed in,
  * which is what keeps it stable for as long as that squad is.
@@ -180,12 +192,14 @@ fun fillEleven(
  * then style, so a player of the right position playing on the wrong flank is
  * preferred to a player of another position playing on the right one.
  *
- * The inner loop is where defect 7 of section 3.15 lives. Three passes are
- * described, exact, then side ignored, then side and style ignored, and the
- * loop bound of the original never reaches the last of them. The count is a
- * rule set field: under the classic rules a cell that cannot find its own sub
- * role gives up on the position entirely and cascades, which is how a centre
- * back ends up as a holding midfielder while a playmaker sits.
+ * The inner loop is where defect 7 of section 3.15 lives. Section 3.2
+ * describes three passes, exact, then side ignored, then side and style
+ * ignored, and the loop bound of the original never reaches the last of them.
+ * The count is a rule set field: under the classic rules a cell that cannot
+ * find its own sub role gives up on the position entirely and cascades, which
+ * is how a centre back ends up as a holding midfielder while a playmaker sits.
+ * Item 32 of OPEN-QUESTIONS carries the competing reading, under which the
+ * unreachable step is the last position of each cascade instead.
  */
 private fun chooseFor(
     slot: Slot,
@@ -212,9 +226,10 @@ private fun chooseFor(
 
 /**
  * Whether a player satisfies what the cell asks beyond the position, at the
- * given level of relaxation.
+ * given level of relaxation. The three levels and their order are section
+ * 3.2: exact, then side ignored, then side and style ignored.
  */
-@SpecRef("5.4")
+@SpecRef("3.2")
 private fun fits(slot: Slot, player: Player, pass: Int): Boolean {
     val sideOk = slot.requiredSide == null || slot.requiredSide == player.side
     val styleOk = slot.requiredStyle == null || slot.requiredStyle == player.style
