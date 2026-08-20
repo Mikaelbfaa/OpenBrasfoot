@@ -740,7 +740,7 @@ usar uma regra diferente para o banco criaria uma segunda leitura sem necessidad
 
 Consequência aceita: quando o elenco não tem o tipo de jogador que uma célula do banco pede e a
 cascata inteira falha, o catch all senta ali o jogador mais forte que sobrou, seja qual for sua
-posição, exatamente como fara com uma célula em campo. Isso só é observável com um elenco bem
+posição, exatamente como faria com uma célula em campo. Isso só é observável com um elenco bem
 desequilibrado, porque o catch all só dispara depois de a cascata de cinco posições e os passes de
 lado/estilo se esgotarem.
 
@@ -748,3 +748,13 @@ Quando o elenco é pequeno demais para completar as onze células do banco, o pr
 de falhar: uma vez que todo jogador restante já foi usado, a própria busca relaxada não acha mais
 ninguém, catch all incluso, e as células seguintes do modelo ficam sem ocupante. Fixado em
 `AutoLineupTest`, teste "a squad too small to fill the bench benches fewer rather than failing".
+
+Nenhum teste do primeiro corte deste item discriminava as duas leituras: com `deepSquad` (elenco de
+24, três por posição) toda outra célula do banco acha seu tipo natural sob as duas leituras, e o caso
+de elenco pequeno demais esgota o pool inteiro, o que também é igual nas duas. A única célula onde as
+leituras divergem é a sexta do banco, a modelada em 12 (volante): quando ela é preenchida já não sobra
+goleiro, lateral nem zagueiro, e todo meia que resta é ofensivo, então a cascata inteira se esgota e o
+catch all senta o atacante de força 86, enquanto a leitura mais simples teria parado no meia de força
+76. Fixado em `AutoLineupTest`, teste "the holding midfielder bench place falls to the catch all
+forward, not the natural midfielder", que também documenta no próprio texto o que a leitura rejeitada
+teria escalado ali.

@@ -617,4 +617,46 @@ class AutoLineupTest {
             "initialState refuses a collision, so it must not be possible to build one",
         )
     }
+
+    /**
+     * Item 36 of OPEN-QUESTIONS chose to run every bench place through the
+     * same relaxed search a pitch cell uses, cascade and catch all included,
+     * over a simpler reading that matches a bench place to its own natural
+     * position and nothing else. Every other assertion in this class passes
+     * under both readings, because deepSquad is deep enough that no other
+     * bench place ever needs the cascade, so this is the one place the two
+     * readings can be told apart.
+     *
+     * The sixth bench place is the template's holding midfielder model, cell
+     * 12. By the time it is filled, the eleven and the five bench places
+     * before it have used every keeper, every fullback and every centre back,
+     * so the position cascade tries midfielder, fullback, forward, centre
+     * back and goalkeeper in turn and finds nobody of the defensive style it
+     * asks for at any of them under either of classic's two relaxation
+     * passes: only offensive midfielders and forwards are left. The search
+     * this project chose then falls to the catch all and seats the strongest
+     * player left over regardless of position, the forward rated 86. The
+     * simpler reading would have matched the place to its own position and
+     * stopped there, seating the strongest untaken midfielder instead, the
+     * one rated 76, rather than reaching for a forward at all.
+     */
+    @Test
+    fun `the holding midfielder bench place falls to the catch all forward, not the natural midfielder`() {
+        val matchday = autoLineup(deepSquad(), fourFourTwo, rules)
+
+        val holdingMidfielderPlace = matchday.bench[5]
+
+        assertEquals(
+            Position.FORWARD,
+            holdingMidfielderPlace.naturalPosition,
+            "the cascade this project chose runs past every position and the catch all seats whoever is " +
+                "left; the rejected reading would have kept a midfielder here",
+        )
+        assertEquals(
+            86,
+            holdingMidfielderPlace.strength,
+            "the strongest player left once the cascade and both relaxation passes are exhausted; the " +
+                "rejected reading would have stopped at the midfielder rated 76 instead",
+        )
+    }
 }
