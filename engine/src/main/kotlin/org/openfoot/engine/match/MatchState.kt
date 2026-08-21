@@ -108,3 +108,27 @@ private fun sideState(onPitch: List<MatchPlayer>, bench: List<MatchPlayer>): Sid
     }
     return SideState(bench = bench, energy = energy)
 }
+
+/**
+ * How much has already gone wrong in this match.
+ *
+ * Match wide rather than per side, because section 3.8's own gloss on the
+ * overwrites names the match: after the first injury of the match the card
+ * rate collapses for both sides at once. A sending off for a second yellow
+ * counts in both columns; see OPEN-QUESTIONS item 39.
+ *
+ * Once section 3.8's per minute roll is wired in, this will be carried on
+ * MatchState rather than counted back out of the log, for the same reason
+ * goalsBy already is: it is read every minute, and walking the log each time
+ * would make a match quadratic in its own length.
+ *
+ * Today it stands alone instead, a free standing value rather than a
+ * MatchState property, so minuteThresholds can be tested without building a
+ * match state. A later change wires it in.
+ */
+@SpecRef("3.8")
+data class DisciplineCounts(
+    @property:SpecRef("3.8") val yellows: Int = 0,
+    @property:SpecRef("3.8") val sendingsOff: Int = 0,
+    @property:SpecRef("3.8") val injuries: Int = 0,
+)

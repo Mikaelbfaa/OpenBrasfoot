@@ -151,12 +151,36 @@ object RuleSets {
         ),
         keeperExemptHalf = Half.FIRST,
 
+        discipline = DisciplineRates(
+            victimHomeThreshold = 55,
+            phaseBounds = listOf(15, 30),
+            yellow = HalfThresholds(
+                firstHalf = PhaseThresholds(70, 40, 30),
+                secondHalf = PhaseThresholds(45, 40, 30),
+            ),
+            red = HalfThresholds(
+                firstHalf = PhaseThresholds(1200, 900, 800),
+                secondHalf = PhaseThresholds(800, 700, 550),
+            ),
+            injury = HalfThresholds(
+                firstHalf = PhaseThresholds(1500, 1000, 800),
+                secondHalf = PhaseThresholds(800, 600, 600),
+            ),
+            yellowMarkingRelief = listOf(30, 10, 0),
+        ),
+        manyYellowsAtLeast = 6,
+        manyYellowsFactor = 2,
+        manyRedsAtLeast = 2,
+        redOverwriteFactor = 2,
+        anyInjuryAtLeast = 1,
+        injuryOverwriteFactor = 5,
+
         lineupRelaxationPasses = 2,
         benchTemplate = listOf(1, 1, 2, 4, 4, 12, 15, 15, 20, 20, 23),
     )
 
     /**
-     * Exactly three deltas, each of them a defect of the original.
+     * Exactly five deltas, each of them a defect of the original.
      *
      * The first two live in the aggregate and shot code: slot eighteen
      * counting in no line, and home advantage applied with the wrong sign and
@@ -166,6 +190,16 @@ object RuleSets {
      * relaxation passes and section 3.15 item 7 says a loop bound leaves one
      * of them unreachable, so classic runs two and modern runs all three. It
      * changes which eleven the AI fields, not how a match is played.
+     *
+     * The last two live in section 3.8's card thresholds, both named as
+     * defects by section 3.15 item 5: after two sendings off the yellow
+     * threshold is overwritten to twice the red one, and after one injury it
+     * is overwritten again to five times the injury one, both of which
+     * collapse the booking rate for the rest of the match. Modern switches
+     * both off by putting their trigger count out of reach, the same sentinel
+     * idiom energyCostByAge already uses for its own fall through, rather than
+     * through a flag. The doubling past five yellows is not named as a defect
+     * and both rule sets keep it.
      *
      * The fixed line divisors of five, five and three are deliberately not
      * changed here. That is a balance decision rather than a defect, and it
@@ -177,5 +211,7 @@ object RuleSets {
         attackSlots = 18..25,
         shotHomeRule = ModernShotHomeRule,
         lineupRelaxationPasses = 3,
+        manyRedsAtLeast = Int.MAX_VALUE,
+        anyInjuryAtLeast = Int.MAX_VALUE,
     )
 }

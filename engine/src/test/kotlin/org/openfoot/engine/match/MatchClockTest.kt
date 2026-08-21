@@ -77,4 +77,17 @@ class MatchClockTest {
         assertEquals(Half.SECOND, clock.halfOf(46))
         assertEquals(Half.SECOND, clock.halfOf(93))
     }
+
+    /**
+     * Minutes into the half restart at the interval, which is what the energy
+     * drain of section 3.9 and the discipline phase of section 3.8 both count.
+     */
+    @Test
+    fun `minutes into the half restart at the interval`() {
+        val clock = MatchClock(firstHalfMinutes = 46, secondHalfMinutes = 49)
+        assertEquals(0, clock.intoHalf(0))
+        assertEquals(45, clock.intoHalf(45))
+        assertEquals(0, clock.intoHalf(46))
+        assertEquals(48, clock.intoHalf(94))
+    }
 }

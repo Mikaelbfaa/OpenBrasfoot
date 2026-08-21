@@ -869,3 +869,60 @@ marcação venha de um fluxo da partida em vez do fluxo do clube, e as duas leit
 observacionalmente idênticas para uma única partida com uma única semente. A diferença só apareceria
 comparando duas partidas do mesmo clube em posições diferentes do confronto, o que a spec nunca
 descreve.
+
+### 38. A partir de qual ponto se conta a fase do minuto na seção 3.8
+
+A seção 3.8 diz "Fase p: minuto < 15 -> 0; < 30 -> 1; senão 2", sem dizer se "minuto" é contado desde
+o apito inicial da partida ou desde o início do próprio tempo. A tabela de limiares dá uma linha para
+o primeiro tempo e outra para o segundo, cada uma com três fases.
+
+Contando a partir do apito inicial: o primeiro tempo regulamentar tem 45 minutos mais o acréscimo que
+a seção 3.1 sorteia em 0-2, então o segundo tempo nunca começa antes do minuto 45. Nesse caso
+`minuto < 15` e `minuto < 30` são falsos para todo minuto do segundo tempo, a fase nunca vale 0 nem 1
+ali, e a linha do segundo tempo das três tabelas - Amarelo, Vermelho direto, Lesão - colapsa para a
+sua última coluna (30, 550, 600 respectivamente antes de qualquer ajuste). Quatro das seis células de
+cada tabela nunca disparariam.
+
+**Resolução (INFERIDO):** contar os minutos de cada tempo a partir de zero, reiniciando a contagem no
+início do segundo tempo, `MatchClock.intoHalf`, a mesma pergunta e a mesma resposta que o item 31 deu
+para o desgaste de energia da seção 3.9. É a única leitura que mantém as seis células de cada uma das
+três tabelas alcançáveis. Testado em `DisciplineTest`, teste "every cell of the yellow table is
+reachable".
+
+**Leitura alternativa, rejeitada.** Contar a partir do apito inicial, como a seção 3.8 lê à letra.
+Essa leitura reduz a linha do segundo tempo de três fases potenciais para uma só, o mesmo defeito de
+forma que o item 31 rejeitou para o desgaste de energia, pelo mesmo motivo: um defeito desse tamanho,
+que apagaria dois terços de uma tabela inteira sem nenhuma nota na seção 3.15, é mais provável de ser
+um jeito impreciso de escrever "contado dentro do tempo" do que um comportamento deliberado do
+original.
+
+### 39. Quais contadores as sobrescritas do limiar de cartão leem
+
+A seção 3.8 diz que "se já houve > 5 amarelos" o limiar do amarelo dobra, "se já houve >= 2 vermelhos"
+ele vira `2 x limiarVermelho`, e "se já houve >= 1 lesão" ele vira `5 x limiarLesão`. A mesma seção
+também diz que "segundo amarelo -> expulsão (evento distinto)", ou seja, uma expulsão por segundo
+amarelo é ao mesmo tempo um amarelo e uma expulsão. A spec não diz se essa expulsão soma 1 ao contador
+de amarelos, ao de vermelhos, aos dois, ou a nenhum, para efeito das três sobrescritas acima.
+
+A metade da pergunta que trata de amarelos já está resolvida por outra regra da mesma seção: a de
+suspensões, no parágrafo seguinte, diz explicitamente que "expulsão por 2º amarelo soma 1 amarelo e 1
+jogo de gancho" ao registro de suspensão do jogador. Contar a mesma expulsão como um amarelo aqui é a
+leitura consistente com essa regra, não uma escolha nova; o registrado neste item é só a metade que
+sobra, a dos vermelhos.
+
+**Resolução (INFERIDO):** um segundo amarelo conta 1 no contador de amarelos e 1 no contador de
+sendingsOff de `DisciplineCounts`, isto é, para os fins das sobrescritas ele conta como um vermelho
+também. `MatchEvent.Booking` é logado junto com `MatchEvent.SendingOff` quando `secondYellow` é
+verdadeiro, exatamente para isso: quem soma DisciplineCounts soma ambos os eventos e nunca precisa
+saber que a expulsão veio de um segundo amarelo. Isso deixa a leitura simétrica entre amarelo e
+vermelho, e é a leitura mais simples de "já houve >= 2 vermelhos" quando o texto da mesma seção não
+distingue tipo de expulsão em nenhum outro lugar.
+
+**Leitura alternativa, não adotada.** Só uma expulsão por vermelho direto soma ao contador de
+vermelhos que as sobrescritas leem; uma expulsão por segundo amarelo soma apenas ao de amarelos. Essa
+leitura é possível porque a seção separa as duas expulsões em toda outra regra que as trata de forma
+diferente - a de suspensões dá ao vermelho direto um sorteio de gravidade que o segundo amarelo não
+tem - então "vermelhos" no texto das sobrescritas poderia estar restrito ao mesmo sentido estrito.
+Rejeitada por não ter apoio direto no texto das sobrescritas, que fala só em "vermelhos" sem qualificar
+"direto", ao contrário da regra de suspensões, que qualifica explicitamente onde quer dizer uma coisa e
+não a outra.

@@ -107,6 +107,14 @@ data class RuleSet(
     @property:SpecRef("3.9") val energyCostByAge: List<Pair<Int, Int>>,
     @property:SpecRef("3.9") val keeperExemptHalf: Half,
 
+    @property:SpecRef("3.8") val discipline: DisciplineRates,
+    @property:SpecRef("3.15") val manyYellowsAtLeast: Int,
+    @property:SpecRef("3.15") val manyYellowsFactor: Int,
+    @property:SpecRef("3.15") val manyRedsAtLeast: Int,
+    @property:SpecRef("3.15") val redOverwriteFactor: Int,
+    @property:SpecRef("3.15") val anyInjuryAtLeast: Int,
+    @property:SpecRef("3.15") val injuryOverwriteFactor: Int,
+
     @property:SpecRef("3.15") val lineupRelaxationPasses: Int,
     @property:SpecRef("5.4") val benchTemplate: List<Int>,
 ) {
