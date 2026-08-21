@@ -3,9 +3,12 @@ package org.openfoot.engine.match
 import org.openfoot.model.HomeAdvantage
 import org.openfoot.model.Marking
 import org.openfoot.model.PlayerId
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
+import org.openfoot.model.Side
 import org.openfoot.model.Slot
+import org.openfoot.model.SlotCandidate
 import org.openfoot.model.SpecRef
 import org.openfoot.model.TeamSide
 import org.openfoot.model.Trait
@@ -14,8 +17,19 @@ import org.openfoot.model.Trait
  * One lineup entry as the match engine sees it.
  *
  * Deliberately not the world model player, which does not exist yet. The
- * formulas of sections 3.4 and 3.6 read only these nine things, so an adapter
- * will build this from a Player once worldgen lands and nothing here changes.
+ * rating and aggregate formulas of sections 3.3, 3.4 and 3.6 read the cell,
+ * the natural position, the strength, the abilities, the two characteristics
+ * and whether the player represents the side's country, so an adapter will
+ * build this from a Player once worldgen lands and nothing here changes. Age
+ * is section 3.9's, read by the energy drain and by injury duration rather
+ * than by any of those formulas, and identity is what energy and bookings are
+ * kept by.
+ *
+ * Side and style are read by no formula of sections 3.3, 3.4 or 3.6 at all.
+ * They are here for section 3.8, whose substitution asks the table of section
+ * 3.2 which reserve suits a vacated cell, the same question section 5.4's
+ * automatic lineup asks of a squad, which is what SlotCandidate asks of
+ * anybody it is offered.
  *
  * Not a data class, because the abilities array would break value equality.
  */
@@ -29,8 +43,18 @@ class MatchPlayer(
     val abilities: IntArray,
     val firstTrait: Trait,
     val secondTrait: Trait,
+    @property:SpecRef("3.8") override val side: Side,
+    @property:SpecRef("3.8") override val style: PlayerStyle,
     val representsSideCountry: Boolean = false,
-) {
+) : SlotCandidate {
+
+    /**
+     * The position he was born to, which is what section 3.2's table asks
+     * about, and not the cell he happens to be standing in.
+     */
+    @property:SpecRef("3.2")
+    override val position: Position get() = naturalPosition
+
     /** True when either of the player's two characteristics is the given one. */
     fun hasTrait(trait: Trait): Boolean = firstTrait == trait || secondTrait == trait
 }

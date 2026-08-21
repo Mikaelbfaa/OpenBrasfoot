@@ -6,6 +6,7 @@ import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.Side
 import org.openfoot.model.Slot
+import org.openfoot.model.SlotCandidate
 import org.openfoot.model.SpecRef
 import org.openfoot.model.Trait
 
@@ -31,21 +32,21 @@ data class Player(
     val name: String,
     val age: Int,
     val country: Int,
-    val position: Position,
-    val side: Side,
+    override val position: Position,
+    override val side: Side,
     val firstTrait: Trait,
     val secondTrait: Trait,
     val starter: Boolean,
     val star: Boolean,
     val topWorld: Boolean,
     val talent: Int,
-    @property:SpecRef("4.3") val style: PlayerStyle,
+    @property:SpecRef("4.3") override val style: PlayerStyle,
     @property:SpecRef("4.4") val strength: Int,
     @property:SpecRef("4.2") val abilities: List<Int>,
     @property:SpecRef("4.7") val contractDays: Int,
     @property:SpecRef("4.8") val salary: Long,
     @property:SpecRef("4.9") val marketValue: Long,
-) {
+) : SlotCandidate {
     /** True when either of the player's two characteristics is the given one. */
     fun hasTrait(trait: Trait): Boolean = firstTrait == trait || secondTrait == trait
 }
@@ -53,10 +54,12 @@ data class Player(
 /**
  * Puts a generated player into a pitch cell so the match engine can rate him.
  *
- * The match engine reads only what is passed here, so everything else
- * generation produced stays behind. A player's own side is not passed: the
- * cell decides what he is asked to do, and section 3.3 penalises him for being
- * in the wrong one whatever his natural position.
+ * No rating formula of sections 3.4 or 3.6 reads side or style, and the cell
+ * he is standing in decides what he is asked to do regardless of either: a
+ * player out of position is penalised by section 3.3 whatever his own side or
+ * sub role say. They are carried across anyway, because MatchPlayer is a
+ * SlotCandidate now, and section 3.8's substitution needs both to run a
+ * vacated cell through the same section 3.2 search that seated him here.
  *
  * The identity is handed in rather than derived, because it is an index into
  * the squad this player was picked from and a player does not know which squad
@@ -76,5 +79,7 @@ fun Player.inSlot(
     abilities = abilities.toIntArray(),
     firstTrait = firstTrait,
     secondTrait = secondTrait,
+    side = side,
+    style = style,
     representsSideCountry = representsSideCountry,
 )

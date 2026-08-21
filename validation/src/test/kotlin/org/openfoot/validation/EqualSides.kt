@@ -9,9 +9,11 @@ import org.openfoot.model.CompetitionKind
 import org.openfoot.model.Country
 import org.openfoot.model.Marking
 import org.openfoot.model.PlayerId
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSet
 import org.openfoot.model.RuleSets
+import org.openfoot.model.Side
 import org.openfoot.model.Slot
 import org.openfoot.model.SpecRef
 import org.openfoot.model.Trait
@@ -48,6 +50,13 @@ object EqualSides {
     @SpecRef("3.16")
     const val FIRST_SEASON = 1
 
+    /**
+     * Side and style are fixed at Side.RIGHT and PlayerStyle.OFFENSIVE for
+     * every one of the eleven. No figure section 3.16 measures reads either
+     * property, so a constant that says nothing about the individual player is
+     * an honest stand in here, unlike Lineups.player's defaults, which a
+     * caller can override per player.
+     */
     fun side(
         strength: Int,
         isHome: Boolean,
@@ -74,6 +83,8 @@ object EqualSides {
                 abilities = IntArray(Attr.COUNT),
                 firstTrait = Trait.STAMINA,
                 secondTrait = Trait.CROSSING,
+                side = Side.RIGHT,
+                style = PlayerStyle.OFFENSIVE,
             )
         }
         return MatchSide(lineup = lineup, marking = Marking.LIGHT, context = context)
