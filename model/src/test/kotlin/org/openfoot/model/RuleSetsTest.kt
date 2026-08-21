@@ -7,33 +7,25 @@ import kotlin.test.assertSame
 class RuleSetsTest {
 
     /**
-     * Undoing every delta must give classic back exactly, so an undocumented
-     * one fails here rather than quietly changing what modern means. Each
-     * argument below names the defect of the original that modern repairs:
-     *
-     * attackSlots is item 2 of section 3.15, slot eighteen counting in no
-     * line, so a three four three has its attack averaged over two of its
-     * three forwards.
-     *
-     * shotHomeRule is item 1, home advantage applied with the sign inverted
-     * and the wide weight overwritten from the save weight, which makes the
-     * home side convert worse and throws away the defence against attack term
-     * in every match on non neutral ground.
-     *
-     * lineupRelaxationPasses is item 7, a loop bound that leaves the last of
-     * the three relaxation passes of section 3.2 unreachable, so the automatic
-     * lineup cascades to another position rather than field a player of the
-     * right position in the wrong sub role.
+     * Five deltas, each a defect of the original. Slot eighteen counting in no
+     * line, home advantage applied with the wrong sign, one lineup relaxation
+     * pass unreachable, and the two card threshold overwrites of section 3.15
+     * item 5, switched off by putting their trigger counts out of reach rather
+     * than by a flag.
      */
     @Test
-    fun `modern differs from classic only by the documented deltas`() {
-        val rebuilt = RuleSets.MODERN.copy(
-            id = RuleSetId.CLASSIC,
-            attackSlots = 19..25,
-            shotHomeRule = ClassicShotHomeRule,
-            lineupRelaxationPasses = 2,
+    fun `the modern rules differ from the classic ones by five named deltas`() {
+        assertEquals(
+            RuleSets.CLASSIC,
+            RuleSets.MODERN.copy(
+                id = RuleSetId.CLASSIC,
+                attackSlots = 19..25,
+                shotHomeRule = ClassicShotHomeRule,
+                lineupRelaxationPasses = 2,
+                manyRedsAtLeast = 2,
+                anyInjuryAtLeast = 1,
+            ),
         )
-        assertEquals(RuleSets.CLASSIC, rebuilt)
     }
 
     @Test

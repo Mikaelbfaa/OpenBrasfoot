@@ -869,3 +869,405 @@ marcação venha de um fluxo da partida em vez do fluxo do clube, e as duas leit
 observacionalmente idênticas para uma única partida com uma única semente. A diferença só apareceria
 comparando duas partidas do mesmo clube em posições diferentes do confronto, o que a spec nunca
 descreve.
+
+### 38. A partir de qual ponto se conta a fase do minuto na seção 3.8
+
+A seção 3.8 diz "Fase p: minuto < 15 -> 0; < 30 -> 1; senão 2", sem dizer se "minuto" é contado desde
+o apito inicial da partida ou desde o início do próprio tempo. A tabela de limiares dá uma linha para
+o primeiro tempo e outra para o segundo, cada uma com três fases.
+
+Contando a partir do apito inicial: o primeiro tempo regulamentar tem 45 minutos mais o acréscimo que
+a seção 3.1 sorteia em 0-2, então o segundo tempo nunca começa antes do minuto 45. Nesse caso
+`minuto < 15` e `minuto < 30` são falsos para todo minuto do segundo tempo, a fase nunca vale 0 nem 1
+ali, e a linha do segundo tempo das três tabelas - Amarelo, Vermelho direto, Lesão - colapsa para a
+sua última coluna (30, 550, 600 respectivamente antes de qualquer ajuste). Quatro das seis células de
+cada tabela nunca disparariam.
+
+**Resolução (INFERIDO):** contar os minutos de cada tempo a partir de zero, reiniciando a contagem no
+início do segundo tempo, `MatchClock.intoHalf`, a mesma pergunta e a mesma resposta que o item 31 deu
+para o desgaste de energia da seção 3.9. É a única leitura que mantém as seis células de cada uma das
+três tabelas alcançáveis. Testado em `DisciplineTest`, teste "every cell of the yellow table is
+reachable".
+
+**Leitura alternativa, rejeitada.** Contar a partir do apito inicial, como a seção 3.8 lê à letra.
+Essa leitura reduz a linha do segundo tempo de três fases potenciais para uma só, o mesmo defeito de
+forma que o item 31 rejeitou para o desgaste de energia, pelo mesmo motivo: um defeito desse tamanho,
+que apagaria dois terços de uma tabela inteira sem nenhuma nota na seção 3.15, é mais provável de ser
+um jeito impreciso de escrever "contado dentro do tempo" do que um comportamento deliberado do
+original.
+
+### 39. Quais contadores as sobrescritas do limiar de cartão leem
+
+A seção 3.8 diz que "se já houve > 5 amarelos" o limiar do amarelo dobra, "se já houve >= 2 vermelhos"
+ele vira `2 x limiarVermelho`, e "se já houve >= 1 lesão" ele vira `5 x limiarLesão`. A mesma seção
+também diz que "segundo amarelo -> expulsão (evento distinto)", ou seja, uma expulsão por segundo
+amarelo é ao mesmo tempo um amarelo e uma expulsão. A spec não diz se essa expulsão soma 1 ao contador
+de amarelos, ao de vermelhos, aos dois, ou a nenhum, para efeito das três sobrescritas acima.
+
+A metade da pergunta que trata de amarelos já está resolvida por outra regra da mesma seção: a de
+suspensões, no parágrafo seguinte, diz explicitamente que "expulsão por 2º amarelo soma 1 amarelo e 1
+jogo de gancho" ao registro de suspensão do jogador. Contar a mesma expulsão como um amarelo aqui é a
+leitura consistente com essa regra, não uma escolha nova; o registrado neste item é só a metade que
+sobra, a dos vermelhos.
+
+**Resolução (INFERIDO):** um segundo amarelo conta 1 no contador de amarelos e 1 no contador de
+sendingsOff de `DisciplineCounts`, isto é, para os fins das sobrescritas ele conta como um vermelho
+também. `MatchEvent.Booking` é logado junto com `MatchEvent.SendingOff` quando `secondYellow` é
+verdadeiro, exatamente para isso: quem soma DisciplineCounts soma ambos os eventos e nunca precisa
+saber que a expulsão veio de um segundo amarelo. Isso deixa a leitura simétrica entre amarelo e
+vermelho, e é a leitura mais simples de "já houve >= 2 vermelhos" quando o texto da mesma seção não
+distingue tipo de expulsão em nenhum outro lugar.
+
+**Leitura alternativa, não adotada.** Só uma expulsão por vermelho direto soma ao contador de
+vermelhos que as sobrescritas leem; uma expulsão por segundo amarelo soma apenas ao de amarelos. Essa
+leitura é possível porque a seção separa as duas expulsões em toda outra regra que as trata de forma
+diferente - a de suspensões dá ao vermelho direto um sorteio de gravidade que o segundo amarelo não
+tem - então "vermelhos" no texto das sobrescritas poderia estar restrito ao mesmo sentido estrito.
+Rejeitada por não ter apoio direto no texto das sobrescritas, que fala só em "vermelhos" sem qualificar
+"direto", ao contrário da regra de suspensões, que qualifica explicitamente onde quer dizer uma coisa e
+não a outra.
+
+### 40. Como se escolhe o jogador dentro de um grupo de risco
+
+A seção 3.8 diz "sorteia-se um grupo, depois um jogador aleatório dentro da faixa de slots", sem dizer
+se o segundo sorteio é sobre as células da faixa ou sobre os jogadores que de fato as ocupam. As duas
+leituras coincidem quando toda célula do grupo está ocupada, mas divergem sempre que a formação em
+campo deixa alguma vazia, o que é o caso comum: a maioria das formações usa entre onze e treze das
+vinte e cinco células.
+
+Sob uma formação 4-4-2, o grupo 0 cobre as células 10 a 13, quatro células, das quais a formação ocupa
+duas (os volantes, 11 e 13); o grupo 5 cobre 19 a 24, seis células, das quais a formação ocupa duas
+(os atacantes). Sortear a célula e descartar o evento quando ela está vazia perderia metade dos
+sorteios do grupo 0 (duas de quatro células vazias) e dois terços dos do grupo 5 (quatro de seis
+células vazias). A seção 3.16 mira "~2-3 amarelos por jogo; um vermelho a cada ~8-12 partidas; uma
+lesão a cada ~6-10 partidas por lado"; descartar metade a dois terços dos sorteios de grupos tão
+frequentes quanto g0 e g5 empurraria a taxa efetiva de eventos bem abaixo dessas figuras, sem que a
+seção 3.15 registre um defeito desse tamanho.
+
+**Resolução (INFERIDO):** sortear uniformemente entre os jogadores que ocupam as células do grupo, não
+entre as células. Um grupo sem ninguém em suas células não sorteia ninguém e o evento não acontece,
+sem consumir um sorteio da sequência aleatória. Testado em `RiskGroupTest`, teste "the victim is drawn
+among the players standing in the group's cells".
+
+**Leitura alternativa, rejeitada.** Sortear uma célula da faixa e, se ela estiver vazia, descartar o
+evento (ou sortear de novo até achar uma ocupada). A primeira variante é a que reduziria a taxa de
+eventos na aritmética acima; a segunda a preservaria, mas gastaria um número variável de sorteios por
+evento sem que a seção 3.8 descreva nenhum laço de repetição em lugar nenhum do seu texto. Nenhuma das
+duas tem apoio direto no texto, que fala em sortear "um jogador", não uma célula.
+
+### 41. Quem entra na vaga do goleiro quando não há goleiro no banco
+
+A seção 3.8 diz que o lesionado "sai e é substituído (com regra que impede preencher a vaga do
+goleiro com não-goleiro)", mas não diz o que acontece quando o banco não tem goleiro nenhum. A regra
+proíbe o preenchimento; ela não diz se a vaga fica vazia, se a proibição cai por falta de
+alternativa, ou se algum jogador de linha é promovido ao gol.
+
+A aritmética das duas leituras não é próxima. Pela 3.4, um time sem ninguém na célula 1 joga com o
+agregado de goleiro fixado em **0,1**. Pela 5.3, um jogador de linha no gol sofre o x0,5 da nota
+inteira **e** tem o agregado reduzido a `round(GK x 0,2)`: um jogador de 70 de força vale 7,0, cai
+para 3,5 pelo x0,5 e para **0,7** pelo x0,2. Ou seja, a leitura que promove um jogador de linha dá ao
+time um goleiro **sete vezes** melhor que a leitura que deixa a célula vazia, e as duas produzem
+partidas visivelmente diferentes sempre que um goleiro se machuca com o banco já sem goleiro.
+
+**Resolução (INFERIDO):** a vaga fica vazia. O filtro de `chooseReplacement` é aplicado antes da
+busca da 5.4 e não depois: quando a célula é a do goleiro, só goleiros são oferecidos, e um banco sem
+goleiro oferece uma lista vazia, que não chega nem ao preenchimento final do item 35. O time passa a
+jogar com dez e com o `missingKeeperRating` de 0,1 da 3.4. É a leitura literal do texto, que escreve
+a regra como uma proibição sem exceção, e é a única que mantém a proibição com algum efeito: se ela
+caísse por falta de alternativa, ela nunca mudaria nada, porque só existe para o caso em que não há
+goleiro sobrando. Testado em `SubstitutionTest`, teste "only a keeper may take the keeper's cell".
+
+**Leitura alternativa, rejeitada.** A regra proíbe apenas o preenchimento **automático**, e um
+treinador humano poria um jogador de linha no gol; o motor faria o mesmo por ele, aplicando o x0,5 e
+o x0,2 da 5.3. É o que um time de verdade faz, e a 5.3 se dá o trabalho de descrever exatamente esse
+caso, o que sugere que ele acontece em algum lugar do jogo. Rejeitada porque a 5.3 descreve o caso da
+escalação manual, onde a tela "não faz nenhuma checagem de legalidade posicional" e o humano pode
+escalar onze atacantes; a 3.8 fala da substituição da IA, e ali o texto é uma proibição sem
+qualificação. Note que a leitura rejeitada é a mais generosa das duas: adotá-la mais tarde só melhora
+o time afetado.
+
+### 42. Os pools de minutos estáticos e compartilhados do item 8 da 3.15
+
+O item 8 da 3.15 registra que "os pools de minutos de substituição são estáticos/compartilhados,
+re-embaralhados por partida", com a consequência de que "partidas consecutivas sorteiam minutos
+correlacionados". É um defeito nomeado do original, e todo defeito nomeado daquela lista foi até aqui
+reproduzido sob CLASSIC e, quando muito, corrigido sob MODERN.
+
+**Resolução (INFERIDO):** este motor **não reproduz o item 8 sob nenhum dos dois conjuntos de
+regras**. `substitutionPlan` sorteia um plano novo por time e por partida, de um gerador derivado da
+semente daquela partida, e nada é compartilhado entre partidas. Isto é uma **divergência deliberada
+do CLASSIC**, e não uma omissão: é o único ponto em que este projeto se recusa a copiar um defeito
+nomeado.
+
+O motivo é que o defeito não é um número errado, é estado global mutável. "Estático/compartilhado"
+quer dizer que os pools vivem fora da partida e guardam a ordem em que a partida anterior os deixou;
+"correlacionados" é o nome que o item dá ao efeito disso. Reproduzir isso faria o resultado de uma
+partida depender de **quais partidas rodaram antes dela**, o que destrói a única propriedade sobre a
+qual o projeto inteiro é construído: a de que uma carreira se repete a partir da sua semente e a de
+que uma partida pode ser re-simulada sozinha, sem simular tudo o que veio antes. A `simulateMatch` é
+explícita quanto a isso, e o `ArchitectureTest` proíbe as construções que permitiriam o
+compartilhamento. Uma rodada de 380 partidas rodada em paralelo e a mesma rodada em série dariam
+tabelas diferentes.
+
+O custo da divergência é pequeno e mensurável na direção certa: sob o item 8, os minutos de dois
+jogos seguidos são correlacionados, mas cada plano isolado continua saindo das mesmas faixas e com as
+mesmas probabilidades que a 3.8 publica. Ou seja, a **distribuição** de um plano é a mesma nas duas
+leituras; o que se perde é só a correlação entre partidas vizinhas, que nenhuma figura da 3.16 mede e
+de que nenhum comportamento observável do jogo depende.
+
+**Leitura alternativa, rejeitada.** Reproduzir o compartilhamento sob CLASSIC, por exemplo com um
+pool por carreira reembaralhado a cada partida, e corrigi-lo sob MODERN. Rejeitada pelo parágrafo
+acima: seria o primeiro caso em que reproduzir a fidelidade custa a reprodutibilidade, e a
+reprodutibilidade é condição de todo o resto, inclusive de conseguir comparar CLASSIC com o original.
+
+### 43. Para qual dos dois times a janela de substituição abre
+
+A 3.8 escreve a resolução do minuto como uma cadeia única: "o primeiro que casar: amarelo -> vermelho
+-> lesão -> (se 2º tempo e minuto >= 5) janela de substituição da IA". A cadeia inteira roda sobre o
+**time-vítima**, sorteado no início do minuto com `rand(100) > 55`. Lida à letra, a janela abriria só
+para o time que aquele sorteio escolheu.
+
+Isso não combina com o parágrafo seguinte da mesma seção, que diz que **cada time sorteia seus
+minutos**. Sob a leitura literal, o minuto que um time sorteou para si só dispara quando ele também é
+a vítima daquele minuto, ou seja em 44% dos casos para o mandante e 56% para o visitante.
+
+A aritmética: um plano tem em média `2 + 0,69 = 2,69` minutos de "correndo atrás", `2 + 0,79 + 0,49 =
+3,28` de rotina, e mais a janela do intervalo, cerca de **7 oportunidades por time por partida**. Sob
+a leitura literal sobram ~3,1 para o mandante e ~3,9 para o visitante, antes ainda de descontar os
+minutos em que a cadeia parou num cartão ou numa lesão e os minutos em que o placar não pede troca.
+Metade de cada plano ficaria morta, e o time da casa trocaria **menos** que o visitante por um efeito
+colateral do viés de arbitragem, que a 3.8 não relaciona com substituição em lugar nenhum.
+
+Há ainda um argumento estrutural: a própria 3.8 já tem uma janela de substituição fora da cadeia, a
+do intervalo, que nenhum sorteio de vítima poderia governar, porque não há minuto de jogo no
+intervalo. Se a janela do intervalo abre para os dois times independentemente, a das outras duas
+também abre.
+
+**Resolução (INFERIDO):** a janela abre para **os dois times, independentemente**. A posição da
+janela na cadeia é lida como "depois de resolvida a disciplina do minuto", e não como "sobre o
+time-vítima". Isso dá duas regras, não uma: as janelas de "correndo atrás" e de rotina, que são
+minuto de jogo, só abrem num minuto cuja cadeia disciplinar não produziu cartão nem lesão; a janela
+do intervalo não é condicionada ao resultado da cadeia de jeito nenhum. A diferença não é um
+capricho: a própria 3.8 restringe a quarta ramificação da cadeia com "se 2º tempo e minuto >= 5", e a
+janela do intervalo é pendurada no **primeiro minuto do segundo tempo** (minuto 0), que fica abaixo
+desse portão. A janela do intervalo não pode ser aquela quarta ramificação, porque nunca conseguiria
+disparar nela; ela é o parágrafo próprio e separado da 3.8 sobre o intervalo, e por isso não herda o
+portão de resultado, que só faz sentido para um ramo que compete com cartão e lesão pelo mesmo minuto
+de jogo. Testado em `SubstitutionWindowTest`.
+
+**Leitura alternativa, rejeitada.** A janela abre só para o time-vítima do minuto. É a leitura
+literal da cadeia e tem a seu favor a economia de sortear a vítima uma vez só. Rejeitada pela
+aritmética acima: ela mata metade dos planos, cria uma assimetria mandante/visitante que a seção não
+descreve, e não consegue explicar a janela do intervalo, que existe sem vítima nenhuma.
+
+### 44. Quem sai no intervalo e num minuto de "correndo atrás"
+
+A 3.8 descreve as três janelas em três frases seguidas: "No intervalo: se perde por >=1 (mandante) /
+>=2 (visitante), 50% de chance de **troca aleatória**. Em minuto 'correndo atrás': mandante **troca**
+se perde ou empata; visitante só se perde. Em minuto de rotina: **troca por cansaço** - primeiro
+não-goleiro com energia < 60". A primeira janela qualifica a troca de aleatória, a terceira a
+qualifica de por cansaço, e a do meio não qualifica nada: só diz "troca".
+
+**Resolução (INFERIDO):** no intervalo e no minuto de "correndo atrás" sai um **jogador de linha
+aleatório**, e entra o reserva mais adequado à célula que ele deixou; no minuto de rotina sai o
+primeiro que a varredura de cansaço achar. O "aleatória" da primeira frase é lido como o padrão das
+janelas de placar, e o "troca" pelado da segunda como a mesma coisa dita de forma abreviada na frase
+imediatamente seguinte; a terceira frase é a que **sobrescreve** esse padrão, e por isso é a única
+que descreve um critério de escolha. O goleiro fica de fora do sorteio: um time não responde a um
+placar adverso trocando o goleiro, e a varredura de cansaço da terceira frase também o exclui
+explicitamente, então excluí-lo aqui mantém as três janelas coerentes entre si. Testado em
+`SubstitutionWindowTest`, testes "a chasing minute changes a drawn outfielder" e "a routine minute
+changes the tired man for the reserve his cell suits".
+
+**Leitura alternativa, rejeitada.** O "troca" pelado do minuto de "correndo atrás" herda o critério
+da frase seguinte, e não o da anterior, ou seja é também uma troca por cansaço. A favor dela: um time
+que está perdendo trocar um jogador ao acaso é comportamento estranho, e herdar o critério de cansaço
+tornaria a segunda e a terceira janelas idênticas em tudo menos no gatilho. Rejeitada porque tornar
+duas janelas idênticas em tudo menos no gatilho é justamente o que faria a 3.8 não precisar
+descrevê-las separadamente, e porque a frase que qualifica a troca de aleatória vem **antes** da
+frase pelada, o que faz do "aleatória" o padrão e do "por cansaço" a exceção, e não o contrário.
+
+### 45. Em que posição da lista o substituto entra
+
+A 3.8 diz que o substituído "sai" e que o reserva "põe-se no slot vago", sem dizer nada sobre a
+**ordem da lista** em que os dois vivem. A ordem não é decorativa: a 3.4 monta cada agregado de linha
+pegando os **primeiros N** jogadores da lista cujas células caem na faixa daquela linha, e não os N
+melhores. Duas leituras cabem no texto: acrescentar o que entra ao fim da lista, ou colocá-lo no
+índice que o que saiu ocupava.
+
+As duas coincidem enquanto a linha não estiver superlotada, isto é enquanto a quantidade de jogadores
+nas células daquela linha for menor ou igual ao `take` dela. Divergem assim que passar disso, porque
+aí o último da fila é ignorado, e qual jogador é o último depende da leitura.
+
+**A aritmética, sobre uma escalação concreta.** Meio-campo: faixa 10-17, `take` 5, divisor fixo 5. Uma
+escalação manual com **seis** meias, na ordem em que a tela a produz - `1, 22, 24, 10, 11, 12, 13, 14,
+15, 2, 9` - tem os meias 10, 11, 12, 13, 14 e 15. Todos valem 50 de força, salvo o da célula 15, que
+vale 20; o reserva que vai entrar vale 80. Com atributos individuais desligados a nota de cada um é a
+força dividida por dez (3.3), e o bônus de marcação entra igual nas duas leituras, então some.
+
+- Antes da troca, contam 10, 11, 12, 13 e 14: `(5,0 x 5) / 5 = 5,0`. O meia da célula 15 é o sexto e
+  já é ignorado.
+- O meia da célula 11 se machuca. **Acrescentando ao fim**, a lista fica `1, 22, 24, 10, 12, 13, 14,
+  15, 2, 9, sub@11`, e os cinco primeiros meias são 10, 12, 13, 14 e **15**:
+  `(5,0 + 5,0 + 5,0 + 5,0 + 2,0) / 5 = 4,4`. **O reserva de 80 não entra em conta nenhuma.**
+- **Colocando no índice vago**, a lista fica `1, 22, 24, 10, sub@11, 12, 13, 14, 15, 2, 9`, e os cinco
+  primeiros meias são 10, o substituto, 12, 13 e 14: `(5,0 + 8,0 + 5,0 + 5,0 + 5,0) / 5 = **5,6**`.
+
+4,4 contra 5,6: 1,2 de diferença em unidades de `B()`, sobre uma alavanca que a 3.16 mede em 2,0 para
+levar o duelo de posse de 55% para ~69%. Não é arredondamento.
+
+**Alcance.** Nenhuma das doze formações da 5.1 chega a essa forma: a mais carregada põe cinco
+jogadores na defesa (`take` 5), cinco no meio (`take` 5) e três no ataque (`take` 3), nunca mais que o
+`take`. Ou seja, com escalação automática a escolha é hoje **inobservável**. Ela só aparece na tela
+manual, que a 5.4 descreve como aceitando qualquer forma - "seis zagueiros ou onze atacantes são
+aceitos" - e apareceria também no dia em que uma formação nova passasse do `take` de alguma linha.
+
+**Resolução (INFERIDO):** acrescentar ao fim. É o que o array de elenco do original faz: lá a
+escalação é uma varredura do elenco, uma substituição troca dois números de slot e não move ninguém no
+array, e o índice de um reserva no elenco fica **acima** do dos titulares, então ele é varrido depois
+de todos eles. Reproduzir isso é acrescentar ao fim. Os sobreviventes mantêm a ordem que tinham nas
+duas leituras, que é a parte que a 3.4 não sobrevive a perder. Está dito na docstring de `substitute`.
+
+**Leitura alternativa, rejeitada.** Colocar o substituto no índice que o substituído ocupava. A favor
+dela: ele está exatamente na célula que o outro deixou, então manter a posição mantém a lista em ordem
+de formação, e é a única leitura em que uma substituição nunca muda **quais** jogadores uma linha
+conta - só as notas deles. Contra: ela descreve uma lista de escalação como estrutura própria, e no
+original não existe tal lista; existe o array de elenco, e nele o reserva não tem como aparecer antes
+de um titular. Rejeitada por isso, e não por ser pior: no exemplo acima ela é o resultado mais
+sensato dos dois, e é ela que um reimplementador que não se importe com fidelidade deveria escolher.
+
+### 46. As taxas de cartão, expulsão e lesão da 3.16 não vêm das tabelas da 3.8
+
+É a mesma forma dos itens 28 a 30: a 3.16 e as próprias tabelas da 3.8 discordam, e a validação
+registra a discordância em vez de esticar uma faixa para escondê-la.
+
+A 3.16 diz "~2-3 amarelos por jogo; um vermelho a cada ~8-12 partidas; uma lesão a cada ~6-10
+partidas por lado". A 3.8 sorteia **um** time-vítima por minuto, não um por lado, então cartões e
+lesões são taxas de partida inteira, não de lado. Um tempo de 47 minutos passa cerca de 15 minutos na
+fase 0, 15 na fase 1 e 17 na fase 2. O alívio médio de marcação é `0,65 x 30 + 0,30 x 10 + 0,05 x 0 =
+22,5`, do sorteio da 3.12.
+
+**Amarelo.** O limiar efetivo de cada fase é o valor da tabela mais os 22,5 do alívio médio: 92,5,
+62,5 e 52,5 no primeiro tempo; 67,5, 62,5 e 52,5 no segundo.
+
+```
+15/92,5 + 15/62,5 + 17/52,5 + 15/67,5 + 15/62,5 + 17/52,5 = 1,512 por partida
+```
+
+As sobrescritas do limiar (defeito 5 da 3.15) só aumentam esse limiar, nunca o diminuem, então só
+derrubam essa conta. Medido em `SanityCheckTest`: **1,28375** por partida, abaixo de 1,512 e coerente
+com a direção das sobrescritas. A 3.16 pede 2 a 3. Fica abaixo.
+
+**Vermelho.** O limiar de vermelho não sofre nenhuma das sobrescritas da 3.8: elas mexem só no
+limiar do amarelo. Sobre a tabela de vermelho direto:
+
+```
+15/1200 + 15/900 + 17/800 + 15/800 + 15/700 + 17/550 = 0,122 por partida, uma expulsão a cada 8,2
+```
+
+A 3.16 pede 8 a 12, e essa conta bateria. Mas `MatchEvent.SendingOff` não conta só o vermelho
+direto: a 3.8 chama o segundo amarelo de "evento distinto", e a documentação de
+`MatchEvent.Booking` registra que um segundo amarelo grava os dois eventos, o cartão e a expulsão.
+A contagem medida é de expulsões dos dois tipos, não só de vermelho direto, e por isso vem mais alta
+que a conta acima: **uma a cada 6,038647342995169 partidas**, medido em `SanityCheckTest`. Isso fica
+abaixo do piso de 8 que a própria 3.16 pede. Também fica abaixo, e pelo lado oposto ao que a tabela
+de vermelho direto sozinha sugeriria: não é que faltem expulsões, é que a tabela de vermelho direto
+nunca foi a conta inteira.
+
+**Lesão.** Sem sobrescrita nenhuma tocando o sorteio de lesão:
+
+```
+15/1500 + 15/1000 + 17/800 + 15/800 + 15/600 + 17/600 = 0,118 por partida nos dois lados, uma lesão
+a cada 16,9 partidas por lado
+```
+
+Medido: **uma a cada 17,248814144027598 partidas por lado**, a menos de 2% da conta acima. A 3.16
+pede 6 a 10 por lado. Fica abaixo por quase o dobro.
+
+**A leitura que resolveria dois dos três números, e pioraria o terceiro.** Sortear a cadeia de
+disciplina para **cada lado independentemente** a cada minuto, em vez de um único time-vítima por
+partida, dá a cada lado o sorteio inteiro que hoje os dois lados dividem entre si: a taxa que hoje é
+o **total combinado** dos dois lados passaria a valer para **cada lado sozinho**, sem repartição
+nenhuma.
+
+Amarelo, sobre o valor medido e não sobre a previsão pré-sobrescritas: `1,28375 x 2 = 2,5675` por
+partida - dentro dos 2 a 3 da 3.16, e não perto da borda. Lesão, sobre o valor medido: hoje o total
+combinado é `2 / 17,248814144027598 = 0,11596` por partida; sob a leitura alternativa cada lado
+sozinho passaria a ter essa taxa inteira, uma lesão a cada `1 / 0,11596 = 8,6` partidas por lado -
+dentro dos 6 a 10 da 3.16. Os dois usam o valor medido, não a previsão anterior às sobrescritas, que
+é o que a seção anterior mediu e a validação registra.
+
+O vermelho não segue essa mesma conta, porque a leitura atual não bate com a 3.16 por dois motivos
+independentes: o time-vítima divide o sorteio de vermelho direto ao meio, **e** dilui o sorteio de
+segundo amarelo, que só conta como par quando as duas cartas caem no mesmo jogador. O vermelho
+direto simplesmente dobra: `0,122 x 2 = 0,244` por partida. O segundo amarelo não dobra, escala com
+o **quadrado** do volume de cada lado, porque a chance de duas cartas caírem no mesmo jogador é a
+chance conjunta de duas cartas, cada uma já proporcional ao volume. Hoje, o excedente medido sobre a
+tabela de vermelho direto - `0,165600 - 0,122 = 0,0436` por partida, combinado - é inteiramente
+segundo amarelo, e se reparte em cerca de `0,0436 / 2 = 0,0218` por lado, sobre um volume de amarelo
+de `1,28375 / 2 = 0,642` por lado. Sob a leitura alternativa esse volume por lado dobra para
+`1,28375`, e como o segundo amarelo escala com o quadrado do volume, o excedente por lado escala por
+`2^2 = 4`: `0,0218 x 4 = 0,0872` por lado, `0,174` somado nos dois lados. Total de vermelho sob a
+leitura alternativa: `0,244 + 0,174 = 0,418` por partida, uma expulsão a cada `1 / 0,418 = 2,4`
+partidas - bem fora dos 8 a 12 da própria 3.16.
+
+**A leitura alternativa não é uma correção parcial: ela troca qual dos três números falha, e piora
+o pior deles.** Na leitura atual o vermelho já é o número mais próximo de bater: medido, ele é
+`8 / 6,038647342995169 = 1,3` vezes mais frequente que o piso da 3.16. Sob a leitura alternativa ele
+vira o único que não bate, e passa a `8 / 2,4 = 3,3` vezes mais frequente que esse mesmo piso - o
+pior desvio dos seis números desta questão, de longe, e cerca do triplo do desvio que a leitura
+atual já tem no mesmo número.
+
+**Resolução (MEDIDO, `SanityCheckTest`):** manter um único time-vítima por minuto, exatamente como a
+3.8 descreve, e registrar que os três números da 3.16 não batem com essa leitura, um deles - o
+vermelho - por um mecanismo que a tabela da 3.8 sozinha não deixa ver. O time-vítima é o único
+mecanismo do jogo parecido com viés de arbitragem que a 3.8 nomeia, e é o que faz o mandante e o
+visitante perderem jogadores em proporções diferentes ao longo de uma partida.
+
+**Leitura alternativa, rejeitada.** Sortear a cadeia de disciplina uma vez por lado a cada minuto,
+em vez de um único time-vítima. A favor dela: o amarelo e a lesão medidos, dobrados, caem dentro da
+faixa da 3.16, o que a leitura atual não consegue em nenhum dos três números. Rejeitada por dois
+motivos, um estrutural e um aritmético. O estrutural: a 3.8 nomeia o sorteio de time-vítima, ao pé
+da letra - `Time-vitima: rand(100) > 55` - como o único viés de arbitragem do jogo; dois sorteios
+independentes, um por lado, não são esse viés, são a ausência dele. O aritmético: a mesma troca que
+resolve o amarelo e a lesão piora o vermelho de 1,3 para 3,3 vezes o piso da 3.16, porque o sorteio
+de segundo amarelo escala com o quadrado do volume por lado, não com o volume. Trocar dois números
+que erram por pouco por um terceiro que passa a errar por um fator de três não é a mesma troca que o
+resumo "dois de três" sugere à primeira vista.
+
+Isto é **observável**: contar cartões, expulsões e lesões de uma temporada IA contra IA no jogo
+original resolve.
+
+### 47. Se o sacrifício da expulsão e a reposição da lesão valem no 1º tempo
+
+A 3.8 tem duas frases sobre limite de tempo de substituição, e elas não estão no mesmo lugar. Em
+Consequências, a frase da expulsão - "se o slot <= 13 e o time é da IA com substituições disponíveis,
+a IA sacrifica um atacante" - e a da lesão - "sai e é substituído" - não mencionam tempo de jogo
+nenhum. Só mais abaixo, no parágrafo que introduz os pools de minutos "correndo atrás" e de rotina,
+aparece "Substituições da IA: 5 por time, só no 2º tempo (+ janela do intervalo)", seguida por "Cada
+time sorteia seus minutos" e pelas três janelas que a IA abre por conta própria.
+
+O motor lê o sacrifício e a reposição como não sujeitos a essa restrição: `sacrificeFor` e a troca
+que `injure` faz não olham a metade do relógio, só `canSubstitute` e o teto de cinco por lado.
+
+**Resolução (INFERIDO):** a restrição "só no 2º tempo" vale para as três janelas voluntárias que a
+IA sorteia por conta própria, e não para o sacrifício da expulsão nem para a reposição da lesão, que
+disparam como consequência mecânica de um evento e não de uma janela. A frase está encaixada no
+parágrafo que descreve como esses sorteios funcionam, não no parágrafo de Consequências onde as duas
+regras forçadas são descritas; ler a restrição para dentro delas exigiria emprestar uma cláusula de
+um parágrafo posterior sobre um mecanismo diferente. Há também um argumento de resultado: um lado
+que perde um jogador para uma lesão no primeiro tempo e não pode repô-lo até o intervalo joga um
+trecho inteiro do primeiro tempo com dez, uma escalação que o time original nunca produziria, porque
+o original resolve a temporada inteira e não tem nenhum instante em que um time jogue diminuído sem
+poder repor. Testado em `DisciplineChainTest`, nos casos "a sending off at cell thirteen costs a
+forward too" e "an injury is replaced and costs three duration draws", os dois rodados no minuto
+vinte do primeiro tempo e os dois terminando com uma substituição registrada no log.
+
+**Leitura alternativa, rejeitada.** A frase "só no 2º tempo" é irrestrita e cobre toda substituição
+da IA, forçada ou voluntária; um motor fiel ao CLASSIC recusaria o sacrifício e a reposição no
+primeiro tempo, deixando o lado a dez ou a onze deformado até o intervalo. A favor dela: a frase não
+tem nenhum qualificador do tipo "nas janelas abaixo", e a leitura mais direta de uma restrição de
+tempo colocada perto do número de substituições é que ela vale para todas elas. Rejeitada porque
+produziria, no primeiro tempo, um lado preso sem nenhum recurso do jogo diante de uma expulsão ou de
+uma lesão, uma consequência que a frase citada não anuncia e que o resto da 3.8 nunca discute - nenhuma
+outra regra da seção supõe um time jogando diminuído no primeiro tempo sem poder repor.

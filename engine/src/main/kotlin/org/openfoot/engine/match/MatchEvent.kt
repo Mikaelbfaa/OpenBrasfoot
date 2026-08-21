@@ -12,8 +12,9 @@ import org.openfoot.model.TeamSide
  * list rather than re-deriving a timeline the engine already knew.
  *
  * Only the events the engine can currently produce are declared. Cards,
- * injuries, substitutions and goal typing arrive with the code that produces
- * them, because a case nothing can construct is a branch nothing can test.
+ * injuries and substitutions are declared below; goal typing is still
+ * outstanding and arrives with the code that produces it, because a case
+ * nothing can construct is a branch nothing can test.
  */
 @SpecRef("3.13")
 sealed interface MatchEvent {
@@ -78,6 +79,100 @@ sealed interface MatchEvent {
      */
     @SpecRef("3.5")
     data class PossessionWon(override val minute: Int, override val side: TeamSide) : MatchEvent
+
+    /**
+     * A yellow card.
+     *
+     * Section 3.8's suspension rule counts a sending off for a second yellow
+     * as a yellow too, so a second booking is logged here as well as under
+     * SendingOff. Anything counting a player's yellows counts these events and
+     * never has to special case the dismissal.
+     */
+    @SpecRef("3.8")
+    data class Booking(
+        override val minute: Int,
+        override val side: TeamSide,
+        val player: MatchPlayer,
+    ) : MatchEvent
+
+    /**
+     * A dismissal, of either kind.
+     *
+     * Section 3.8 calls a second yellow an event distinct from a direct red,
+     * and the two differ in what they cost the player afterwards: a direct red
+     * draws a ban of one to ten matches, a second yellow is a single match. The
+     * consequence on the pitch is the same, so this is one event with a flag
+     * rather than two, and the flag is what the post round rules of v0.3 will
+     * read.
+     */
+    @SpecRef("3.8")
+    data class SendingOff(
+        override val minute: Int,
+        override val side: TeamSide,
+        val player: MatchPlayer,
+        val secondYellow: Boolean,
+    ) : MatchEvent
+
+    /**
+     * An injury, with how long it keeps the player out.
+     *
+     * The days are computed inside the match because section 3.8's formula
+     * reads the player's energy, which only the match knows. The permanent
+     * strength loss is carried rather than applied for the opposite reason:
+     * strength lives on the squad, which the match deliberately cannot reach,
+     * so the number is reported and the season applies it.
+     */
+    @SpecRef("3.8")
+    data class Injury(
+        override val minute: Int,
+        override val side: TeamSide,
+        val player: MatchPlayer,
+        val days: Int,
+        val permanentStrengthLoss: Int,
+    ) : MatchEvent {
+        init {
+            require(days >= 0) { "an injury cannot last $days days" }
+            require(permanentStrengthLoss >= 0) { "a strength loss cannot be negative" }
+        }
+    }
+
+    /**
+     * One player replaced by another.
+     *
+     * The player coming on carries the cell he is filling, not the minus one a
+     * reserve sits with, because every aggregate of section 3.4 reads the cell.
+     * He is therefore a different MatchPlayer object from the one on the bench,
+     * with the same identity; see Shot above on why per player figures group by
+     * identity and never by object.
+     */
+    @SpecRef("3.8")
+    data class Substitution(
+        override val minute: Int,
+        override val side: TeamSide,
+        val off: MatchPlayer,
+        val on: MatchPlayer,
+        val reason: SubstitutionReason,
+    ) : MatchEvent {
+        init {
+            require(off.id != on.id) { "${off.id} cannot replace himself" }
+        }
+    }
+}
+
+/**
+ * Why the AI made a substitution.
+ *
+ * The four windows of section 3.8 plus the two forced ones. Carried on the
+ * event rather than inferred from the minute, because two windows can fall on
+ * the same minute and a reader of the log should not have to guess which fired.
+ */
+@SpecRef("3.8")
+enum class SubstitutionReason {
+    INJURY,
+    SENDING_OFF,
+    HALF_TIME,
+    CHASING,
+    TIREDNESS,
 }
 
 /**
@@ -89,6 +184,9 @@ sealed interface MatchEvent {
  *
  * Fouls are never touched. Section 3.13 documents the counter as one the
  * original declares and never increments, so every match reports nought.
+ *
+ * Section 3.13's panel has no card column and no injury column, so Booking,
+ * SendingOff, Injury and Substitution are logged and counted nowhere here.
  */
 @SpecRef("3.13")
 fun List<MatchEvent>.toStats(): MatchStats {
@@ -119,6 +217,9 @@ fun List<MatchEvent>.toStats(): MatchStats {
             is MatchEvent.PossessionWon -> update(event.side) {
                 it.copy(possessionsWon = it.possessionsWon + 1)
             }
+
+            is MatchEvent.Booking, is MatchEvent.SendingOff,
+            is MatchEvent.Injury, is MatchEvent.Substitution -> Unit
         }
     }
 

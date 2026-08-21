@@ -23,6 +23,8 @@ Motor de partida:
 - Escalação automática e o catálogo de formações da seção 5.1, que monta as duas onzes de um clube
   gerado
 - Energia em partida, drenada de quem está em campo a cada intervalo da seção 3.9
+- Disciplina, lesões e substituições da seção 3.8: cartões, expulsões, o sorteio de risco por grupo
+  de slots e as janelas de troca da IA
 - O log de eventos da partida, de onde as estatísticas e o placar são lidos, não acumulados à parte
 
 Criação de mundo:
@@ -44,8 +46,7 @@ Infraestrutura:
 - Testes de arquitetura que impedem I/O, relógio, aleatoriedade de plataforma e não determinismo
 - Verificadores de estilo de comentário e de documento
 
-Ainda falta, para uma partida completa: tipos de gol, disciplina e lesões, energia, substituições,
-assistências e notas.
+Ainda falta, para uma partida completa: tipos de gol, assistências e notas.
 
 ## Como compilar
 

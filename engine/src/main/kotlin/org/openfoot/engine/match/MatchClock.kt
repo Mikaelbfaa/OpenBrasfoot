@@ -22,6 +22,18 @@ data class MatchClock(
 
     fun halfOf(minute: Int): Half =
         if (minute < firstHalfMinutes) Half.FIRST else Half.SECOND
+
+    /**
+     * How far into its own half a minute sits.
+     *
+     * Two rules count from here rather than from kick off: section 3.9's drain
+     * cadence and section 3.8's phase. Both are stated per half in the spec and
+     * both would lose most of their table if counted across the match, so the
+     * conversion lives once, here, rather than twice at the two call sites.
+     */
+    @SpecRef("3.8")
+    fun intoHalf(minute: Int): Int =
+        if (minute < firstHalfMinutes) minute else minute - firstHalfMinutes
 }
 
 /**

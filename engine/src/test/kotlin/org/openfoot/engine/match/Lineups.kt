@@ -6,7 +6,9 @@ import org.openfoot.model.CompetitionKind
 import org.openfoot.model.Country
 import org.openfoot.model.Marking
 import org.openfoot.model.PlayerId
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
+import org.openfoot.model.Side
 import org.openfoot.model.Slot
 import org.openfoot.model.Trait
 
@@ -44,6 +46,14 @@ object Lineups {
 
     /**
      * A player who is in position for his cell unless a position is forced.
+     *
+     * side and style default to Side.RIGHT and PlayerStyle.OFFENSIVE, plain
+     * fixed values rather than anything derived from the slot or the position,
+     * because MatchPlayer's own constructor takes neither as a default and a
+     * fixture that quietly picked one for a caller would hide the same gap the
+     * production type is deliberately built to expose. A test that exercises
+     * the section 5.4 fit search, rather than its no-fit-found catch-all, must
+     * state both explicitly.
      */
     fun player(
         slot: Int,
@@ -51,6 +61,8 @@ object Lineups {
         id: Int = slot,
         age: Int = 25,
         position: Position? = null,
+        side: Side = Side.RIGHT,
+        style: PlayerStyle = PlayerStyle.OFFENSIVE,
         firstTrait: Trait = NEUTRAL_TRAITS.first,
         secondTrait: Trait = NEUTRAL_TRAITS.second,
         abilities: IntArray = IntArray(Attr.COUNT),
@@ -66,6 +78,8 @@ object Lineups {
             abilities = abilities,
             firstTrait = firstTrait,
             secondTrait = secondTrait,
+            side = side,
+            style = style,
             representsSideCountry = representsSideCountry,
         )
     }

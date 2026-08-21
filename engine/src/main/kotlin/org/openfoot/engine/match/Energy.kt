@@ -1,6 +1,5 @@
 package org.openfoot.engine.match
 
-import org.openfoot.model.Half
 import org.openfoot.model.PlayerId
 import org.openfoot.model.RuleSet
 import org.openfoot.model.SpecRef
@@ -28,13 +27,8 @@ internal fun energyCost(age: Int, rules: RuleSet): Int =
  * OPEN-QUESTIONS.
  */
 @SpecRef("3.9")
-internal fun drainsThisMinute(minute: Int, clock: MatchClock, rules: RuleSet): Boolean {
-    val intoHalf = when (clock.halfOf(minute)) {
-        Half.FIRST -> minute
-        Half.SECOND -> minute - clock.firstHalfMinutes
-    }
-    return intoHalf % rules.energyDrainInterval == 0
-}
+internal fun drainsThisMinute(minute: Int, clock: MatchClock, rules: RuleSet): Boolean =
+    clock.intoHalf(minute) % rules.energyDrainInterval == 0
 
 /**
  * Drains everyone on the pitch, if this minute is a drain.

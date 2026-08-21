@@ -1,5 +1,6 @@
 package org.openfoot.validation
 
+import org.openfoot.engine.match.MatchEvent
 import org.openfoot.engine.match.MatchReport
 import org.openfoot.engine.match.MatchSetup
 import org.openfoot.engine.match.simulateMatch
@@ -26,13 +27,54 @@ import kotlin.test.assertTrue
  * The tick count is 94, not the 92 of section 3.16, because section 3.1's own
  * stoppage draws average 94. See open question 28.
  *
- * The displayed possession share is 53.2 per cent, not 55. See open question
+ * The displayed possession share is 53.3 per cent, not 55. See open question
  * 29.
  *
  * The shot volumes and the goal averages fall short of section 3.16's figures
  * whenever the lineup does not fill every line to its fixed divisor, which a
  * four four two does not. See open question 30, and the last test in this file,
  * which reproduces section 3.16's figures exactly once the lines are full.
+ *
+ * Every figure below was re-measured when section 3.8's per minute roll was
+ * wired into the match, and the movements it produced are small and all in one
+ * direction. Not one band had to move to contain its new value, so none did;
+ * what changed is the measurement each docstring quotes and the paragraph
+ * naming the direction. The reasoning behind those movements is one argument
+ * and is set out here once rather than nine times.
+ *
+ * Over this sample section 3.8 produces about 1.28 bookings, 0.17 dismissals
+ * and 0.12 injuries per match. A booking changes nothing a tick reads. A
+ * dismissal and an injury both take a player off the pitch, and both sides
+ * play here with an empty bench, so nobody is ever replaced: about 0.28 men
+ * leave per match and stay gone.
+ *
+ * A missing player costs his own line one over its fixed divisor, because
+ * section 3.4 divides by a constant rather than by the number of men left.
+ * That cuts the side's own attack, which lowers its own shots, and cuts its own
+ * defence, which raises its opponent's. Which of the two dominates is settled
+ * by section 3.8's own risk group tables, and they put their weight at the
+ * back: a direct red falls on cells 10 to 13 with probability 39.5 per cent,
+ * on 3 to 8 with 25, on 14 to 17 with 15, on 8 to 9 with 10, on 2 to 3 with 5,
+ * and on the forwards of 19 to 24 with only 5. The man who leaves is therefore
+ * usually a defender or a midfielder and hardly ever a forward, so the
+ * dominant effect is a weakened defence letting the opponent shoot more, and
+ * the total shot count rises rather than falls.
+ *
+ * Which side gains is settled by the victim draw, section 3.8's one piece of
+ * refereeing bias: the away side is drawn 56 per cent of the time and the home
+ * side 44. Over this sample the home side collected 11289 of the 25675
+ * bookings, which is 43.97 per cent, so the draw behaves as the spec says. The
+ * away side therefore loses men more often, and every figure below moves the
+ * way that implies: the home shot volume, the home goals, the home conversion
+ * and the home possession share all rise slightly, and the away figures all
+ * fall slightly.
+ *
+ * The last three tests pin the discipline bullet of section 3.16 itself.
+ * Yellows and injuries fall short of the ranges it states, as their own
+ * tables predict. Sendings off do not fall short: they are too frequent, not
+ * too rare, for a reason the direct red table alone cannot show, because a
+ * second yellow logs a dismissal as well as a booking, so the sending off
+ * count is not the direct red table alone. See open question 46.
  */
 class SanityCheckTest {
 
@@ -126,6 +168,24 @@ class SanityCheckTest {
         }
     }
 
+    @Test
+    fun `a match produces a couple of yellow cards`() {
+        val yellows = MATCHES.mean { it.log.count { event -> event is MatchEvent.Booking } }
+        assertTrue(yellows in YELLOWS, "yellows averaged $yellows")
+    }
+
+    @Test
+    fun `a sending off is rare`() {
+        val perMatch = MATCHES.mean { it.log.count { event -> event is MatchEvent.SendingOff } }
+        assertTrue(1.0 / perMatch in MATCHES_PER_SENDING_OFF, "one every ${1.0 / perMatch} matches")
+    }
+
+    @Test
+    fun `an injury is rarer still`() {
+        val perSide = MATCHES.mean { it.log.count { event -> event is MatchEvent.Injury } } / 2
+        assertTrue(1.0 / perSide in MATCHES_PER_INJURY, "one every ${1.0 / perSide} per side")
+    }
+
     /**
      * The evidence behind open question 30.
      *
@@ -167,88 +227,195 @@ class SanityCheckTest {
          * minutes a half plus a mean stoppage of one and of three. Section
          * 3.16 says 92, which this band deliberately excludes. See open
          * question 28.
+         *
+         * Unmoved by section 3.8, to the last digit, and it had to be: the
+         * clock is drawn once from SETUP_STREAM, which section 3.8 neither
+         * reads nor reorders. A movement here would have meant the seeding
+         * changed rather than the match.
          */
         @SpecRef("3.1")
         val TICKS = 93.9..94.1
 
         /**
-         * Measured 15.30865, against 15.30 derived from the measured tick
-         * count: 46.996 possessions times 0.613733 for the possession duel
-         * times 0.530435 for the chance duel. Section 3.16 says 16. See open
-         * question 30.
+         * Measured 15.34915, against 15.30 derived from the tick count before
+         * section 3.8: 46.996 possessions times 0.613733 for the possession
+         * duel times 0.530435 for the chance duel. Section 3.16 says 16. See
+         * open question 30.
+         *
+         * Up from 15.30865 with section 3.8, by four hundredths of a shot. The
+         * away side is the victim of 56 per cent of the rolls and plays here
+         * with an empty bench, so it is the side more often reduced to ten,
+         * and the man it loses is usually a defender or a midfielder. The home
+         * side is shooting at a defence that is a man short more often than
+         * its own attack is.
          */
         @SpecRef("3.16")
         val HOME_SHOTS = 15.1..15.5
 
         /**
-         * Measured 11.9297, against 11.89 derived the same way: 46.996 times
+         * Measured 11.92575, against 11.89 derived the same way: 46.996 times
          * 0.55 times 0.46. Section 3.16 says 12.6. See open question 30.
+         *
+         * Down from 11.9297 with section 3.8, by four thousandths of a shot,
+         * the other half of the victim draw's asymmetry: the away side loses
+         * its own men more often than the home side loses theirs, so its own
+         * attack is the one more often short. The movement is an order of
+         * magnitude smaller than the home side's because the two effects on
+         * this figure very nearly cancel.
          */
         @SpecRef("3.16")
         val AWAY_SHOTS = 11.75..12.10
 
         /**
-         * Measured 1.3333 at home and 1.32355 away. Both are the shot volume
+         * Measured 1.33745 at home and 1.3225 away. Both are the shot volume
          * above times the conversion below. Section 3.16 says 1.4 for each,
          * and the difference is entirely the shot shortfall, since the
          * conversion rates do match. See open question 30.
+         *
+         * Home up from 1.3333 and away down from 1.32355 with section 3.8,
+         * both of them following their own shot volumes and their own
+         * conversion rates, which move the same way for the same reason.
          */
         @SpecRef("3.16")
         val GOALS = 1.28..1.38
 
         /**
-         * Measured 0.00975. Section 3.6c predicts a near cancellation rather
+         * Measured 0.01495. Section 3.6c predicts a near cancellation rather
          * than an exact one, so this is bounded rather than asserted equal, at
          * roughly four standard errors of the difference.
+         *
+         * Up from 0.00975 with section 3.8, and necessarily so: it is the gap
+         * between two figures that moved in opposite directions. It is still
+         * well inside the limit, which is unchanged.
          */
         @SpecRef("3.6c")
         const val GOAL_GAP_LIMIT = 0.05
 
         /**
-         * Measured 0.0870946. The exact value with no goals yet scored is
+         * Measured 0.0871351. The exact value with no goals yet scored is
          * 5.5 over 62.605, which is 0.087852, and the anti blowout ladder
          * pulls the average a little under it. Section 3.15 says 8.8 per cent,
          * so this one agrees.
+         *
+         * Up from 0.0870946 with section 3.8, by four hundred thousandths.
+         * Section 3.8 changes no shot weight at all, so this moves only
+         * because a side a man short concedes chances from better positions;
+         * the movement is the smallest of any figure here.
          */
         @SpecRef("3.15")
         val HOME_CONVERSION = 0.085..0.089
 
         /**
-         * Measured 0.1109458, against an exact 5.5 over 49.495, which is
+         * Measured 0.1108945, against an exact 5.5 over 49.495, which is
          * 0.111122. Section 3.15 says 11.1 per cent, so this one agrees too,
          * and the pair of them is the inverted home advantage of the classic
          * rules.
+         *
+         * Down from 0.1109458 with section 3.8, the mirror of the home figure
+         * above and for the mirror of its reason.
          */
         @SpecRef("3.15")
         val AWAY_CONVERSION = 0.109..0.113
 
         /**
-         * Measured 0.5321090. Section 3.5's duel counter gives 53.2 per cent
+         * Measured 0.5327066. Section 3.5's duel counter gives 53.3 per cent
          * for the home side. Section 3.16 says 55. The band excludes both 55
          * and the 50 that a share of ticks would give. See open question 29.
+         *
+         * Up from 0.5321090 with section 3.8. The possession duel compares the
+         * two midfields, and the away side loses midfielders more often than
+         * the home side does, so the home side wins more of them.
          */
         @SpecRef("3.5")
         val POSSESSION_SHARE = 0.525..0.540
 
         /**
-         * Measured 16.3187, against 46.996 times 0.613733 times 0.565217,
+         * Measured 16.34575, against 46.996 times 0.613733 times 0.565217,
          * which is 16.30. Section 3.16's 16, computed from 46 possessions,
          * would be 15.96.
+         *
+         * Up from 16.3187 with section 3.8, for the same reason as the four
+         * four two's home figure and a little less strongly. This lineup's
+         * midfield is already below section 3.4's minimum and collapsed to the
+         * degenerate rating, so losing one of its two midfielders costs it
+         * nothing at all and only the defenders and the forwards matter here.
          */
         @SpecRef("3.16")
         val FULL_LINE_HOME_SHOTS = 16.1..16.5
 
         /**
-         * Measured 12.958, against 46.996 times 0.55 times 0.5, which is
+         * Measured 12.971, against 46.996 times 0.55 times 0.5, which is
          * 12.92. Section 3.16's 12.6 is the same arithmetic over 46
          * possessions rather than over the 47 section 3.1 produces.
+         *
+         * Up from 12.958 with section 3.8, which is the one figure here that
+         * moves the opposite way to its four four two counterpart. The reason
+         * is the midfield above: with the midfield already degenerate on both
+         * sides, the only losses that count are a defender, which helps the
+         * opponent, and a forward, which the risk groups make rare, so both
+         * sides gain and neither loses.
          */
         @SpecRef("3.16")
         val FULL_LINE_AWAY_SHOTS = 12.80..13.15
 
-        /** Measured 1.4212 at home and 1.43515 away. Section 3.16 says 1.4. */
+        /**
+         * Measured 1.42375 at home and 1.43705 away. Section 3.16 says 1.4.
+         *
+         * Both up with section 3.8, from 1.4212 and 1.43515, following the two
+         * shot volumes above.
+         */
         @SpecRef("3.16")
         val FULL_LINE_GOALS = 1.37..1.48
+
+        /**
+         * Measured 1.28375. Section 3.8's own tables put the pre overwrite rate
+         * near 1.5: a half spends about 15 minutes at phase nought, 15 at phase
+         * one and 17 at phase two, and the effective threshold in each phase is
+         * the table value plus the mean marking relief of 0.65 x 30 + 0.30 x 10
+         * + 0.05 x 0 = 22.5 from section 3.12's draw. First half: 15/92.5 +
+         * 15/62.5 + 17/52.5. Second half: 15/67.5 + 15/62.5 + 17/52.5. That sums
+         * to about 1.51, and the overwrites that follow a second red or a first
+         * injury only ever raise the threshold, which can only lower the count
+         * further, so 1.28 measured under 1.51 predicted is consistent.
+         *
+         * Section 3.16 says two to three. This one falls short. See open
+         * question 46.
+         */
+        @SpecRef("3.16")
+        val YELLOWS = 1.25..1.32
+
+        /**
+         * Measured one every 6.038647342995169 matches. Section 3.8's direct
+         * red table alone gives 15/1200 + 15/900 + 17/800 + 15/800 + 15/700 +
+         * 17/550, about 0.122 a match, or one every 8.2. But MatchEvent's own
+         * documentation records that a second yellow logs a SendingOff as well
+         * as a Booking, so this count is dismissals of both kinds, not direct
+         * reds alone. That second path is real traffic on top of the 8.2
+         * figure, and it is exactly why the measured rate is higher, not the
+         * same.
+         *
+         * Section 3.16 says one every eight to twelve. The measured rate is
+         * more frequent than that range's own floor, so this one falls short
+         * too, the opposite of what the direct red table alone would suggest.
+         * See open question 46.
+         */
+        @SpecRef("3.16")
+        val MATCHES_PER_SENDING_OFF = 5.7..6.4
+
+        /**
+         * Measured one every 17.248814144027598 matches per side. Section
+         * 3.8's own tables give 15/1500 + 15/1000 + 17/800 + 15/800 + 15/600 +
+         * 17/600, about 0.118 a match across both sides, so about one every
+         * 16.9 per side (0.059 a match per side), against no overwrite: the
+         * limiarLesao threshold modifiers in section 3.8 only ever touch
+         * limiarAmarelo, never the injury roll itself. The measured value
+         * agrees with that derivation to within a percent.
+         *
+         * Section 3.16 says one every six to ten per side. This one falls
+         * short by nearly a factor of two. See open question 46.
+         */
+        @SpecRef("3.16")
+        val MATCHES_PER_INJURY = 15.8..18.7
 
         /**
          * The one MatchSetup instance MATCHES is played against, held so that

@@ -2,8 +2,11 @@ package org.openfoot.engine.match
 
 import org.openfoot.model.CompetitionKind
 import org.openfoot.model.Marking
+import org.openfoot.model.PlayerStyle
 import org.openfoot.model.Position
 import org.openfoot.model.RuleSets
+import org.openfoot.model.Side
+import org.openfoot.model.SlotCandidate
 import org.openfoot.model.TeamSide
 import org.openfoot.model.HomeAdvantage
 import org.openfoot.model.Trait
@@ -104,4 +107,41 @@ class MatchSideTest {
 
     private fun setup(home: MatchSide, away: MatchSide) =
         MatchSetup(home = home, away = away, season = 1, rules = RuleSets.CLASSIC)
+
+    /**
+     * A match player answers the three questions section 3.2's table asks, so
+     * that section 3.8 can choose a substitute for a vacated cell with the
+     * same search section 5.4 used to fill it in the first place.
+     */
+    @Test
+    fun `a match player is a slot candidate`() {
+        val player = Lineups.player(
+            slot = 9,
+            strength = 50,
+            side = Side.LEFT,
+            style = PlayerStyle.OFFENSIVE,
+        )
+        val candidate: SlotCandidate = player
+        assertEquals(Position.FULLBACK, candidate.position)
+        assertEquals(Side.LEFT, candidate.side)
+        assertEquals(PlayerStyle.OFFENSIVE, candidate.style)
+    }
+
+    /**
+     * The candidate's position is his natural one, not the cell he is standing
+     * in. Section 3.3 already penalises him for the mismatch; a search that
+     * read the cell would find a centre back playing in midfield eligible for
+     * a midfield cell and the penalty would compound.
+     */
+    @Test
+    fun `a slot candidate reports the position the player was born to`() {
+        val player = Lineups.player(
+            slot = 13,
+            strength = 50,
+            position = Position.CENTREBACK,
+            side = Side.RIGHT,
+            style = PlayerStyle.DEFENSIVE,
+        )
+        assertEquals(Position.CENTREBACK, (player as SlotCandidate).position)
+    }
 }

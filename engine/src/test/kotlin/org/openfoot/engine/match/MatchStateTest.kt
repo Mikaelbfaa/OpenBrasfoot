@@ -63,6 +63,30 @@ class MatchStateTest {
         )
     }
 
+    /**
+     * A fresh state has nothing on record for section 3.8 either: no cards, no
+     * injuries and no minutes planned. A side that has not been handed a plan
+     * gets the empty one rather than a plan of nobody's choosing, which is
+     * what lets a state be built by hand for a test of something else without
+     * that test having to know anything about substitutions.
+     */
+    @Test
+    fun `a fresh state carries no discipline record and no plan`() {
+        val state = initialState(setup(), TeamSide.HOME)
+
+        assertEquals(DisciplineCounts(), state.counts, "counts")
+        assertEquals(SubstitutionPlan.NONE, state.home.plan, "home plan")
+        assertEquals(SubstitutionPlan.NONE, state.away.plan, "away plan")
+    }
+
+    /**
+     * A minute is the energy drain, then section 3.8's roll, then the tick, so
+     * a minute can now log more than the duel and the tick's own event. This
+     * seed's minute produces neither a card nor an injury, which the assertion
+     * on the log size below says outright: two events, and both of them from
+     * the tick. Playing a minute whose chain does fire is DisciplineChainTest's
+     * job, not this one's.
+     */
     @Test
     fun `one minute alternates possession whatever happened in it`() {
         val clock = MatchClock(firstHalfMinutes = 46, secondHalfMinutes = 48)
@@ -71,6 +95,7 @@ class MatchStateTest {
 
         assertEquals(TeamSide.AWAY, after.possessor, "possession alternates unconditionally")
         assertEquals(2, after.log.size - before.log.size, "a duel and one other event")
+        assertEquals(DisciplineCounts(), after.counts, "this seed's minute produced nothing")
         assertTrue(after.log.all { it.minute == 40 }, "every event carries the minute it happened in")
     }
 }

@@ -1,7 +1,10 @@
 package org.openfoot.engine.match
 
+import org.openfoot.model.PlayerStyle
+import org.openfoot.model.Position
 import org.openfoot.model.Rng
 import org.openfoot.model.RuleSets
+import org.openfoot.model.Slot
 import org.openfoot.model.SplitMix64Rng
 import org.openfoot.model.TeamSide
 import kotlin.math.abs
@@ -16,6 +19,34 @@ import kotlin.test.assertTrue
  * match.
  */
 class MatchSimulationTest {
+
+    /**
+     * Three reserves, one for each part of the pitch, so that whichever cell a
+     * window vacates has somebody the search of section 5.4 can put in it.
+     */
+    private fun reserves(): List<MatchPlayer> = listOf(
+        Lineups.player(
+            slot = Slot.UNUSED_SUBSTITUTE.value,
+            strength = 70,
+            id = 30,
+            position = Position.MIDFIELDER,
+            style = PlayerStyle.DEFENSIVE,
+        ),
+        Lineups.player(
+            slot = Slot.UNUSED_SUBSTITUTE.value,
+            strength = 65,
+            id = 31,
+            position = Position.CENTREBACK,
+            style = PlayerStyle.DEFENSIVE,
+        ),
+        Lineups.player(
+            slot = Slot.UNUSED_SUBSTITUTE.value,
+            strength = 60,
+            id = 32,
+            position = Position.FORWARD,
+            style = PlayerStyle.OFFENSIVE,
+        ),
+    )
 
     private fun setup(homeStrength: Int = 50, awayStrength: Int = 50, season: Int = 1) =
         MatchSetup(
@@ -346,6 +377,37 @@ class MatchSimulationTest {
         )
     }
 
+    /**
+     * Finding 1 of the review of section 3.8's wiring, as an executable case.
+     *
+     * simulateMatch draws a substitution plan for every side that has a bench,
+     * and section 3.8 draws that plan's minutes without replacement by
+     * redrawing until it lands on a free one. FixedRng's nextInt never changes,
+     * so an unbounded redraw against it never ends: before drawFresh was
+     * capped, adding a bench to any case in this file hung the whole build with
+     * no failing assertion to point at. It is capped at the width of the
+     * window squared now and falls back on the first free minute, so this
+     * finishes, and the double counts its own draws so that a future unbounded
+     * loop fails here rather than hanging.
+     *
+     * The assertion that a substitution actually happened is what makes this a
+     * test of the bench path rather than only of termination: with every draw
+     * at nought the plan's routine minutes land late in the second half, by
+     * which time section 3.9's drain has taken everybody under the tiredness
+     * threshold that applies after the fortieth minute of the half.
+     */
+    @Test
+    fun `a match with a bench finishes against a generator whose draws never change`() {
+        val result = simulateMatch(setup(), FixedRng(GOAL_WINNING_DRAW), reserves(), reserves())
+
+        val duels = result.stats.home.possessionsWon + result.stats.away.possessionsWon
+        assertEquals(result.clock.totalMinutes, duels, "the match has to have run to the whistle")
+        assertTrue(
+            result.log.any { it is MatchEvent.Substitution },
+            "the plan was drawn and never used, so this pins termination and nothing else",
+        )
+    }
+
     @Test
     fun `every minute logs exactly one possession duel`() {
         val report = simulateMatch(setup(), SplitMix64Rng(99L))
@@ -395,16 +457,58 @@ private const val GOAL_WINNING_DRAW = 0.001
  * nextInt always returns zero, which keeps the once per match draws (the
  * starting possessor and both halves' stoppage) fixed too, so the match
  * length is deterministic as well.
+ *
+ * A generator that returns one value for every bound is not a generator, and
+ * the engine is entitled to assume it will eventually see a different one. The
+ * draw counter below is what keeps that assumption from turning into a hang:
+ * a loop that redraws until the value changes would spin here forever and the
+ * build would never finish, with no failing assertion to point at. The limit
+ * is far above what any legal match draws, which is three once per match plus
+ * about four a minute, and far below a loop that is not going to stop.
  */
 private class FixedRng(private val value: Double) : Rng {
+
+    private var draws = 0
+
     override fun nextBits(): Long = 0L
 
-    override fun nextInt(bound: Int): Int = 0
+    override fun nextInt(bound: Int): Int {
+        check(draws++ < DEGENERATE_DRAW_LIMIT) {
+            "a double that returns nought for every bound was asked for more than " +
+                "$DEGENERATE_DRAW_LIMIT integers, so something is looping on a draw that " +
+                "will never change"
+        }
+        return 0
+    }
 
     override fun nextDouble(): Double = value
 
     override fun fork(tag: Long): Rng = this
 }
+
+/**
+ * How many integer draws a double that returns one constant will answer before
+ * it decides it is being looped on.
+ *
+ * The play of a match draws three integers once and about four a minute over
+ * at most ninety seven minutes, so four hundred or so, plus at most one a
+ * minute for a side's substitution window.
+ *
+ * A bench costs far more than that against a double like this, and the reason
+ * is worth stating because it is what sets the limit. Section 3.8's plan draws
+ * its minutes without replacement, and against a generator whose value never
+ * changes every one of those draws collides, so each of them burns its
+ * window's whole cap, which is the width squared. Over the two chasing
+ * minutes, the second routine minute and the second late minute that is about
+ * nine hundred draws a side. A benched match through such a double therefore
+ * spends somewhere between two and three thousand draws in total, measured
+ * rather than estimated, by bracketing this constant.
+ *
+ * Ten thousand leaves roughly four times that headroom and is still instantly
+ * below anything unbounded. Raise it if a window in some rule set is ever
+ * widened enough to matter, and measure again rather than guessing.
+ */
+private const val DEGENERATE_DRAW_LIMIT = 10_000
 
 /**
  * Draw home reads for every call within one of its own ticks: possession duel,
@@ -463,9 +567,24 @@ private const val AWAY_LOSES_DUEL_DRAW = 0.99
  * minute (AWAY's ticks) on scoring = false.
  */
 private class LadderProofRng(private val scoring: Boolean) : Rng {
+
+    private var draws = 0
+
     override fun nextBits(): Long = 0L
 
-    override fun nextInt(bound: Int): Int = 0
+    /**
+     * Nought for every bound, and capped for the same reason FixedRng's is: a
+     * value that never changes must fail a loop that waits for it to change,
+     * not hang one.
+     */
+    override fun nextInt(bound: Int): Int {
+        check(draws++ < DEGENERATE_DRAW_LIMIT) {
+            "a double that returns nought for every bound was asked for more than " +
+                "$DEGENERATE_DRAW_LIMIT integers, so something is looping on a draw that " +
+                "will never change"
+        }
+        return 0
+    }
 
     override fun nextDouble(): Double = if (scoring) HOME_SHOT_DRAW else AWAY_LOSES_DUEL_DRAW
 

@@ -151,12 +151,113 @@ object RuleSets {
         ),
         keeperExemptHalf = Half.FIRST,
 
+        discipline = DisciplineRates(
+            victimHomeThreshold = 55,
+            phaseBounds = listOf(15, 30),
+            yellow = HalfThresholds(
+                firstHalf = PhaseThresholds(70, 40, 30),
+                secondHalf = PhaseThresholds(45, 40, 30),
+            ),
+            red = HalfThresholds(
+                firstHalf = PhaseThresholds(1200, 900, 800),
+                secondHalf = PhaseThresholds(800, 700, 550),
+            ),
+            injury = HalfThresholds(
+                firstHalf = PhaseThresholds(1500, 1000, 800),
+                secondHalf = PhaseThresholds(800, 600, 600),
+            ),
+            yellowMarkingRelief = listOf(30, 10, 0),
+            riskGroupSlots = listOf(10..13, 14..17, 3..8, 2..3, 8..9, 19..24, 1..1),
+            yellowRisk = listOf(
+                Band(0..24, RiskGroup.G0),
+                Band(25..39, RiskGroup.G1),
+                Band(40..64, RiskGroup.G2),
+                Band(65..72, RiskGroup.G3),
+                Band(73..81, RiskGroup.G4),
+                Band(82..84, RiskGroup.KEEPER),
+                Band(85..99, RiskGroup.G5),
+            ),
+            redRisk = listOf(
+                Band(0..0, RiskGroup.KEEPER),
+                Band(1..79, RiskGroup.G0),
+                Band(80..109, RiskGroup.G1),
+                Band(110..159, RiskGroup.G2),
+                Band(160..169, RiskGroup.G3),
+                Band(170..189, RiskGroup.G4),
+                Band(190..199, RiskGroup.G5),
+            ),
+            injuryRisk = listOf(
+                Band(0..0, RiskGroup.KEEPER),
+                Band(1..149, RiskGroup.G0),
+                Band(150..249, RiskGroup.G1),
+                Band(250..319, RiskGroup.G2),
+                Band(320..359, RiskGroup.G3),
+                Band(360..419, RiskGroup.G4),
+                Band(420..499, RiskGroup.G5),
+            ),
+        ),
+        injuryRules = InjuryRules(
+            energyBase = listOf(
+                Band(0..9, 5),
+                Band(10..49, 1),
+                Band(50..Int.MAX_VALUE, 0),
+            ),
+            shortTermDraw = 0..13,
+            longTermDraw = 0..19,
+            longTermOffset = 5,
+            ageTerms = listOf(
+                Band(Int.MIN_VALUE..20, InjuryTerm(usesEnergyBase = false, constant = 0, usesLongTerm = false)),
+                Band(21..25, InjuryTerm(usesEnergyBase = true, constant = 1, usesLongTerm = false)),
+                Band(26..30, InjuryTerm(usesEnergyBase = true, constant = 2, usesLongTerm = false)),
+                Band(31..35, InjuryTerm(usesEnergyBase = true, constant = 3, usesLongTerm = false)),
+                Band(36..45, InjuryTerm(usesEnergyBase = true, constant = 0, usesLongTerm = true)),
+                Band(46..Int.MAX_VALUE, InjuryTerm(usesEnergyBase = true, constant = 10, usesLongTerm = true)),
+            ),
+            severity = listOf(
+                Band(1..1, 70),
+                Band(0..3, 40),
+                Band(4..9, 20),
+                Band(10..99, 0),
+            ),
+            permanentLossAge = 35,
+            permanentLossAmount = 5,
+        ),
+        substitutions = SubstitutionRules(
+            maxPerSide = 5,
+            windowOpensFrom = 5,
+            sacrificeCells = listOf(18..25, 14..17),
+            sendingOffSacrificeMaxSlot = 13,
+            chasingWindow = 19..38,
+            chasingCount = 2,
+            extraChasingPercent = 69,
+            routinePools = listOf(
+                Band(0..50, 36..42),
+                Band(51..90, 16..35),
+                Band(91..99, 5..15),
+            ),
+            routineCount = 2,
+            lateWindow = 43..47,
+            lateChancePercents = listOf(79, 49),
+            halfTimeSwapPercent = 50,
+            halfTimeDeficit = listOf(1, 2),
+            chasingDeficit = listOf(0, 1),
+            tirednessThreshold = 60,
+            lateTirednessThreshold = 90,
+            lateTirednessFromMinute = 40,
+        ),
+        manyYellowsAtLeast = 6,
+        manyYellowsFactor = 2,
+        manyRedsAtLeast = 2,
+        redOverwriteFactor = 2,
+        anyInjuryAtLeast = 1,
+        injuryOverwriteFactor = 5,
+
         lineupRelaxationPasses = 2,
         benchTemplate = listOf(1, 1, 2, 4, 4, 12, 15, 15, 20, 20, 23),
     )
 
     /**
-     * Exactly three deltas, each of them a defect of the original.
+     * Exactly five deltas, each of them a defect of the original.
      *
      * The first two live in the aggregate and shot code: slot eighteen
      * counting in no line, and home advantage applied with the wrong sign and
@@ -166,6 +267,16 @@ object RuleSets {
      * relaxation passes and section 3.15 item 7 says a loop bound leaves one
      * of them unreachable, so classic runs two and modern runs all three. It
      * changes which eleven the AI fields, not how a match is played.
+     *
+     * The last two live in section 3.8's card thresholds, both named as
+     * defects by section 3.15 item 5: after two sendings off the yellow
+     * threshold is overwritten to twice the red one, and after one injury it
+     * is overwritten again to five times the injury one, both of which
+     * collapse the booking rate for the rest of the match. Modern switches
+     * both off by putting their trigger count out of reach, the same sentinel
+     * idiom energyCostByAge already uses for its own fall through, rather than
+     * through a flag. The doubling past five yellows is not named as a defect
+     * and both rule sets keep it.
      *
      * The fixed line divisors of five, five and three are deliberately not
      * changed here. That is a balance decision rather than a defect, and it
@@ -177,5 +288,7 @@ object RuleSets {
         attackSlots = 18..25,
         shotHomeRule = ModernShotHomeRule,
         lineupRelaxationPasses = 3,
+        manyRedsAtLeast = Int.MAX_VALUE,
+        anyInjuryAtLeast = Int.MAX_VALUE,
     )
 }
