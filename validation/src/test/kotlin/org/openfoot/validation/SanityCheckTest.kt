@@ -1,5 +1,6 @@
 package org.openfoot.validation
 
+import org.openfoot.engine.match.MatchEvent
 import org.openfoot.engine.match.MatchReport
 import org.openfoot.engine.match.MatchSetup
 import org.openfoot.engine.match.simulateMatch
@@ -67,6 +68,13 @@ import kotlin.test.assertTrue
  * way that implies: the home shot volume, the home goals, the home conversion
  * and the home possession share all rise slightly, and the away figures all
  * fall slightly.
+ *
+ * The last three tests pin the discipline bullet of section 3.16 itself.
+ * Yellows and injuries fall short of the ranges it states, as their own
+ * tables predict. Sendings off do not fall short: they are too frequent, not
+ * too rare, for a reason the direct red table alone cannot show, because a
+ * second yellow logs a dismissal as well as a booking, so the sending off
+ * count is not the direct red table alone. See open question 46.
  */
 class SanityCheckTest {
 
@@ -158,6 +166,24 @@ class SanityCheckTest {
         again.forEachIndexed { index, result ->
             assertEquals(MATCHES[index], result, "match $index")
         }
+    }
+
+    @Test
+    fun `a match produces a couple of yellow cards`() {
+        val yellows = MATCHES.mean { it.log.count { event -> event is MatchEvent.Booking } }
+        assertTrue(yellows in YELLOWS, "yellows averaged $yellows")
+    }
+
+    @Test
+    fun `a sending off is rare`() {
+        val perMatch = MATCHES.mean { it.log.count { event -> event is MatchEvent.SendingOff } }
+        assertTrue(1.0 / perMatch in MATCHES_PER_SENDING_OFF, "one every ${1.0 / perMatch} matches")
+    }
+
+    @Test
+    fun `an injury is rarer still`() {
+        val perSide = MATCHES.mean { it.log.count { event -> event is MatchEvent.Injury } } / 2
+        assertTrue(1.0 / perSide in MATCHES_PER_INJURY, "one every ${1.0 / perSide} per side")
     }
 
     /**
@@ -340,6 +366,56 @@ class SanityCheckTest {
          */
         @SpecRef("3.16")
         val FULL_LINE_GOALS = 1.37..1.48
+
+        /**
+         * Measured 1.28375. Section 3.8's own tables put the pre overwrite rate
+         * near 1.5: a half spends about 15 minutes at phase nought, 15 at phase
+         * one and 17 at phase two, and the effective threshold in each phase is
+         * the table value plus the mean marking relief of 0.65 x 30 + 0.30 x 10
+         * + 0.05 x 0 = 22.5 from section 3.12's draw. First half: 15/92.5 +
+         * 15/62.5 + 17/52.5. Second half: 15/67.5 + 15/62.5 + 17/52.5. That sums
+         * to about 1.51, and the overwrites that follow a second red or a first
+         * injury only ever raise the threshold, which can only lower the count
+         * further, so 1.28 measured under 1.51 predicted is consistent.
+         *
+         * Section 3.16 says two to three. This one falls short. See open
+         * question 46.
+         */
+        @SpecRef("3.16")
+        val YELLOWS = 1.25..1.32
+
+        /**
+         * Measured one every 6.038647342995169 matches. Section 3.8's direct
+         * red table alone gives 15/1200 + 15/900 + 17/800 + 15/800 + 15/700 +
+         * 17/550, about 0.122 a match, or one every 8.2. But MatchEvent's own
+         * documentation records that a second yellow logs a SendingOff as well
+         * as a Booking, so this count is dismissals of both kinds, not direct
+         * reds alone. That second path is real traffic on top of the 8.2
+         * figure, and it is exactly why the measured rate is higher, not the
+         * same.
+         *
+         * Section 3.16 says one every eight to twelve. The measured rate is
+         * more frequent than that range's own floor, so this one falls short
+         * too, the opposite of what the direct red table alone would suggest.
+         * See open question 46.
+         */
+        @SpecRef("3.16")
+        val MATCHES_PER_SENDING_OFF = 5.7..6.4
+
+        /**
+         * Measured one every 17.248814144027598 matches per side. Section
+         * 3.8's own tables give 15/1500 + 15/1000 + 17/800 + 15/800 + 15/600 +
+         * 17/600, about 0.118 a match across both sides, so about one every
+         * 16.9 per side (0.059 a match per side), against no overwrite: the
+         * limiarLesao threshold modifiers in section 3.8 only ever touch
+         * limiarAmarelo, never the injury roll itself. The measured value
+         * agrees with that derivation to within a percent.
+         *
+         * Section 3.16 says one every six to ten per side. This one falls
+         * short by nearly a factor of two. See open question 46.
+         */
+        @SpecRef("3.16")
+        val MATCHES_PER_INJURY = 15.8..18.7
 
         /**
          * The one MatchSetup instance MATCHES is played against, held so that

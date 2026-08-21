@@ -1131,3 +1131,105 @@ conta - só as notas deles. Contra: ela descreve uma lista de escalação como e
 original não existe tal lista; existe o array de elenco, e nele o reserva não tem como aparecer antes
 de um titular. Rejeitada por isso, e não por ser pior: no exemplo acima ela é o resultado mais
 sensato dos dois, e é ela que um reimplementador que não se importe com fidelidade deveria escolher.
+
+### 46. As taxas de cartão, expulsão e lesão da 3.16 não vêm das tabelas da 3.8
+
+É a mesma forma dos itens 28 a 30: a 3.16 e as próprias tabelas da 3.8 discordam, e a validação
+registra a discordância em vez de esticar uma faixa para escondê-la.
+
+A 3.16 diz "~2-3 amarelos por jogo; um vermelho a cada ~8-12 partidas; uma lesão a cada ~6-10
+partidas por lado". A 3.8 sorteia **um** time-vítima por minuto, não um por lado, então cartões e
+lesões são taxas de partida inteira, não de lado. Um tempo de 47 minutos passa cerca de 15 minutos na
+fase 0, 15 na fase 1 e 17 na fase 2. O alívio médio de marcação é `0,65 x 30 + 0,30 x 10 + 0,05 x 0 =
+22,5`, do sorteio da 3.12.
+
+**Amarelo.** O limiar efetivo de cada fase é o valor da tabela mais os 22,5 do alívio médio: 92,5,
+62,5 e 52,5 no primeiro tempo; 67,5, 62,5 e 52,5 no segundo.
+
+```
+15/92,5 + 15/62,5 + 17/52,5 + 15/67,5 + 15/62,5 + 17/52,5 = 1,512 por partida
+```
+
+As sobrescritas do limiar (defeito 5 da 3.15) só aumentam esse limiar, nunca o diminuem, então só
+derrubam essa conta. Medido em `SanityCheckTest`: **1,28375** por partida, abaixo de 1,512 e coerente
+com a direção das sobrescritas. A 3.16 pede 2 a 3. Fica abaixo.
+
+**Vermelho.** O limiar de vermelho não sofre nenhuma das sobrescritas da 3.8: elas mexem só no
+limiar do amarelo. Sobre a tabela de vermelho direto:
+
+```
+15/1200 + 15/900 + 17/800 + 15/800 + 15/700 + 17/550 = 0,122 por partida, uma expulsão a cada 8,2
+```
+
+A 3.16 pede 8 a 12, e essa conta bateria. Mas `MatchEvent.SendingOff` não conta só o vermelho
+direto: a 3.8 chama o segundo amarelo de "evento distinto", e a documentação de
+`MatchEvent.Booking` registra que um segundo amarelo grava os dois eventos, o cartão e a expulsão.
+A contagem medida é de expulsões dos dois tipos, não só de vermelho direto, e por isso vem mais alta
+que a conta acima: **uma a cada 6,038647342995169 partidas**, medido em `SanityCheckTest`. Isso fica
+abaixo do piso de 8 que a própria 3.16 pede. Também fica abaixo, e pelo lado oposto ao que a tabela
+de vermelho direto sozinha sugeriria: não é que faltem expulsões, é que a tabela de vermelho direto
+nunca foi a conta inteira.
+
+**Lesão.** Sem sobrescrita nenhuma tocando o sorteio de lesão:
+
+```
+15/1500 + 15/1000 + 17/800 + 15/800 + 15/600 + 17/600 = 0,118 por partida nos dois lados, uma lesão
+a cada 16,9 partidas por lado
+```
+
+Medido: **uma a cada 17,248814144027598 partidas por lado**, a menos de 2% da conta acima. A 3.16
+pede 6 a 10 por lado. Fica abaixo por quase o dobro.
+
+**A leitura que resolveria dois dos três números, e pioraria o terceiro.** Sortear a cadeia de
+disciplina para **cada lado independentemente** a cada minuto, em vez de um único time-vítima por
+partida, dá a cada lado o sorteio inteiro que hoje os dois lados dividem entre si: a taxa que hoje é
+o **total combinado** dos dois lados passaria a valer para **cada lado sozinho**, sem repartição
+nenhuma.
+
+Amarelo, sobre o valor medido e não sobre a previsão pré-sobrescritas: `1,28375 x 2 = 2,5675` por
+partida - dentro dos 2 a 3 da 3.16, e não perto da borda. Lesão, sobre o valor medido: hoje o total
+combinado é `2 / 17,248814144027598 = 0,11596` por partida; sob a leitura alternativa cada lado
+sozinho passaria a ter essa taxa inteira, uma lesão a cada `1 / 0,11596 = 8,6` partidas por lado -
+dentro dos 6 a 10 da 3.16. Os dois usam o valor medido, não a previsão anterior às sobrescritas, que
+é o que a seção anterior mediu e a validação registra.
+
+O vermelho não segue essa mesma conta, porque a leitura atual não bate com a 3.16 por dois motivos
+independentes: o time-vítima divide o sorteio de vermelho direto ao meio, **e** dilui o sorteio de
+segundo amarelo, que só conta como par quando as duas cartas caem no mesmo jogador. O vermelho
+direto simplesmente dobra: `0,122 x 2 = 0,244` por partida. O segundo amarelo não dobra, escala com
+o **quadrado** do volume de cada lado, porque a chance de duas cartas caírem no mesmo jogador é a
+chance conjunta de duas cartas, cada uma já proporcional ao volume. Hoje, o excedente medido sobre a
+tabela de vermelho direto - `0,165600 - 0,122 = 0,0436` por partida, combinado - é inteiramente
+segundo amarelo, e se reparte em cerca de `0,0436 / 2 = 0,0218` por lado, sobre um volume de amarelo
+de `1,28375 / 2 = 0,642` por lado. Sob a leitura alternativa esse volume por lado dobra para
+`1,28375`, e como o segundo amarelo escala com o quadrado do volume, o excedente por lado escala por
+`2^2 = 4`: `0,0218 x 4 = 0,0872` por lado, `0,174` somado nos dois lados. Total de vermelho sob a
+leitura alternativa: `0,244 + 0,174 = 0,418` por partida, uma expulsão a cada `1 / 0,418 = 2,4`
+partidas - bem fora dos 8 a 12 da própria 3.16.
+
+**A leitura alternativa não é uma correção parcial: ela troca qual dos três números falha, e piora
+o pior deles.** Na leitura atual o vermelho já é o número mais próximo de bater: medido, ele é
+`8 / 6,038647342995169 = 1,3` vezes mais frequente que o piso da 3.16. Sob a leitura alternativa ele
+vira o único que não bate, e passa a `8 / 2,4 = 3,3` vezes mais frequente que esse mesmo piso - o
+pior desvio dos seis números desta questão, de longe, e cerca do triplo do desvio que a leitura
+atual já tem no mesmo número.
+
+**Resolução (MEDIDO, `SanityCheckTest`):** manter um único time-vítima por minuto, exatamente como a
+3.8 descreve, e registrar que os três números da 3.16 não batem com essa leitura, um deles - o
+vermelho - por um mecanismo que a tabela da 3.8 sozinha não deixa ver. O time-vítima é o único
+mecanismo do jogo parecido com viés de arbitragem que a 3.8 nomeia, e é o que faz o mandante e o
+visitante perderem jogadores em proporções diferentes ao longo de uma partida.
+
+**Leitura alternativa, rejeitada.** Sortear a cadeia de disciplina uma vez por lado a cada minuto,
+em vez de um único time-vítima. A favor dela: o amarelo e a lesão medidos, dobrados, caem dentro da
+faixa da 3.16, o que a leitura atual não consegue em nenhum dos três números. Rejeitada por dois
+motivos, um estrutural e um aritmético. O estrutural: a 3.8 nomeia o sorteio de time-vítima, ao pé
+da letra - `Time-vitima: rand(100) > 55` - como o único viés de arbitragem do jogo; dois sorteios
+independentes, um por lado, não são esse viés, são a ausência dele. O aritmético: a mesma troca que
+resolve o amarelo e a lesão piora o vermelho de 1,3 para 3,3 vezes o piso da 3.16, porque o sorteio
+de segundo amarelo escala com o quadrado do volume por lado, não com o volume. Trocar dois números
+que erram por pouco por um terceiro que passa a errar por um fator de três não é a mesma troca que o
+resumo "dois de três" sugere à primeira vista.
+
+Isto é **observável**: contar cartões, expulsões e lesões de uma temporada IA contra IA no jogo
+original resolve.

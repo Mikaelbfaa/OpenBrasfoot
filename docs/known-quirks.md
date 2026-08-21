@@ -63,6 +63,26 @@ As regras anti-exploit acima só valem quando há clube humano na partida.
 
 Spec: seções 3.6b e 3.6c. Mantido.
 
+## Nunca reproduzido, em nenhum conjunto de regras
+
+### Pools de minutos de substituição estáticos e compartilhados
+
+O item 8 da seção 3.15 registra que os pools de minutos de substituição do original são
+estáticos e compartilhados, reembaralhados por partida, de modo que partidas consecutivas sorteiam
+minutos correlacionados. É um defeito nomeado como qualquer outro desta página, mas ao contrário de
+todos os outros ele não sai reproduzido sob `CLASSIC` nem corrigido sob `MODERN`: `substitutionPlan`
+sorteia um plano novo por time e por partida, de um gerador derivado só da semente daquela partida, e
+nada é compartilhado entre partidas.
+
+É uma divergência deliberada, não uma omissão. O defeito é estado global mutável, e reproduzi-lo
+faria o resultado de uma partida depender de quais partidas rodaram antes dela, o que quebra a
+propriedade sobre a qual o projeto inteiro é construído: uma carreira se repete a partir da semente e
+uma partida se resimula sozinha. A distribuição de cada plano isolado continua saindo das mesmas
+faixas e probabilidades que a 3.8 publica; só a correlação entre partidas vizinhas se perde, e nenhuma
+figura da 3.16 a mede.
+
+Spec: seção 3.15 item 8, seção 3.8. Resolução registrada em `spec/OPEN-QUESTIONS.md`, item 42.
+
 ## Ainda não implementados
 
 Ficam registrados aqui para quando o código chegar nessas partes.
