@@ -16,11 +16,12 @@ import org.openfoot.model.Trait
 /**
  * One lineup entry as the match engine sees it.
  *
- * Deliberately not the world model player, which does not exist yet. The
- * rating and aggregate formulas of sections 3.3, 3.4 and 3.6 read the cell,
- * the natural position, the strength, the abilities, the two characteristics
- * and whether the player represents the side's country, so an adapter will
- * build this from a Player once worldgen lands and nothing here changes. Age
+ * Deliberately not the world model player. The rating and aggregate formulas
+ * of sections 3.3, 3.4 and 3.6 read the cell, the natural position, the
+ * strength, the abilities, the two characteristics and whether the player
+ * represents the side's country, and nothing else of a Player; Player.inSlot
+ * is the adapter that builds one of these from a Player, once per lineup
+ * rather than once per formula, and nothing here changes because of it. Age
  * is section 3.9's, read by the energy drain and by injury duration rather
  * than by any of those formulas, and identity is what energy and bookings are
  * kept by.

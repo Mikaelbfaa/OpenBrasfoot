@@ -247,7 +247,7 @@ private fun MatchState.sacrificeFor(team: TeamSide, cell: Slot, minute: Int): Ma
     if (cell.value > subs.sendingOffSacrificeMaxSlot) {
         return this
     }
-    if (!canSubstitute(side, sideState.bench) || sideState.substitutionsUsed >= subs.maxPerSide) {
+    if (!canSubstitute(side, sideState.bench, sideState.substitutionsUsed, subs.maxPerSide)) {
         return this
     }
     val off = sacrificeTarget(side, setup.rules) ?: return this
@@ -292,8 +292,12 @@ private fun MatchState.injure(team: TeamSide, minute: Int, rng: Rng): MatchState
         counts = counts.copy(injuries = counts.injuries + 1),
     )
 
-    if (!canSubstitute(side, sideState.bench) ||
-        sideState.substitutionsUsed >= setup.rules.substitutions.maxPerSide
+    if (!canSubstitute(
+            side,
+            sideState.bench,
+            sideState.substitutionsUsed,
+            setup.rules.substitutions.maxPerSide,
+        )
     ) {
         return hurt.leavePitch(team, player)
     }

@@ -1043,13 +1043,17 @@ do intervalo, que nenhum sorteio de vítima poderia governar, porque não há mi
 intervalo. Se a janela do intervalo abre para os dois times independentemente, a das outras duas
 também abre.
 
-**Resolução (INFERIDO):** a janela abre para **os dois times, independentemente**, em todo minuto
-cuja cadeia disciplinar não produziu cartão nem lesão. A posição da janela na cadeia é lida como
-"depois de resolvida a disciplina do minuto", e não como "sobre o time-vítima". A janela do intervalo
-é pendurada no **primeiro minuto do segundo tempo**, que é o único minuto que um motor minuto a
-minuto tem para representar o intervalo, e fica fora do portão de "minuto >= 5" da própria cadeia,
-então não colide com nenhum minuto de rotina, cujo pool mais cedo começa justamente em 5. Testado em
-`SubstitutionWindowTest`.
+**Resolução (INFERIDO):** a janela abre para **os dois times, independentemente**. A posição da
+janela na cadeia é lida como "depois de resolvida a disciplina do minuto", e não como "sobre o
+time-vítima". Isso dá duas regras, não uma: as janelas de "correndo atrás" e de rotina, que são
+minuto de jogo, só abrem num minuto cuja cadeia disciplinar não produziu cartão nem lesão; a janela
+do intervalo não é condicionada ao resultado da cadeia de jeito nenhum. A diferença não é um
+capricho: a própria 3.8 restringe a quarta ramificação da cadeia com "se 2º tempo e minuto >= 5", e a
+janela do intervalo é pendurada no **primeiro minuto do segundo tempo** (minuto 0), que fica abaixo
+desse portão. A janela do intervalo não pode ser aquela quarta ramificação, porque nunca conseguiria
+disparar nela; ela é o parágrafo próprio e separado da 3.8 sobre o intervalo, e por isso não herda o
+portão de resultado, que só faz sentido para um ramo que compete com cartão e lesão pelo mesmo minuto
+de jogo. Testado em `SubstitutionWindowTest`.
 
 **Leitura alternativa, rejeitada.** A janela abre só para o time-vítima do minuto. É a leitura
 literal da cadeia e tem a seu favor a economia de sortear a vítima uma vez só. Rejeitada pela
@@ -1233,3 +1237,37 @@ resumo "dois de três" sugere à primeira vista.
 
 Isto é **observável**: contar cartões, expulsões e lesões de uma temporada IA contra IA no jogo
 original resolve.
+
+### 47. Se o sacrifício da expulsão e a reposição da lesão valem no 1º tempo
+
+A 3.8 tem duas frases sobre limite de tempo de substituição, e elas não estão no mesmo lugar. Em
+Consequências, a frase da expulsão - "se o slot <= 13 e o time é da IA com substituições disponíveis,
+a IA sacrifica um atacante" - e a da lesão - "sai e é substituído" - não mencionam tempo de jogo
+nenhum. Só mais abaixo, no parágrafo que introduz os pools de minutos "correndo atrás" e de rotina,
+aparece "Substituições da IA: 5 por time, só no 2º tempo (+ janela do intervalo)", seguida por "Cada
+time sorteia seus minutos" e pelas três janelas que a IA abre por conta própria.
+
+O motor lê o sacrifício e a reposição como não sujeitos a essa restrição: `sacrificeFor` e a troca
+que `injure` faz não olham a metade do relógio, só `canSubstitute` e o teto de cinco por lado.
+
+**Resolução (INFERIDO):** a restrição "só no 2º tempo" vale para as três janelas voluntárias que a
+IA sorteia por conta própria, e não para o sacrifício da expulsão nem para a reposição da lesão, que
+disparam como consequência mecânica de um evento e não de uma janela. A frase está encaixada no
+parágrafo que descreve como esses sorteios funcionam, não no parágrafo de Consequências onde as duas
+regras forçadas são descritas; ler a restrição para dentro delas exigiria emprestar uma cláusula de
+um parágrafo posterior sobre um mecanismo diferente. Há também um argumento de resultado: um lado
+que perde um jogador para uma lesão no primeiro tempo e não pode repô-lo até o intervalo joga um
+trecho inteiro do primeiro tempo com dez, uma escalação que o time original nunca produziria, porque
+o original resolve a temporada inteira e não tem nenhum instante em que um time jogue diminuído sem
+poder repor. Testado em `DisciplineChainTest`, nos casos "a sending off at cell thirteen costs a
+forward too" e "an injury is replaced and costs three duration draws", os dois rodados no minuto
+vinte do primeiro tempo e os dois terminando com uma substituição registrada no log.
+
+**Leitura alternativa, rejeitada.** A frase "só no 2º tempo" é irrestrita e cobre toda substituição
+da IA, forçada ou voluntária; um motor fiel ao CLASSIC recusaria o sacrifício e a reposição no
+primeiro tempo, deixando o lado a dez ou a onze deformado até o intervalo. A favor dela: a frase não
+tem nenhum qualificador do tipo "nas janelas abaixo", e a leitura mais direta de uma restrição de
+tempo colocada perto do número de substituições é que ela vale para todas elas. Rejeitada porque
+produziria, no primeiro tempo, um lado preso sem nenhum recurso do jogo diante de uma expulsão ou de
+uma lesão, uma consequência que a frase citada não anuncia e que o resto da 3.8 nunca discute - nenhuma
+outra regra da seção supõe um time jogando diminuído no primeiro tempo sem poder repor.

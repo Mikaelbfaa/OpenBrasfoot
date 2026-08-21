@@ -14,8 +14,12 @@ import org.openfoot.model.randRange
  *
  * days is what the squad reads to know when the player is available again.
  * permanentStrengthLoss is only reported here: strength lives on the squad,
- * which the engine cannot reach, so a later task is the one that applies it
- * and floors it at InjuryRules.strengthFloor.
+ * which the engine cannot reach, so a later task is the one that applies it.
+ * Section 3.8 also gives that loss a floor of one; nothing in the engine reads
+ * that floor, because there is no strength here for it to bound, so it is
+ * recorded here rather than as a RuleSet property nothing reads: whoever
+ * applies permanentStrengthLoss to a squad's strength is the one who must
+ * floor the result at one.
  */
 internal data class InjuryOutcome(val days: Int, val permanentStrengthLoss: Int)
 

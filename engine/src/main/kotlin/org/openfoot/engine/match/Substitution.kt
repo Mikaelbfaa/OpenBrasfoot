@@ -409,13 +409,16 @@ internal fun randomOutfielder(side: MatchSide, rules: RuleSet, rng: Rng): MatchP
 /**
  * The AI's substitution window for one side in one minute.
  *
- * Opened for both sides independently, in any minute whose discipline chain
- * produced no card and no injury. Section 3.8 lists the window as the fourth
- * branch of the victim chain, which would open it only for the side that
- * minute's victim draw happened to land on; but every side draws its own
- * minutes, so a side's own minute would fire only when it was also drawn as
- * that minute's victim, leaving the per side pools nearly dead. See
- * OPEN-QUESTIONS item 43.
+ * Opened for both sides independently. The chasing and routine windows are
+ * minutes of play, and each opens only when that minute's discipline chain
+ * produced no card and no injury; the interval window is not gated by the
+ * chain's outcome at all, because it stands for a minute of play that never
+ * happens, so no chain ever runs there for it to be gated by. See isInterval.
+ * Section 3.8 lists the window as the fourth branch of the victim chain,
+ * which would open it only for the side that minute's victim draw happened to
+ * land on; but every side draws its own minutes, so a side's own minute would
+ * fire only when it was also drawn as that minute's victim, leaving the per
+ * side pools nearly dead. See OPEN-QUESTIONS item 43.
  *
  * Three windows in the order section 3.8 lists them. The interval is the first
  * minute of the second half, which is the only minute a per minute engine has
@@ -453,10 +456,10 @@ internal fun MatchState.runSubstitutionWindow(
     val subs = rules.substitutions
     val side = setup.side(team)
     val sideState = of(team)
-    if (!canSubstitute(side, sideState.bench)) {
+    if (!canSubstitute(side, sideState.bench, sideState.substitutionsUsed, subs.maxPerSide)) {
         return this
     }
-    if (sideState.substitutionsUsed >= subs.maxPerSide || clock.halfOf(minute) != Half.SECOND) {
+    if (clock.halfOf(minute) != Half.SECOND) {
         return this
     }
 
@@ -499,20 +502,27 @@ internal fun MatchState.runSubstitutionWindow(
  * Whether the AI may substitute for this side at all, before any minute is
  * considered.
  *
- * Section 3.8 says human managed sides are never substituted automatically,
- * and a side with nobody on the bench has no reserve to bring on, so neither
- * has any use for a window or for a plan of minutes to open one in.
+ * Section 3.8 says human managed sides are never substituted automatically, a
+ * side with nobody on the bench has no reserve to bring on, and a side that
+ * has already used all five of its changes has none left to spend, so none of
+ * the three has any use for a window or for a plan of minutes to open one in.
  *
  * One definition, read by everything that needs it: the AI's window, the
  * shape keeping rule after a dismissal, the forced change after an injury and
  * the plan draw at kick off. Two copies of it could drift, and the drift would
  * be silent in the worst direction: a rule set that let an AI assisted human
  * side be substituted would open the window and find an empty plan, so the
- * feature would simply never fire.
+ * feature would simply never fire. The count gate used to be restated beside
+ * this one at every one of those call sites; folded in here, there is only one
+ * place left for it to drift from.
  */
 @SpecRef("3.8")
-internal fun canSubstitute(side: MatchSide, bench: List<MatchPlayer>): Boolean =
-    !side.isHumanManaged && bench.isNotEmpty()
+internal fun canSubstitute(
+    side: MatchSide,
+    bench: List<MatchPlayer>,
+    substitutionsUsed: Int,
+    maxPerSide: Int,
+): Boolean = !side.isHumanManaged && bench.isNotEmpty() && substitutionsUsed < maxPerSide
 
 /**
  * Whether this minute is the one that stands for the interval.

@@ -386,9 +386,9 @@ class MatchSimulationTest {
      * so an unbounded redraw against it never ends: before drawFresh was
      * capped, adding a bench to any case in this file hung the whole build with
      * no failing assertion to point at. It is capped at the width of the
-     * window now and falls back on the first free minute, so this finishes, and
-     * the double counts its own draws so that a future unbounded loop fails
-     * here rather than hanging.
+     * window squared now and falls back on the first free minute, so this
+     * finishes, and the double counts its own draws so that a future unbounded
+     * loop fails here rather than hanging.
      *
      * The assertion that a substitution actually happened is what makes this a
      * test of the bench path rather than only of termination: with every draw

@@ -12,8 +12,9 @@ import org.openfoot.model.TeamSide
  * list rather than re-deriving a timeline the engine already knew.
  *
  * Only the events the engine can currently produce are declared. Cards,
- * injuries, substitutions and goal typing arrive with the code that produces
- * them, because a case nothing can construct is a branch nothing can test.
+ * injuries and substitutions are declared below; goal typing is still
+ * outstanding and arrives with the code that produces it, because a case
+ * nothing can construct is a branch nothing can test.
  */
 @SpecRef("3.13")
 sealed interface MatchEvent {

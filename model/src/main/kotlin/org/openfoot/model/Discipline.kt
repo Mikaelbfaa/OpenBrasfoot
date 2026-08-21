@@ -103,7 +103,6 @@ data class InjuryRules(
     @property:SpecRef("3.8") val severity: List<Band<Int>>,
     @property:SpecRef("3.8") val permanentLossAge: Int,
     @property:SpecRef("3.8") val permanentLossAmount: Int,
-    @property:SpecRef("3.8") val strengthFloor: Int,
 )
 
 /**

@@ -177,7 +177,9 @@ internal fun playMatch(
  * a side that may not be substituted at all has no use for one. The condition
  * is canSubstitute, the same one runSubstitutionWindow turns a side away by
  * before it looks at the minute, called rather than restated so that the two
- * cannot drift apart. Skipping the draw therefore changes no result at all.
+ * cannot drift apart. Nobody has used a substitution yet at kick off, so the
+ * count this passes in is zero, which is simply true rather than a stand in
+ * for anything. Skipping the draw therefore changes no result at all.
  *
  * Nor can it move any other draw. Each side's plan is drawn from a stream of
  * its own, forked from the match by SUBSTITUTION_PLAN_STREAM and again by the
@@ -193,7 +195,7 @@ private fun planFor(
     rng: Rng,
     rules: RuleSet,
 ): SubstitutionPlan =
-    if (canSubstitute(side, bench)) {
+    if (canSubstitute(side, bench, substitutionsUsed = 0, maxPerSide = rules.substitutions.maxPerSide)) {
         substitutionPlan(rng, rules)
     } else {
         SubstitutionPlan.NONE

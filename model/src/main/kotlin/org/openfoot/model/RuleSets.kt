@@ -221,7 +221,6 @@ object RuleSets {
             ),
             permanentLossAge = 35,
             permanentLossAmount = 5,
-            strengthFloor = 1,
         ),
         substitutions = SubstitutionRules(
             maxPerSide = 5,
