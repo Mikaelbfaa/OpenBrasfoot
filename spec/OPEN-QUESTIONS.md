@@ -926,3 +926,31 @@ tem - então "vermelhos" no texto das sobrescritas poderia estar restrito ao mes
 Rejeitada por não ter apoio direto no texto das sobrescritas, que fala só em "vermelhos" sem qualificar
 "direto", ao contrário da regra de suspensões, que qualifica explicitamente onde quer dizer uma coisa e
 não a outra.
+
+### 40. Como se escolhe o jogador dentro de um grupo de risco
+
+A seção 3.8 diz "sorteia-se um grupo, depois um jogador aleatório dentro da faixa de slots", sem dizer
+se o segundo sorteio é sobre as células da faixa ou sobre os jogadores que de fato as ocupam. As duas
+leituras coincidem quando toda célula do grupo está ocupada, mas divergem sempre que a formação em
+campo deixa alguma vazia, o que é o caso comum: a maioria das formações usa entre onze e treze das
+vinte e cinco células.
+
+Sob uma formação 4-4-2, o grupo 0 cobre as células 10 a 13, quatro células, das quais a formação ocupa
+duas (os volantes, 11 e 13); o grupo 5 cobre 19 a 24, seis células, das quais a formação ocupa duas
+(os atacantes). Sortear a célula e descartar o evento quando ela está vazia perderia metade dos
+sorteios do grupo 0 (duas de quatro células vazias) e dois terços dos do grupo 5 (quatro de seis
+células vazias). A seção 3.16 mira "~2-3 amarelos por jogo; um vermelho a cada ~8-12 partidas; uma
+lesão a cada ~6-10 partidas por lado"; descartar metade a dois terços dos sorteios de grupos tão
+frequentes quanto g0 e g5 empurraria a taxa efetiva de eventos bem abaixo dessas figuras, sem que a
+seção 3.15 registre um defeito desse tamanho.
+
+**Resolução (INFERIDO):** sortear uniformemente entre os jogadores que ocupam as células do grupo, não
+entre as células. Um grupo sem ninguém em suas células não sorteia ninguém e o evento não acontece,
+sem consumir um sorteio da sequência aleatória. Testado em `RiskGroupTest`, teste "the victim is drawn
+among the players standing in the group's cells".
+
+**Leitura alternativa, rejeitada.** Sortear uma célula da faixa e, se ela estiver vazia, descartar o
+evento (ou sortear de novo até achar uma ocupada). A primeira variante é a que reduziria a taxa de
+eventos na aritmética acima; a segunda a preservaria, mas gastaria um número variável de sorteios por
+evento sem que a seção 3.8 descreva nenhum laço de repetição em lugar nenhum do seu texto. Nenhuma das
+duas tem apoio direto no texto, que fala em sortear "um jogador", não uma célula.
