@@ -120,6 +120,13 @@ data class InjuryRules(
  * than a when chain. A deficit is the opponent's goals minus the side's own,
  * so nought means level and one means a goal down.
  *
+ * sendingOffSacrificeMaxSlot is the cell number at or below which a dismissal
+ * costs the side a forward as well as the man himself. Section 3.8 writes it
+ * as "slot <= 13", which is the keeper, the whole defence and the holding
+ * midfield of section 3.4's own ranges, so a side that loses anybody from that
+ * part of the pitch closes the gap by taking a forward off. It is a boundary
+ * rather than a range because everything above it is left alone.
+ *
  * routinePools is a genuine rand(100) draw table and is read with pick()
  * against bound(). Section 3.8 writes it as a descending if chain, greater
  * than ninety first, and it is transcribed here in ascending order instead.
@@ -134,6 +141,7 @@ data class SubstitutionRules(
     @property:SpecRef("3.8") val maxPerSide: Int,
     @property:SpecRef("3.8") val windowOpensFrom: Int,
     @property:SpecRef("3.8") val sacrificeCells: List<IntRange>,
+    @property:SpecRef("3.8") val sendingOffSacrificeMaxSlot: Int,
     @property:SpecRef("3.8") val chasingWindow: IntRange,
     @property:SpecRef("3.8") val chasingCount: Int,
     @property:SpecRef("3.8") val extraChasingPercent: Int,

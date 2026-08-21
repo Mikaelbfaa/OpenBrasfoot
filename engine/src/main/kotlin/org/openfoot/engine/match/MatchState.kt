@@ -16,6 +16,12 @@ import org.openfoot.model.TeamSide
  * energy he has, and section 3.9 is explicit that only players on the pitch
  * are drained, so the two cannot be kept in one list.
  *
+ * The substitution plan is here too, because it is a fact about one side that
+ * the pitch does not show: the minutes that side means to make a change in,
+ * drawn once at kick off and then read by every minute of the second half.
+ * Carrying it rather than redrawing it is what makes the pools mean anything,
+ * since a plan redrawn each minute would be a per minute coin instead.
+ *
  * Every map here is ordered. An unordered map would make a match depend on
  * iteration order, which is the one thing this engine may never do.
  */
@@ -25,6 +31,7 @@ data class SideState(
     @property:SpecRef("3.9") val energy: Map<PlayerId, Int> = emptyMap(),
     @property:SpecRef("3.8") val bookings: Map<PlayerId, Int> = emptyMap(),
     @property:SpecRef("3.8") val substitutionsUsed: Int = 0,
+    @property:SpecRef("3.8") val plan: SubstitutionPlan = SubstitutionPlan.NONE,
 ) {
     companion object {
         /** Section 3.9 starts every player at a hundred. */
@@ -45,6 +52,11 @@ data class SideState(
  * That is the same shape the statistics fold already had, and it is what lets
  * a test build a state in the middle of a match and assert one minute of it
  * without playing the eighty before.
+ *
+ * The discipline counters are carried rather than counted back out of the log
+ * for the same reason goalsBy is: section 3.8 reads all three every minute to
+ * adjust that minute's thresholds, and walking the whole log each time would
+ * make a match quadratic in its own length.
  */
 @SpecRef("3.5")
 data class MatchState(
@@ -55,6 +67,7 @@ data class MatchState(
     val possessor: TeamSide,
     val homeGoals: Int = 0,
     val awayGoals: Int = 0,
+    @property:SpecRef("3.8") val counts: DisciplineCounts = DisciplineCounts(),
 ) {
     fun of(side: TeamSide): SideState = if (side == TeamSide.HOME) home else away
 
@@ -82,6 +95,14 @@ data class MatchState(
  * keyed by them and a collision would silently give two players one record.
  * This is checked once here rather than on every write, since a squad cannot
  * gain a player mid match.
+ *
+ * The two substitution plans are parameters rather than drawn here, because
+ * drawing needs a generator and this function deliberately takes none: it is
+ * the one place a state can be built by hand for a test without any
+ * randomness at all. simulateMatch draws them from the match's own stream and
+ * hands them in. They default to the empty plan, so a caller who has no
+ * generator gets a side that never substitutes of its own accord rather than
+ * one that substitutes on minutes nobody chose.
  */
 @SpecRef("3.9")
 fun initialState(
@@ -89,15 +110,21 @@ fun initialState(
     startingPossessor: TeamSide,
     homeBench: List<MatchPlayer> = emptyList(),
     awayBench: List<MatchPlayer> = emptyList(),
+    homePlan: SubstitutionPlan = SubstitutionPlan.NONE,
+    awayPlan: SubstitutionPlan = SubstitutionPlan.NONE,
 ): MatchState = MatchState(
     setup = setup,
-    home = sideState(setup.home.lineup, homeBench),
-    away = sideState(setup.away.lineup, awayBench),
+    home = sideState(setup.home.lineup, homeBench, homePlan),
+    away = sideState(setup.away.lineup, awayBench, awayPlan),
     possessor = startingPossessor,
 )
 
 @SpecRef("3.9")
-private fun sideState(onPitch: List<MatchPlayer>, bench: List<MatchPlayer>): SideState {
+private fun sideState(
+    onPitch: List<MatchPlayer>,
+    bench: List<MatchPlayer>,
+    plan: SubstitutionPlan,
+): SideState {
     val energy = LinkedHashMap<PlayerId, Int>()
     for (player in onPitch + bench) {
         require(!energy.containsKey(player.id)) {
@@ -106,7 +133,7 @@ private fun sideState(onPitch: List<MatchPlayer>, bench: List<MatchPlayer>): Sid
         }
         energy[player.id] = SideState.FULL_ENERGY
     }
-    return SideState(bench = bench, energy = energy)
+    return SideState(bench = bench, energy = energy, plan = plan)
 }
 
 /**
@@ -117,14 +144,16 @@ private fun sideState(onPitch: List<MatchPlayer>, bench: List<MatchPlayer>): Sid
  * rate collapses for both sides at once. A sending off for a second yellow
  * counts in both columns; see OPEN-QUESTIONS item 39.
  *
- * Once section 3.8's per minute roll is wired in, this will be carried on
- * MatchState rather than counted back out of the log, for the same reason
- * goalsBy already is: it is read every minute, and walking the log each time
- * would make a match quadratic in its own length.
+ * Carried on MatchState rather than counted back out of the log, for the same
+ * reason goalsBy is: minuteThresholds reads all three every minute, and
+ * walking the log each time would make a match quadratic in its own length.
+ * It stays a value of its own rather than three fields on MatchState so that
+ * minuteThresholds can still be tested without building a whole match state.
  *
- * Today it stands alone instead, a free standing value rather than a
- * MatchState property, so minuteThresholds can be tested without building a
- * match state. A later change wires it in.
+ * The three counters must agree with the log at the final whistle, and one
+ * test plays whole matches to check exactly that: a card or an injury that
+ * reaches the log without reaching a counter would quietly leave every later
+ * minute's thresholds wrong.
  */
 @SpecRef("3.8")
 data class DisciplineCounts(

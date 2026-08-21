@@ -227,6 +227,7 @@ object RuleSets {
             maxPerSide = 5,
             windowOpensFrom = 5,
             sacrificeCells = listOf(18..25, 14..17),
+            sendingOffSacrificeMaxSlot = 13,
             chasingWindow = 19..38,
             chasingCount = 2,
             extraChasingPercent = 69,

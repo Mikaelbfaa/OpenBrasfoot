@@ -46,6 +46,17 @@ mesma coisa.
 Spec: seção 3.6b, com a resolução registrada em `spec/OPEN-QUESTIONS.md`. Mantido como está: sem o
 piso, um zagueiro sofreria **mais** que nenhum, o que é pior.
 
+### Depois da primeira lesão, a taxa de cartões despenca
+
+O limiar de amarelo é sobrescrito ao longo da partida, e cada sobrescrita **apaga** a anterior em
+vez de se acumular com ela. Depois de duas expulsões ele passa a `2 x limiarVermelho`; depois de
+**uma única lesão**, passa a `5 x limiarLesão`, que é uma ordem de grandeza maior que qualquer
+limiar de amarelo da tabela. Na prática, a primeira lesão de uma partida quase encerra os cartões
+dela, para os dois times ao mesmo tempo.
+
+Spec: seção 3.8, defeito 5 da seção 3.15. Em `MODERN` as duas sobrescritas são desligadas colocando
+o gatilho de cada uma fora de alcance.
+
 ### A IA nunca é punida por defesa quebrada
 
 As regras anti-exploit acima só valem quando há clube humano na partida.
@@ -58,8 +69,6 @@ Ficam registrados aqui para quando o código chegar nessas partes.
 
 - Três dos quatro botões de tática são inertes. Formação, postura e lado do ataque são escritos e
   nunca lidos. Só a marcação faz algo, e principalmente na taxa de cartões (seção 3.12).
-- Depois da primeira lesão da partida, a taxa de cartões despenca, porque o limiar é sobrescrito
-  pelo limiar de lesão (seção 3.8).
 - A força exibida na interface usa divisão inteira e mostra zero com energia abaixo de 100
   (seção 3.15). É defeito de exibição, não do motor.
 - A multa rescisória incide em exatamente 1 dos 8 caminhos de venda, o que torna listar um jogador

@@ -186,7 +186,23 @@ data class SubstitutionPlan(
     @property:SpecRef("3.8") val chasing: List<Int>,
     @property:SpecRef("3.8") val routine: List<Int>,
     @property:SpecRef("3.8") val halfTimeSwap: Boolean,
-)
+) {
+    companion object {
+
+        /**
+         * The plan of a side that will never make a change of its own accord.
+         *
+         * It is what SideState carries by default, so that a state built by
+         * hand for a test of something else does not have to invent a plan,
+         * and so that a caller who has not drawn one cannot accidentally get
+         * a side that substitutes on minutes nobody chose. Every window of
+         * section 3.8 asks whether this minute is one of its own, and an
+         * empty plan answers no to all three.
+         */
+        @SpecRef("3.8")
+        val NONE = SubstitutionPlan(chasing = emptyList(), routine = emptyList(), halfTimeSwap = false)
+    }
+}
 
 /**
  * Draws one side's whole substitution plan.
@@ -251,18 +267,46 @@ internal fun substitutionPlan(rng: Rng, rules: RuleSet): SubstitutionPlan {
  * One minute from the window that is not already taken.
  *
  * Redraws until it lands on a free one, which is what section 3.8's "sem
- * reposicao" costs when it is written as a draw rather than as a shuffle. The
- * windows are all wider than the number of minutes taken from them, so the
- * loop always ends.
+ * reposicao" costs when it is written as a draw rather than as a shuffle.
+ *
+ * The redraws are capped and the fallback is the first free minute in scan
+ * order, so the loop is total rather than merely very likely to end. The
+ * windows are all wider than the number of minutes taken from them, so a free
+ * minute always exists; what the cap removes is the dependence on the
+ * generator eventually producing a different value, which is true of every
+ * real generator and false of a degenerate one. Without the cap a caller
+ * holding such a generator hangs the whole match instead of failing, and this
+ * is reachable from simulateMatch for any side with a bench.
+ *
+ * The cap is the width of the window squared, and the width is read off the
+ * window rather than written down, so a rule set that moves a window moves the
+ * cap with it. Reaching the fallback needs every one of the capped draws to
+ * land on a minute already taken, so its probability is the share taken raised
+ * to the cap, and the tightest window is the one where that is largest.
+ *
+ * The tightest of the windows section 3.8 draws from is lateWindow, 43 to 47,
+ * whose width is five and from which at most one minute is ever already taken.
+ * At a cap of twenty five that is one fifth to the twenty fifth, about three
+ * times ten to the minus eighteen. The narrowest routine pool, 36 to 42, gives
+ * one seventh to the forty ninth, and the chasing window of 19 to 38 gives at
+ * most two twentieths to the four hundredth. So the fallback is unreachable in
+ * practice at every draw site and exists only as the totality guarantee.
+ *
+ * A cap of the width alone would not do. It leaves the late window at one
+ * fifth to the fifth, about three in ten thousand plans, which is a real if
+ * small bias towards the earlier minutes of that window.
  */
 @SpecRef("3.8")
 private fun drawFresh(rng: Rng, window: IntRange, taken: List<Int>): Int {
-    while (true) {
+    val width = window.last - window.first + 1
+    repeat(width * width) {
         val minute = rng.randRange(window.first, window.last)
         if (minute !in taken) {
             return minute
         }
     }
+    return window.firstOrNull { it !in taken }
+        ?: throw IllegalStateException("the window $window holds no minute outside $taken")
 }
 
 /**
@@ -409,7 +453,7 @@ internal fun MatchState.runSubstitutionWindow(
     val subs = rules.substitutions
     val side = setup.side(team)
     val sideState = of(team)
-    if (side.isHumanManaged || sideState.bench.isEmpty()) {
+    if (!canSubstitute(side, sideState.bench)) {
         return this
     }
     if (sideState.substitutionsUsed >= subs.maxPerSide || clock.halfOf(minute) != Half.SECOND) {
@@ -452,12 +496,44 @@ internal fun MatchState.runSubstitutionWindow(
 }
 
 /**
- * The minute of the second half that stands for the interval.
+ * Whether the AI may substitute for this side at all, before any minute is
+ * considered.
+ *
+ * Section 3.8 says human managed sides are never substituted automatically,
+ * and a side with nobody on the bench has no reserve to bring on, so neither
+ * has any use for a window or for a plan of minutes to open one in.
+ *
+ * One definition, read by everything that needs it: the AI's window, the
+ * shape keeping rule after a dismissal, the forced change after an injury and
+ * the plan draw at kick off. Two copies of it could drift, and the drift would
+ * be silent in the worst direction: a rule set that let an AI assisted human
+ * side be substituted would open the window and find an empty plan, so the
+ * feature would simply never fire.
+ */
+@SpecRef("3.8")
+internal fun canSubstitute(side: MatchSide, bench: List<MatchPlayer>): Boolean =
+    !side.isHumanManaged && bench.isNotEmpty()
+
+/**
+ * Whether this minute is the one that stands for the interval.
  *
  * Section 3.8 gives the AI a window at the break, which no minute of play
  * occupies. The first minute of the second half is the one a per minute engine
- * can hang it on, and it is outside the chain's own gate of five minutes into
+ * can hang it on, and it is below the chain's own gate of five minutes into
  * the half, so it cannot collide with a routine minute.
+ *
+ * Read by the chain as well as by the window itself. The interval is section
+ * 3.8's own separate paragraph rather than the fourth branch of the victim
+ * chain, which is gated on the fifth minute of the half and therefore could
+ * never reach minute nought at all, so the chain has to know which minute this
+ * is in order not to gate it.
+ */
+@SpecRef("3.8")
+internal fun MatchClock.isInterval(minute: Int): Boolean =
+    halfOf(minute) == Half.SECOND && intoHalf(minute) == INTERVAL_MINUTE
+
+/**
+ * The minute of the second half that stands for the interval.
  */
 @SpecRef("3.8")
 private const val INTERVAL_MINUTE = 0

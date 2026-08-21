@@ -1,6 +1,7 @@
 package org.openfoot.engine.match
 
 import org.openfoot.model.Rng
+import org.openfoot.model.RuleSet
 import org.openfoot.model.SeedDomain
 import org.openfoot.model.SpecRef
 import org.openfoot.model.TeamSide
@@ -58,12 +59,14 @@ data class MatchReport(
  * Every minute draws from its own stream, derived from the minute index. A fork
  * depends only on the origin seed and the tag and never on how much the parent
  * has produced, so the number of draws one minute makes cannot move the next
- * one. That guarantee is about stream position only, not about the whole match
- * staying reproducible forever: section 3.8 brings sendings off, injuries and
- * substitutions, which mutate the lineup and therefore the line aggregates for
- * every later tick. Once that lands, a match recorded today will not replay
- * identically, because what a later tick's duels compare will have changed
- * even though the stream position feeding that tick has not moved at all.
+ * one. That guarantee is about stream position only, and section 3.8 is the
+ * reason it is not the whole story: a sending off, an injury or a substitution
+ * mutates the lineup, so what a later tick's duels compare changes even though
+ * the stream position feeding that tick has not moved at all. Both properties
+ * hold together. A match replays exactly from its seed, because every draw and
+ * every lineup change is a function of that seed; and a change to section 3.8
+ * moves the results of matches recorded before it, because it changes what the
+ * later ticks are comparing.
  *
  * A human sided match is not routed away here. The original sends any match
  * with a human managed club to its live viewer instead of simulating it
@@ -73,11 +76,9 @@ data class MatchReport(
  * sections 3.6b and 3.6c legitimately read MatchSetup.hasHumanSide regardless
  * of how the match was reached, so this function does not reject the case.
  *
- * The two bench parameters default to empty because nothing in this branch
- * reads a bench: no substitution exists yet to bring a player on from one.
- * They are threaded through to initialState now, rather than left for the
- * branch that adds substitutions, so that landing them changes this one call
- * site instead of every caller of simulateMatch that already exists by then.
+ * The two bench parameters default to empty. A side with an empty bench is
+ * legal and plays on with ten after a dismissal or an injury, which is what
+ * section 3.4's fixed divisors then punish; it simply never substitutes.
  */
 @SpecRef("3.1")
 fun simulateMatch(
@@ -86,6 +87,55 @@ fun simulateMatch(
     homeBench: List<MatchPlayer> = emptyList(),
     awayBench: List<MatchPlayer> = emptyList(),
 ): MatchReport {
+    val played = playMatch(setup, rng, homeBench, awayBench)
+    return MatchReport(
+        clock = played.clock,
+        log = played.state.log,
+        homeGoals = played.state.homeGoals,
+        awayGoals = played.state.awayGoals,
+        startingPossessor = played.startingPossessor,
+    )
+}
+
+/**
+ * A match as it stood at the final whistle, before anything was read out of it.
+ *
+ * MatchReport deliberately carries only what a reader of a match needs, and
+ * section 3.8's three counters are not that: they are the running totals the
+ * thresholds are adjusted by, and the log is where the events themselves are
+ * recorded. This value exists so that a test can still reach them and check
+ * that the two agree, which is the one assertion that catches a counter
+ * drifting away from the log it is supposed to summarise.
+ */
+@SpecRef("3.1")
+internal data class PlayedMatch(
+    val clock: MatchClock,
+    val startingPossessor: TeamSide,
+    val state: MatchState,
+)
+
+/**
+ * Plays the whole match and hands back the state rather than the report.
+ *
+ * The draws of a match, in the order this function makes them:
+ *
+ * 1. the starting possessor and both halves' stoppage, from SETUP_STREAM
+ * 2. each side's substitution plan, from SUBSTITUTION_PLAN_STREAM forked again
+ *    by the side's ordinal, so that the home side's plan cannot move the away
+ *    side's
+ * 3. then every minute in turn, each from its own child of the match stream
+ *
+ * Forking never consumes, so none of these can shift another. That is what
+ * lets section 3.8 be added without moving the clock or the kick off, both of
+ * which are drawn from SETUP_STREAM exactly as they were before it landed.
+ */
+@SpecRef("3.1")
+internal fun playMatch(
+    setup: MatchSetup,
+    rng: Rng,
+    homeBench: List<MatchPlayer>,
+    awayBench: List<MatchPlayer>,
+): PlayedMatch {
     val matchRng = rng.fork(SeedDomain.MATCH)
     val setupRng = matchRng.fork(SETUP_STREAM)
 
@@ -93,19 +143,61 @@ fun simulateMatch(
         if (setupRng.randRange(0, 1) == 0) TeamSide.HOME else TeamSide.AWAY
     val clock = matchClock(setupRng)
 
-    var state = initialState(setup, startingPossessor, homeBench, awayBench)
+    val planRng = matchRng.fork(SUBSTITUTION_PLAN_STREAM)
+    var state = initialState(
+        setup = setup,
+        startingPossessor = startingPossessor,
+        homeBench = homeBench,
+        awayBench = awayBench,
+        homePlan = planFor(
+            side = setup.home,
+            bench = homeBench,
+            rng = planRng.fork(TeamSide.HOME.ordinal.toLong()),
+            rules = setup.rules,
+        ),
+        awayPlan = planFor(
+            side = setup.away,
+            bench = awayBench,
+            rng = planRng.fork(TeamSide.AWAY.ordinal.toLong()),
+            rules = setup.rules,
+        ),
+    )
     for (minute in 0 until clock.totalMinutes) {
         state = playMinute(state, minute, clock, matchRng.fork(minute.toLong()))
     }
 
-    return MatchReport(
-        clock = clock,
-        log = state.log,
-        homeGoals = state.homeGoals,
-        awayGoals = state.awayGoals,
-        startingPossessor = startingPossessor,
-    )
+    return PlayedMatch(clock = clock, startingPossessor = startingPossessor, state = state)
 }
+
+/**
+ * One side's substitution plan, or the empty plan for a side that can never
+ * act on one.
+ *
+ * A plan is a list of minutes at which the AI means to bring a reserve on, so
+ * a side that may not be substituted at all has no use for one. The condition
+ * is canSubstitute, the same one runSubstitutionWindow turns a side away by
+ * before it looks at the minute, called rather than restated so that the two
+ * cannot drift apart. Skipping the draw therefore changes no result at all.
+ *
+ * Nor can it move any other draw. Each side's plan is drawn from a stream of
+ * its own, forked from the match by SUBSTITUTION_PLAN_STREAM and again by the
+ * side's ordinal, and a fork depends only on the origin seed and the tag and
+ * never on how much has been taken from a sibling. Not drawing one side's plan
+ * therefore leaves the other side's plan, every minute's chain and every
+ * minute's tick exactly where they were.
+ */
+@SpecRef("3.8")
+private fun planFor(
+    side: MatchSide,
+    bench: List<MatchPlayer>,
+    rng: Rng,
+    rules: RuleSet,
+): SubstitutionPlan =
+    if (canSubstitute(side, bench)) {
+        substitutionPlan(rng, rules)
+    } else {
+        SubstitutionPlan.NONE
+    }
 
 /**
  * One minute of a match.
@@ -114,11 +206,18 @@ fun simulateMatch(
  * happened in it, so the alternation is unconditional and lives here rather
  * than inside the tick, which reports the duel winner instead.
  *
- * The energy drain runs before the tick, matching the ordering section 3.8
- * will use for its own per minute rolls. Energy influences no probability the
- * tick reads, so draining first or after the tick cannot change this minute's
- * outcome; the ordering only matters for whichever draws later once section
- * 3.8 lands beside it.
+ * A minute is the drain, then section 3.8's roll, then the tick, which is the
+ * order section 3.8 states: it runs once per minute, before the tick of play.
+ * The drain comes first of the three because the roll reads energy, both for
+ * the tiredness scan that picks who a routine substitution takes off and for
+ * the injury duration, and section 3.9 drains the minute before either is
+ * decided.
+ *
+ * The order of the roll and the tick is what makes a card bite in the same
+ * minute it was shown: a player sent off at minute sixty is already off the
+ * pitch when that minute's duels read the line aggregates. Energy influences
+ * no probability the tick reads, so where the drain sits relative to the tick
+ * cannot change anything on its own.
  *
  * Internal rather than private so a test can hand it a state from the middle
  * of a match and assert one minute of it without playing the eighty before.
@@ -130,22 +229,22 @@ internal fun playMinute(
     clock: MatchClock,
     rng: Rng,
 ): MatchState {
-    val drained = state.drainEnergy(minute, clock)
-    val possessor = drained.possessor
+    val rolled = state.drainEnergy(minute, clock).disciplineMinute(minute, clock, rng)
+    val possessor = rolled.possessor
 
     val outcome = playTick(
-        setup = drained.setup,
+        setup = rolled.setup,
         possessor = possessor,
-        goalsScoredByPossessor = drained.goalsBy(possessor),
+        goalsScoredByPossessor = rolled.goalsBy(possessor),
         rng = rng.fork(PLAY_STREAM),
     )
 
     val scored = outcome.event == TickEvent.GOAL
-    return drained.copy(
-        log = drained.log + outcome.events(minute),
+    return rolled.copy(
+        log = rolled.log + outcome.events(minute),
         possessor = possessor.opponent,
-        homeGoals = drained.homeGoals + if (scored && possessor == TeamSide.HOME) 1 else 0,
-        awayGoals = drained.awayGoals + if (scored && possessor == TeamSide.AWAY) 1 else 0,
+        homeGoals = rolled.homeGoals + if (scored && possessor == TeamSide.HOME) 1 else 0,
+        awayGoals = rolled.awayGoals + if (scored && possessor == TeamSide.AWAY) 1 else 0,
     )
 }
 
@@ -185,25 +284,46 @@ internal fun TickOutcome.events(minute: Int): List<MatchEvent> {
  * The stream the once per match draws come from.
  *
  * Declared internal, not private, so SeedStreamsTest can assert it stays
- * distinct from PLAY_STREAM and DISCIPLINE_STREAM and outside the range a
- * minute index can reach, without needing a copy of the literal in the test.
+ * distinct from every other fixed stream and outside the range a minute index
+ * can reach, without needing a copy of the literal in the test.
+ *
+ * Section 3.8 was added without touching this one draw for draw, so the clock
+ * and the starting possessor of a match recorded before it are the clock and
+ * the starting possessor of the same match today.
  */
 @SpecRef("3.1")
 internal const val SETUP_STREAM = 0x5E7DL
 
 /**
- * Reserved for section 3.8, which rolls discipline, injury and substitution
- * once per minute, before that minute's tick.
+ * The stream section 3.8's per minute chain draws from: the victim side, the
+ * three rolls, the risk group, the player and an injury's duration.
  *
- * Declared internal rather than private so that allWarningsAsErrors does not
- * reject it as unused: Kotlin only warns on unused private declarations, and an
- * internal constant with nothing referencing it yet compiles clean. Claiming
- * the stream now, even unused, means filling it in later cannot move a single
- * draw the play stream makes, which is what keeps matches recorded today
- * reproducible tomorrow.
+ * A child of the minute's own generator, taken before the tick's. Nothing in
+ * the chain reads the play stream and nothing in the tick reads this one, so
+ * the number of draws a card costs cannot move a duel.
  */
 @SpecRef("3.8")
 internal const val DISCIPLINE_STREAM = 0xD15CL
+
+/**
+ * The stream each side's substitution plan is drawn from, once per match.
+ *
+ * Forked off the match generator rather than off a minute's, because the plan
+ * is drawn at kick off and read by every minute of the second half, and forked
+ * again by the side's ordinal so that the two sides' plans are independent.
+ */
+@SpecRef("3.8")
+internal const val SUBSTITUTION_PLAN_STREAM = 0x5B1AL
+
+/**
+ * The stream a minute's substitution windows draw from, one child per side.
+ *
+ * A sibling of DISCIPLINE_STREAM under the same minute rather than a child of
+ * it, so that a minute in which the chain fired and a minute in which it did
+ * not leave the other's draws exactly where they were.
+ */
+@SpecRef("3.8")
+internal const val SUBSTITUTION_STREAM = 0x5BEDL
 
 /**
  * The stream one tick draws from.
