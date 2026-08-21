@@ -954,3 +954,180 @@ evento (ou sortear de novo até achar uma ocupada). A primeira variante é a que
 eventos na aritmética acima; a segunda a preservaria, mas gastaria um número variável de sorteios por
 evento sem que a seção 3.8 descreva nenhum laço de repetição em lugar nenhum do seu texto. Nenhuma das
 duas tem apoio direto no texto, que fala em sortear "um jogador", não uma célula.
+
+### 41. Quem entra na vaga do goleiro quando não há goleiro no banco
+
+A seção 3.8 diz que o lesionado "sai e é substituído (com regra que impede preencher a vaga do
+goleiro com não-goleiro)", mas não diz o que acontece quando o banco não tem goleiro nenhum. A regra
+proíbe o preenchimento; ela não diz se a vaga fica vazia, se a proibição cai por falta de
+alternativa, ou se algum jogador de linha é promovido ao gol.
+
+A aritmética das duas leituras não é próxima. Pela 3.4, um time sem ninguém na célula 1 joga com o
+agregado de goleiro fixado em **0,1**. Pela 5.3, um jogador de linha no gol sofre o x0,5 da nota
+inteira **e** tem o agregado reduzido a `round(GK x 0,2)`: um jogador de 70 de força vale 7,0, cai
+para 3,5 pelo x0,5 e para **0,7** pelo x0,2. Ou seja, a leitura que promove um jogador de linha dá ao
+time um goleiro **sete vezes** melhor que a leitura que deixa a célula vazia, e as duas produzem
+partidas visivelmente diferentes sempre que um goleiro se machuca com o banco já sem goleiro.
+
+**Resolução (INFERIDO):** a vaga fica vazia. O filtro de `chooseReplacement` é aplicado antes da
+busca da 5.4 e não depois: quando a célula é a do goleiro, só goleiros são oferecidos, e um banco sem
+goleiro oferece uma lista vazia, que não chega nem ao preenchimento final do item 35. O time passa a
+jogar com dez e com o `missingKeeperRating` de 0,1 da 3.4. É a leitura literal do texto, que escreve
+a regra como uma proibição sem exceção, e é a única que mantém a proibição com algum efeito: se ela
+caísse por falta de alternativa, ela nunca mudaria nada, porque só existe para o caso em que não há
+goleiro sobrando. Testado em `SubstitutionTest`, teste "only a keeper may take the keeper's cell".
+
+**Leitura alternativa, rejeitada.** A regra proíbe apenas o preenchimento **automático**, e um
+treinador humano poria um jogador de linha no gol; o motor faria o mesmo por ele, aplicando o x0,5 e
+o x0,2 da 5.3. É o que um time de verdade faz, e a 5.3 se dá o trabalho de descrever exatamente esse
+caso, o que sugere que ele acontece em algum lugar do jogo. Rejeitada porque a 5.3 descreve o caso da
+escalação manual, onde a tela "não faz nenhuma checagem de legalidade posicional" e o humano pode
+escalar onze atacantes; a 3.8 fala da substituição da IA, e ali o texto é uma proibição sem
+qualificação. Note que a leitura rejeitada é a mais generosa das duas: adotá-la mais tarde só melhora
+o time afetado.
+
+### 42. Os pools de minutos estáticos e compartilhados do item 8 da 3.15
+
+O item 8 da 3.15 registra que "os pools de minutos de substituição são estáticos/compartilhados,
+re-embaralhados por partida", com a consequência de que "partidas consecutivas sorteiam minutos
+correlacionados". É um defeito nomeado do original, e todo defeito nomeado daquela lista foi até aqui
+reproduzido sob CLASSIC e, quando muito, corrigido sob MODERN.
+
+**Resolução (INFERIDO):** este motor **não reproduz o item 8 sob nenhum dos dois conjuntos de
+regras**. `substitutionPlan` sorteia um plano novo por time e por partida, de um gerador derivado da
+semente daquela partida, e nada é compartilhado entre partidas. Isto é uma **divergência deliberada
+do CLASSIC**, e não uma omissão: é o único ponto em que este projeto se recusa a copiar um defeito
+nomeado.
+
+O motivo é que o defeito não é um número errado, é estado global mutável. "Estático/compartilhado"
+quer dizer que os pools vivem fora da partida e guardam a ordem em que a partida anterior os deixou;
+"correlacionados" é o nome que o item dá ao efeito disso. Reproduzir isso faria o resultado de uma
+partida depender de **quais partidas rodaram antes dela**, o que destrói a única propriedade sobre a
+qual o projeto inteiro é construído: a de que uma carreira se repete a partir da sua semente e a de
+que uma partida pode ser re-simulada sozinha, sem simular tudo o que veio antes. A `simulateMatch` é
+explícita quanto a isso, e o `ArchitectureTest` proíbe as construções que permitiriam o
+compartilhamento. Uma rodada de 380 partidas rodada em paralelo e a mesma rodada em série dariam
+tabelas diferentes.
+
+O custo da divergência é pequeno e mensurável na direção certa: sob o item 8, os minutos de dois
+jogos seguidos são correlacionados, mas cada plano isolado continua saindo das mesmas faixas e com as
+mesmas probabilidades que a 3.8 publica. Ou seja, a **distribuição** de um plano é a mesma nas duas
+leituras; o que se perde é só a correlação entre partidas vizinhas, que nenhuma figura da 3.16 mede e
+de que nenhum comportamento observável do jogo depende.
+
+**Leitura alternativa, rejeitada.** Reproduzir o compartilhamento sob CLASSIC, por exemplo com um
+pool por carreira reembaralhado a cada partida, e corrigi-lo sob MODERN. Rejeitada pelo parágrafo
+acima: seria o primeiro caso em que reproduzir a fidelidade custa a reprodutibilidade, e a
+reprodutibilidade é condição de todo o resto, inclusive de conseguir comparar CLASSIC com o original.
+
+### 43. Para qual dos dois times a janela de substituição abre
+
+A 3.8 escreve a resolução do minuto como uma cadeia única: "o primeiro que casar: amarelo -> vermelho
+-> lesão -> (se 2º tempo e minuto >= 5) janela de substituição da IA". A cadeia inteira roda sobre o
+**time-vítima**, sorteado no início do minuto com `rand(100) > 55`. Lida à letra, a janela abriria só
+para o time que aquele sorteio escolheu.
+
+Isso não combina com o parágrafo seguinte da mesma seção, que diz que **cada time sorteia seus
+minutos**. Sob a leitura literal, o minuto que um time sorteou para si só dispara quando ele também é
+a vítima daquele minuto, ou seja em 44% dos casos para o mandante e 56% para o visitante.
+
+A aritmética: um plano tem em média `2 + 0,69 = 2,69` minutos de "correndo atrás", `2 + 0,79 + 0,49 =
+3,28` de rotina, e mais a janela do intervalo, cerca de **7 oportunidades por time por partida**. Sob
+a leitura literal sobram ~3,1 para o mandante e ~3,9 para o visitante, antes ainda de descontar os
+minutos em que a cadeia parou num cartão ou numa lesão e os minutos em que o placar não pede troca.
+Metade de cada plano ficaria morta, e o time da casa trocaria **menos** que o visitante por um efeito
+colateral do viés de arbitragem, que a 3.8 não relaciona com substituição em lugar nenhum.
+
+Há ainda um argumento estrutural: a própria 3.8 já tem uma janela de substituição fora da cadeia, a
+do intervalo, que nenhum sorteio de vítima poderia governar, porque não há minuto de jogo no
+intervalo. Se a janela do intervalo abre para os dois times independentemente, a das outras duas
+também abre.
+
+**Resolução (INFERIDO):** a janela abre para **os dois times, independentemente**, em todo minuto
+cuja cadeia disciplinar não produziu cartão nem lesão. A posição da janela na cadeia é lida como
+"depois de resolvida a disciplina do minuto", e não como "sobre o time-vítima". A janela do intervalo
+é pendurada no **primeiro minuto do segundo tempo**, que é o único minuto que um motor minuto a
+minuto tem para representar o intervalo, e fica fora do portão de "minuto >= 5" da própria cadeia,
+então não colide com nenhum minuto de rotina, cujo pool mais cedo começa justamente em 5. Testado em
+`SubstitutionWindowTest`.
+
+**Leitura alternativa, rejeitada.** A janela abre só para o time-vítima do minuto. É a leitura
+literal da cadeia e tem a seu favor a economia de sortear a vítima uma vez só. Rejeitada pela
+aritmética acima: ela mata metade dos planos, cria uma assimetria mandante/visitante que a seção não
+descreve, e não consegue explicar a janela do intervalo, que existe sem vítima nenhuma.
+
+### 44. Quem sai no intervalo e num minuto de "correndo atrás"
+
+A 3.8 descreve as três janelas em três frases seguidas: "No intervalo: se perde por >=1 (mandante) /
+>=2 (visitante), 50% de chance de **troca aleatória**. Em minuto 'correndo atrás': mandante **troca**
+se perde ou empata; visitante só se perde. Em minuto de rotina: **troca por cansaço** - primeiro
+não-goleiro com energia < 60". A primeira janela qualifica a troca de aleatória, a terceira a
+qualifica de por cansaço, e a do meio não qualifica nada: só diz "troca".
+
+**Resolução (INFERIDO):** no intervalo e no minuto de "correndo atrás" sai um **jogador de linha
+aleatório**, e entra o reserva mais adequado à célula que ele deixou; no minuto de rotina sai o
+primeiro que a varredura de cansaço achar. O "aleatória" da primeira frase é lido como o padrão das
+janelas de placar, e o "troca" pelado da segunda como a mesma coisa dita de forma abreviada na frase
+imediatamente seguinte; a terceira frase é a que **sobrescreve** esse padrão, e por isso é a única
+que descreve um critério de escolha. O goleiro fica de fora do sorteio: um time não responde a um
+placar adverso trocando o goleiro, e a varredura de cansaço da terceira frase também o exclui
+explicitamente, então excluí-lo aqui mantém as três janelas coerentes entre si. Testado em
+`SubstitutionWindowTest`, testes "a chasing minute changes a drawn outfielder" e "a routine minute
+changes the tired man for the reserve his cell suits".
+
+**Leitura alternativa, rejeitada.** O "troca" pelado do minuto de "correndo atrás" herda o critério
+da frase seguinte, e não o da anterior, ou seja é também uma troca por cansaço. A favor dela: um time
+que está perdendo trocar um jogador ao acaso é comportamento estranho, e herdar o critério de cansaço
+tornaria a segunda e a terceira janelas idênticas em tudo menos no gatilho. Rejeitada porque tornar
+duas janelas idênticas em tudo menos no gatilho é justamente o que faria a 3.8 não precisar
+descrevê-las separadamente, e porque a frase que qualifica a troca de aleatória vem **antes** da
+frase pelada, o que faz do "aleatória" o padrão e do "por cansaço" a exceção, e não o contrário.
+
+### 45. Em que posição da lista o substituto entra
+
+A 3.8 diz que o substituído "sai" e que o reserva "põe-se no slot vago", sem dizer nada sobre a
+**ordem da lista** em que os dois vivem. A ordem não é decorativa: a 3.4 monta cada agregado de linha
+pegando os **primeiros N** jogadores da lista cujas células caem na faixa daquela linha, e não os N
+melhores. Duas leituras cabem no texto: acrescentar o que entra ao fim da lista, ou colocá-lo no
+índice que o que saiu ocupava.
+
+As duas coincidem enquanto a linha não estiver superlotada, isto é enquanto a quantidade de jogadores
+nas células daquela linha for menor ou igual ao `take` dela. Divergem assim que passar disso, porque
+aí o último da fila é ignorado, e qual jogador é o último depende da leitura.
+
+**A aritmética, sobre uma escalação concreta.** Meio-campo: faixa 10-17, `take` 5, divisor fixo 5. Uma
+escalação manual com **seis** meias, na ordem em que a tela a produz - `1, 22, 24, 10, 11, 12, 13, 14,
+15, 2, 9` - tem os meias 10, 11, 12, 13, 14 e 15. Todos valem 50 de força, salvo o da célula 15, que
+vale 20; o reserva que vai entrar vale 80. Com atributos individuais desligados a nota de cada um é a
+força dividida por dez (3.3), e o bônus de marcação entra igual nas duas leituras, então some.
+
+- Antes da troca, contam 10, 11, 12, 13 e 14: `(5,0 x 5) / 5 = 5,0`. O meia da célula 15 é o sexto e
+  já é ignorado.
+- O meia da célula 11 se machuca. **Acrescentando ao fim**, a lista fica `1, 22, 24, 10, 12, 13, 14,
+  15, 2, 9, sub@11`, e os cinco primeiros meias são 10, 12, 13, 14 e **15**:
+  `(5,0 + 5,0 + 5,0 + 5,0 + 2,0) / 5 = 4,4`. **O reserva de 80 não entra em conta nenhuma.**
+- **Colocando no índice vago**, a lista fica `1, 22, 24, 10, sub@11, 12, 13, 14, 15, 2, 9`, e os cinco
+  primeiros meias são 10, o substituto, 12, 13 e 14: `(5,0 + 8,0 + 5,0 + 5,0 + 5,0) / 5 = **5,6**`.
+
+4,4 contra 5,6: 1,2 de diferença em unidades de `B()`, sobre uma alavanca que a 3.16 mede em 2,0 para
+levar o duelo de posse de 55% para ~69%. Não é arredondamento.
+
+**Alcance.** Nenhuma das doze formações da 5.1 chega a essa forma: a mais carregada põe cinco
+jogadores na defesa (`take` 5), cinco no meio (`take` 5) e três no ataque (`take` 3), nunca mais que o
+`take`. Ou seja, com escalação automática a escolha é hoje **inobservável**. Ela só aparece na tela
+manual, que a 5.4 descreve como aceitando qualquer forma - "seis zagueiros ou onze atacantes são
+aceitos" - e apareceria também no dia em que uma formação nova passasse do `take` de alguma linha.
+
+**Resolução (INFERIDO):** acrescentar ao fim. É o que o array de elenco do original faz: lá a
+escalação é uma varredura do elenco, uma substituição troca dois números de slot e não move ninguém no
+array, e o índice de um reserva no elenco fica **acima** do dos titulares, então ele é varrido depois
+de todos eles. Reproduzir isso é acrescentar ao fim. Os sobreviventes mantêm a ordem que tinham nas
+duas leituras, que é a parte que a 3.4 não sobrevive a perder. Está dito na docstring de `substitute`.
+
+**Leitura alternativa, rejeitada.** Colocar o substituto no índice que o substituído ocupava. A favor
+dela: ele está exatamente na célula que o outro deixou, então manter a posição mantém a lista em ordem
+de formação, e é a única leitura em que uma substituição nunca muda **quais** jogadores uma linha
+conta - só as notas deles. Contra: ela descreve uma lista de escalação como estrutura própria, e no
+original não existe tal lista; existe o array de elenco, e nele o reserva não tem como aparecer antes
+de um titular. Rejeitada por isso, e não por ser pior: no exemplo acima ela é o resultado mais
+sensato dos dois, e é ela que um reimplementador que não se importe com fidelidade deveria escolher.

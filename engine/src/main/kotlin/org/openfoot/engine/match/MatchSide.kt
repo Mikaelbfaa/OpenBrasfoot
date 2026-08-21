@@ -99,6 +99,27 @@ class MatchSide(
 }
 
 /**
+ * The same side with a different eleven on the pitch.
+ *
+ * MatchSide is not a data class, because the abilities array on a player would
+ * break value equality, so there is no copy to lean on and every other field
+ * has to be carried across by hand. That is why this sits immediately below
+ * the constructor it mirrors: a field added to one and forgotten in the other
+ * would silently reset itself the first time somebody was sent off.
+ *
+ * The caller owns the order of the list it hands in. Section 3.4 walks the
+ * lineup in order and takes the first N that qualify for a line, so nothing
+ * here sorts, filters or otherwise touches it.
+ */
+@SpecRef("3.4")
+fun MatchSide.withLineup(lineup: List<MatchPlayer>): MatchSide = MatchSide(
+    lineup = lineup,
+    marking = marking,
+    context = context,
+    isHumanManaged = isHumanManaged,
+)
+
+/**
  * The two sides as they stand this minute, plus the season and the rules.
  *
  * This used to be the part of a match that could not change. It is now the
@@ -127,3 +148,19 @@ class MatchSetup(
     fun advantageFor(possessor: TeamSide): HomeAdvantage =
         HomeAdvantage.of(possessor, isNeutralGround)
 }
+
+/**
+ * The same setup with one of the two sides replaced.
+ *
+ * MatchSetup is not a data class either, for the same reason MatchSide is not:
+ * it carries one, and value equality would reach the abilities array through
+ * it. Kept directly below the constructor it mirrors so that the two are read
+ * together.
+ */
+@SpecRef("3.5")
+fun MatchSetup.with(team: TeamSide, side: MatchSide): MatchSetup = MatchSetup(
+    home = if (team == TeamSide.HOME) side else home,
+    away = if (team == TeamSide.AWAY) side else away,
+    season = season,
+    rules = rules,
+)

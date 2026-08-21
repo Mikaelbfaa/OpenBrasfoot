@@ -105,3 +105,57 @@ data class InjuryRules(
     @property:SpecRef("3.8") val permanentLossAmount: Int,
     @property:SpecRef("3.8") val strengthFloor: Int,
 )
+
+/**
+ * Everything section 3.8's substitutions read that no rule set changes.
+ *
+ * Grouped like DisciplineRates above and for the same reason: none of it is a
+ * lever, and the two rule sets carry identical values here. Section 3.15 names
+ * no defect anywhere in the substitution block, so there is nothing for a
+ * MODERN delta to repair.
+ *
+ * The two deficit tables are indexed by TeamSide.ordinal, like
+ * RuleSet.markingBonus is indexed by Marking.ordinal, so that the one place
+ * section 3.8 holds the two sides to different standards stays a table rather
+ * than a when chain. A deficit is the opponent's goals minus the side's own,
+ * so nought means level and one means a goal down.
+ *
+ * routinePools is a genuine rand(100) draw table and is read with pick()
+ * against bound(). Section 3.8 writes it as a descending if chain, greater
+ * than ninety first, and it is transcribed here in ascending order instead.
+ * That is safe only because the three bands are disjoint, unlike
+ * InjuryRules.severity, whose overlapping bands make its order load bearing:
+ * reversing a disjoint chain cannot change which band a draw lands in, and
+ * ascending order is what lets bound() report a hundred rather than the fifty
+ * one a descending list would.
+ */
+@SpecRef("3.8")
+data class SubstitutionRules(
+    @property:SpecRef("3.8") val maxPerSide: Int,
+    @property:SpecRef("3.8") val windowOpensFrom: Int,
+    @property:SpecRef("3.8") val sacrificeCells: List<IntRange>,
+    @property:SpecRef("3.8") val chasingWindow: IntRange,
+    @property:SpecRef("3.8") val chasingCount: Int,
+    @property:SpecRef("3.8") val extraChasingPercent: Int,
+    @property:SpecRef("3.8") val routinePools: List<Band<IntRange>>,
+    @property:SpecRef("3.8") val routineCount: Int,
+    @property:SpecRef("3.8") val lateWindow: IntRange,
+    @property:SpecRef("3.8") val lateChancePercents: List<Int>,
+    @property:SpecRef("3.8") val halfTimeSwapPercent: Int,
+    @property:SpecRef("3.8") val halfTimeDeficit: List<Int>,
+    @property:SpecRef("3.8") val chasingDeficit: List<Int>,
+    @property:SpecRef("3.8") val tirednessThreshold: Int,
+    @property:SpecRef("3.8") val lateTirednessThreshold: Int,
+    @property:SpecRef("3.8") val lateTirednessFromMinute: Int,
+) {
+    /**
+     * How far behind the side has to be at the interval before it considers a
+     * change, and how far behind on a chasing minute. Both read the same way,
+     * a deficit at or above the figure, which is what lets the chasing rule's
+     * "loses or draws" for the home side be the nought of a table rather than
+     * a second comparison of its own.
+     */
+    fun halfTimeDeficitFor(team: TeamSide): Int = halfTimeDeficit[team.ordinal]
+
+    fun chasingDeficitFor(team: TeamSide): Int = chasingDeficit[team.ordinal]
+}

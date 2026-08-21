@@ -109,6 +109,7 @@ data class RuleSet(
 
     @property:SpecRef("3.8") val discipline: DisciplineRates,
     @property:SpecRef("3.8") val injuryRules: InjuryRules,
+    @property:SpecRef("3.8") val substitutions: SubstitutionRules,
     @property:SpecRef("3.15") val manyYellowsAtLeast: Int,
     @property:SpecRef("3.15") val manyYellowsFactor: Int,
     @property:SpecRef("3.15") val manyRedsAtLeast: Int,
